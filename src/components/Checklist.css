@@ -1,9 +1,9 @@
 .checklist {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
 }
 
+/* Spacing comes from .sticky-top so the bar stays opaque while scrolling. */
 .checklist__add {
   display: flex;
 }
@@ -58,7 +58,7 @@
 }
 
 .checklist__empty {
-  margin: clamp(1.5rem, 6vh, 3rem) 0;
+  margin: clamp(1.5rem, 6vh, 3rem) 0 0;
   font-size: 0.8125rem;
   text-align: center;
   text-wrap: balance;
@@ -151,6 +151,7 @@
 
 .checklist__footer {
   display: flex;
+  margin-top: 0.75rem;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;

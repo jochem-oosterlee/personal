@@ -1,7 +1,9 @@
+/* No sticky control here, so it carries the top spacing itself. */
 .settings {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  padding-top: 0.75rem;
 }
 
 .settings__group {

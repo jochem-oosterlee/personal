@@ -67,7 +67,7 @@ export function Checklist({
 
   return (
     <div className="checklist">
-      <form className="checklist__add" onSubmit={addItem}>
+      <form className="checklist__add sticky-top" onSubmit={addItem}>
         <input
           ref={inputRef}
           className="checklist__input"

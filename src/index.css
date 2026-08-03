@@ -69,6 +69,19 @@ button {
   touch-action: manipulation;
 }
 
+/*
+ * Pins a module's add-control to the top of the scroll area. The vertical
+ * padding is part of the sticky block so its background keeps covering the
+ * rows that slide underneath it.
+ */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-block: 0.75rem;
+  background: var(--bg);
+}
+
 /* Small caps-ish label used for section headings and the page title. */
 .micro {
   font-size: 0.6875rem;

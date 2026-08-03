@@ -36,10 +36,12 @@ export function Notes() {
 
   return (
     <div className="notes">
-      <button className="notes__add" type="button" onClick={addNote}>
-        <Plus size={15} strokeWidth={1.5} aria-hidden="true" />
-        Nieuwe notitie
-      </button>
+      <div className="notes__bar sticky-top">
+        <button className="notes__add" type="button" onClick={addNote}>
+          <Plus size={15} strokeWidth={1.5} aria-hidden="true" />
+          Nieuwe notitie
+        </button>
+      </div>
 
       {notes.length === 0 ? (
         <p className="notes__empty">Nog geen notities.</p>

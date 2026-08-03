@@ -1,11 +1,16 @@
 .notes {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+}
+
+/* Spacing comes from .sticky-top so the bar stays opaque while scrolling. */
+.notes__bar {
+  display: flex;
 }
 
 .notes__add {
   display: flex;
+  flex: 1;
   align-items: center;
   justify-content: center;
   gap: 0.4375rem;
@@ -31,7 +36,7 @@
 }
 
 .notes__empty {
-  margin: clamp(1.5rem, 6vh, 3rem) 0;
+  margin: clamp(1.5rem, 6vh, 3rem) 0 0;
   font-size: 0.8125rem;
   text-align: center;
   color: var(--text-faint);
