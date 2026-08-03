@@ -1,0 +1,106 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100dvh;
+  max-width: 34rem;
+  margin: 0 auto;
+  background: var(--bg);
+}
+
+.app__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: max(0.75rem, env(safe-area-inset-top)) var(--gutter) 0.75rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.app__title {
+  margin: 0;
+  font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.5rem);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.app__main {
+  flex: 1;
+  padding: var(--gutter) var(--gutter)
+    calc(var(--gutter) + 0.5rem + env(safe-area-inset-bottom));
+}
+
+.app__nav {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.tab {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: var(--tap);
+  padding: 0.5rem 0.25rem;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.tab--active {
+  color: var(--accent);
+}
+
+.tab__icon {
+  font-size: 1.25rem;
+}
+
+/* Short landscape viewports: a sticky header eats too much of the fold. */
+@media (max-height: 26rem) and (orientation: landscape) {
+  .app__header {
+    position: static;
+    padding-block: 0.5rem;
+  }
+}
+
+@media (min-width: 48rem) {
+  .app {
+    min-height: auto;
+    max-height: calc(100dvh - 2 * clamp(1rem, 4vh, 2.5rem));
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 32px -12px rgb(0 0 0 / 0.12);
+  }
+
+  /* The card scrolls internally, so viewport-sticky is neither needed nor
+     reliable inside a rounded, clipped container. */
+  .app__header {
+    position: static;
+    border-radius: 1rem 1rem 0 0;
+  }
+
+  .app__main {
+    overflow-y: auto;
+  }
+
+  .app__nav {
+    position: static;
+    border-radius: 0 0 1rem 1rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .app {
+    max-width: 38rem;
+  }
+}

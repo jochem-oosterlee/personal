@@ -1,0 +1,75 @@
+:root {
+  --bg: #ffffff;
+  --bg-deep: #eef0f3;
+  --surface: #f7f7f8;
+  --surface-hover: #ecedef;
+  --border: #e2e3e6;
+  --text: #16181d;
+  --text-muted: #6b7280;
+  --accent: #2563eb;
+  --accent-text: #ffffff;
+  --danger: #dc2626;
+
+  /* Nudges up on large screens so the app does not look shrunken there. */
+  --font-size: clamp(1rem, 0.94rem + 0.25vw, 1.0625rem);
+  --gutter: clamp(0.75rem, 0.45rem + 1.5vw, 1.25rem);
+  --tap: 2.75rem;
+
+  font: var(--font-size) / 1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101215;
+    --bg-deep: #08090b;
+    --surface: #1a1d22;
+    --surface-hover: #23272e;
+    --border: #2b2f36;
+    --text: #e8eaed;
+    --text-muted: #949aa4;
+    --accent: #60a5fa;
+    --accent-text: #0b1220;
+    --danger: #f87171;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  /* Stop the whole page from rubber-banding when installed on iOS. */
+  overscroll-behavior-y: none;
+}
+
+h1 {
+  color: var(--text);
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+:where(button, input):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* From tablet up the app reads as a card on a backdrop instead of a
+   full-bleed column stranded in the middle of a wide screen. */
+@media (min-width: 48rem) {
+  body {
+    display: flex;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: clamp(1rem, 4vh, 2.5rem) 1rem;
+    background: var(--bg-deep);
+  }
+}
