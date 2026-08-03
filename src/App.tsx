@@ -44,7 +44,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app__header">
-        <h1 className="app__title">{active.title}</h1>
+        <h1 className="app__title micro">{active.title}</h1>
       </header>
 
       <main className="app__main">
@@ -60,7 +60,7 @@ export default function App() {
             aria-current={id === activeId ? 'page' : undefined}
             onClick={() => setActiveId(id)}
           >
-            <Icon size={19} strokeWidth={id === activeId ? 2.3 : 1.8} />
+            <Icon size={18} strokeWidth={id === activeId ? 1.6 : 1.25} />
             <span className="tab__label">{title}</span>
           </button>
         ))}

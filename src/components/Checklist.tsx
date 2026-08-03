@@ -85,7 +85,7 @@ export function Checklist({
           disabled={!draft.trim()}
           aria-label={addLabel}
         >
-          <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
+          <Plus size={17} strokeWidth={1.5} aria-hidden="true" />
         </button>
       </form>
 
@@ -104,7 +104,7 @@ export function Checklist({
                     onChange={() => toggleItem(item.id)}
                   />
                   <span className="row__box" aria-hidden="true">
-                    <Check size={12} strokeWidth={3.5} />
+                    <Check size={11} strokeWidth={2.5} />
                   </span>
                   <span className="row__name">{item.name}</span>
                 </label>
@@ -114,7 +114,7 @@ export function Checklist({
                   onClick={() => removeItem(item.id)}
                   aria-label={`${item.name} verwijderen`}
                 >
-                  <X size={15} aria-hidden="true" />
+                  <X size={14} strokeWidth={1.4} aria-hidden="true" />
                 </button>
               </li>
             ))}

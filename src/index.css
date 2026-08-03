@@ -1,24 +1,33 @@
-:root {
-  --bg: #ffffff;
-  --bg-deep: #eef0f3;
-  --surface: #f4f5f7;
-  --surface-hover: #e9ebee;
-  --border: #e2e4e8;
-  --border-strong: #c3c7ce;
-  --text: #16181d;
-  --text-muted: #6b7280;
-  --text-faint: #a3a9b3;
-  --accent: #2563eb;
-  --accent-text: #ffffff;
-  --danger: #dc2626;
+/* Only the latin subset is referenced, so one file covers Dutch. */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2')
+    format('woff2');
+}
 
-  /* Nudges up on large screens so the app does not look shrunken there. */
-  --font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
-  --gutter: clamp(0.625rem, 0.4rem + 1vw, 1rem);
-  --control-h: 2.375rem;
+:root {
+  --bg: #f6f1e7;
+  --bg-deep: #e9e2d3;
+  --surface: #f1eade;
+  --line: #ddd3c0;
+  --line-strong: #bcae94;
+  --text: #2b2620;
+  --text-muted: #7d735f;
+  --text-faint: #a99d86;
+  --accent: #9a5b32;
+  --accent-text: #f6f1e7;
+  --danger: #a33a2a;
+
+  --font-size: clamp(0.875rem, 0.85rem + 0.12vw, 0.9375rem);
+  --gutter: clamp(0.75rem, 0.5rem + 1vw, 1.125rem);
+  --control-h: 2.25rem;
   --row-h: 2.125rem;
 
-  font: var(--font-size) / 1.45 system-ui, 'Segoe UI', Roboto, sans-serif;
+  font: var(--font-size) / 1.45 'JetBrains Mono', ui-monospace, 'Cascadia Mono',
+    Consolas, monospace;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -26,18 +35,17 @@
 
 /* useTheme() resolves "system" and pins the result here before first paint. */
 :root[data-theme='dark'] {
-  --bg: #101215;
-  --bg-deep: #08090b;
-  --surface: #1a1d22;
-  --surface-hover: #23272e;
-  --border: #2b2f36;
-  --border-strong: #464c56;
-  --text: #e8eaed;
-  --text-muted: #949aa4;
-  --text-faint: #6b7280;
-  --accent: #60a5fa;
-  --accent-text: #0b1220;
-  --danger: #f87171;
+  --bg: #15130f;
+  --bg-deep: #0b0a08;
+  --surface: #1c1a15;
+  --line: #322d24;
+  --line-strong: #4f4838;
+  --text: #ebe4d6;
+  --text-muted: #968d7b;
+  --text-faint: #6a6355;
+  --accent: #d08e5f;
+  --accent-text: #15130f;
+  --danger: #d97a63;
 }
 
 * {
@@ -52,8 +60,8 @@ body {
 }
 
 :where(button, input, textarea):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
 }
 
 button {
@@ -61,8 +69,16 @@ button {
   touch-action: manipulation;
 }
 
-/* From tablet up the app reads as a card on a backdrop instead of a
-   full-bleed column stranded in the middle of a wide screen. */
+/* Small caps-ish label used for section headings and the page title. */
+.micro {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+/* From tablet up the app reads as a framed sheet instead of a full-bleed
+   column stranded in the middle of a wide screen. */
 @media (min-width: 48rem) {
   body {
     display: flex;

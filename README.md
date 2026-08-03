@@ -57,6 +57,19 @@ Exporteren en wissen kan via Instellingen.
 `usePersistentState` houdt hooks op dezelfde sleutel binnen één document
 gesynchroniseerd, en luistert op `storage` voor andere tabs.
 
+## Vormgeving
+
+Minimaal: zandkleurig palet, hairlines in plaats van vlakken en schaduwen,
+geen afgeronde hoeken. Alle kleuren zijn custom properties in
+[src/index.css](src/index.css); licht en donker verschillen alleen in die
+waarden.
+
+Font is JetBrains Mono, self-hosted via `@fontsource-variable/jetbrains-mono`.
+Alleen de latin-subset wordt aangehaald (één variabel woff2 van ~40 kB), zodat
+de service worker het kan precachen en de app offline hetzelfde oogt.
+
+Iconen komen uit `lucide-react` met een dunne `strokeWidth`.
+
 ## Icons
 
 Gegenereerd uit [public/favicon.svg](public/favicon.svg):

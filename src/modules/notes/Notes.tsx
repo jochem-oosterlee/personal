@@ -37,7 +37,7 @@ export function Notes() {
   return (
     <div className="notes">
       <button className="notes__add" type="button" onClick={addNote}>
-        <Plus size={16} strokeWidth={2.5} aria-hidden="true" />
+        <Plus size={15} strokeWidth={1.5} aria-hidden="true" />
         Nieuwe notitie
       </button>
 
@@ -58,7 +58,7 @@ export function Notes() {
                 onClick={() => removeNote(note.id)}
                 aria-label="Notitie verwijderen"
               >
-                <Trash2 size={14} aria-hidden="true" />
+                <Trash2 size={13} strokeWidth={1.4} aria-hidden="true" />
               </button>
             </li>
           ))}

@@ -41,7 +41,7 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
   return (
     <div className="settings">
       <section className="settings__group">
-        <h2 className="settings__heading">Thema</h2>
+        <h2 className="settings__heading micro">Thema</h2>
         <div className="segmented" role="group" aria-label="Thema">
           {THEMES.map(({ value, label, Icon }) => (
             <button
@@ -51,7 +51,7 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
               aria-pressed={value === theme}
               onClick={() => onThemeChange(value)}
             >
-              <Icon size={15} aria-hidden="true" />
+              <Icon size={14} strokeWidth={1.4} aria-hidden="true" />
               {label}
             </button>
           ))}
@@ -59,14 +59,14 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
       </section>
 
       <section className="settings__group">
-        <h2 className="settings__heading">Gegevens</h2>
+        <h2 className="settings__heading micro">Gegevens</h2>
         <p className="settings__note">
           {storageKeys().length} sleutel(s) opgeslagen op dit apparaat. Er is geen
           backend — niets wordt gesynchroniseerd.
         </p>
 
         <button className="settings__action" type="button" onClick={exportData}>
-          <Download size={15} aria-hidden="true" />
+          <Download size={14} strokeWidth={1.4} aria-hidden="true" />
           Exporteer als JSON
         </button>
 
@@ -96,7 +96,7 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
             type="button"
             onClick={() => setConfirming(true)}
           >
-            <Trash2 size={15} aria-hidden="true" />
+            <Trash2 size={14} strokeWidth={1.4} aria-hidden="true" />
             Wis alle gegevens
           </button>
         )}

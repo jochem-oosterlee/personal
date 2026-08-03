@@ -5,7 +5,7 @@ import { usePersistentState } from './storage'
 export type ThemePreference = 'system' | 'light' | 'dark'
 
 /** Must match --bg in index.css for each scheme. */
-const THEME_COLOR = { light: '#ffffff', dark: '#101215' }
+const THEME_COLOR = { light: '#f6f1e7', dark: '#15130f' }
 
 /**
  * Resolves the preference to a concrete scheme and pins it on <html>, so the
