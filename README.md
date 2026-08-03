@@ -33,19 +33,29 @@ De app wordt geserveerd vanaf `/personal/`. Die waarde staat als `base` in
 ```
 src/
 ├─ App.tsx                      module-registry + tabbalk
-├─ lib/storage.ts               usePersistentState (localStorage + tab-sync)
+├─ components/Checklist.tsx     gedeeld door Boodschappen en Taken
+├─ lib/
+│  ├─ storage.ts                usePersistentState + export/wissen
+│  └─ theme.ts                  licht/donker/systeem
 └─ modules/
-   └─ shopping/ShoppingList.tsx
+   ├─ shopping/                 Boodschappen
+   ├─ tasks/                    Taken
+   ├─ notes/                    Notities
+   └─ settings/                 Instellingen
 ```
 
 Een onderdeel toevoegen: maak `src/modules/<naam>/` en zet een entry in de
-`MODULES`-array in [src/App.tsx](src/App.tsx). De tabbalk verschijnt vanzelf
-zodra er meer dan één module is.
+`MODULES`-array in [src/App.tsx](src/App.tsx) met een icoon uit `lucide-react`.
+De tab verschijnt dan vanzelf.
 
 ## Data
 
 Alles staat in `localStorage` onder de prefix `personal:`, op het apparaat zelf.
 Er is geen backend en er wordt niets gesynchroniseerd tussen apparaten.
+Exporteren en wissen kan via Instellingen.
+
+`usePersistentState` houdt hooks op dezelfde sleutel binnen één document
+gesynchroniseerd, en luistert op `storage` voor andere tabs.
 
 ## Icons
 

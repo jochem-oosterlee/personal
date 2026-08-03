@@ -3,6 +3,9 @@ import type { Dispatch, SetStateAction } from 'react'
 
 const PREFIX = 'personal:'
 
+/** Every mounted hook per key, so writes reach siblings in this document too. */
+const subscribers = new Map<string, Set<Dispatch<unknown>>>()
+
 function load<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(PREFIX + key)
@@ -12,8 +15,29 @@ function load<T>(key: string, fallback: T): T {
   }
 }
 
+export function storageKeys(): string[] {
+  return Object.keys(localStorage).filter((key) => key.startsWith(PREFIX))
+}
+
+export function exportAll(): Record<string, unknown> {
+  const data: Record<string, unknown> = {}
+  for (const full of storageKeys()) {
+    try {
+      data[full.slice(PREFIX.length)] = JSON.parse(localStorage.getItem(full) as string)
+    } catch {
+      // Skip entries another tool wrote in a format we cannot parse.
+    }
+  }
+  return data
+}
+
+export function clearAll(): void {
+  for (const full of storageKeys()) localStorage.removeItem(full)
+}
+
 /**
- * useState that survives reloads and stays in sync with other open tabs.
+ * useState that survives reloads, and stays in sync with both other hooks on
+ * the same key and other open tabs.
  */
 export function usePersistentState<T>(
   key: string,
@@ -22,10 +46,27 @@ export function usePersistentState<T>(
   const [value, setValue] = useState<T>(() => load(key, initial))
 
   useEffect(() => {
+    const forKey = subscribers.get(key) ?? new Set<Dispatch<unknown>>()
+    subscribers.set(key, forKey)
+    forKey.add(setValue as Dispatch<unknown>)
+
+    return () => {
+      forKey.delete(setValue as Dispatch<unknown>)
+      if (forKey.size === 0) subscribers.delete(key)
+    }
+  }, [key])
+
+  useEffect(() => {
     try {
       localStorage.setItem(PREFIX + key, JSON.stringify(value))
     } catch {
       // Quota exceeded or storage blocked — keep running with in-memory state.
+    }
+
+    // Siblings settle on the same reference, so React bails out of the
+    // re-render instead of bouncing the update back.
+    for (const notify of subscribers.get(key) ?? []) {
+      if (notify !== (setValue as Dispatch<unknown>)) notify(value)
     }
   }, [key, value])
 

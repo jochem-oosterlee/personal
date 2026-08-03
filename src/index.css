@@ -1,40 +1,43 @@
 :root {
   --bg: #ffffff;
   --bg-deep: #eef0f3;
-  --surface: #f7f7f8;
-  --surface-hover: #ecedef;
-  --border: #e2e3e6;
+  --surface: #f4f5f7;
+  --surface-hover: #e9ebee;
+  --border: #e2e4e8;
+  --border-strong: #c3c7ce;
   --text: #16181d;
   --text-muted: #6b7280;
+  --text-faint: #a3a9b3;
   --accent: #2563eb;
   --accent-text: #ffffff;
   --danger: #dc2626;
 
   /* Nudges up on large screens so the app does not look shrunken there. */
-  --font-size: clamp(1rem, 0.94rem + 0.25vw, 1.0625rem);
-  --gutter: clamp(0.75rem, 0.45rem + 1.5vw, 1.25rem);
-  --tap: 2.75rem;
+  --font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
+  --gutter: clamp(0.625rem, 0.4rem + 1vw, 1rem);
+  --control-h: 2.375rem;
+  --row-h: 2.125rem;
 
-  font: var(--font-size) / 1.5 system-ui, 'Segoe UI', Roboto, sans-serif;
-  color-scheme: light dark;
+  font: var(--font-size) / 1.45 system-ui, 'Segoe UI', Roboto, sans-serif;
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #101215;
-    --bg-deep: #08090b;
-    --surface: #1a1d22;
-    --surface-hover: #23272e;
-    --border: #2b2f36;
-    --text: #e8eaed;
-    --text-muted: #949aa4;
-    --accent: #60a5fa;
-    --accent-text: #0b1220;
-    --danger: #f87171;
-  }
+/* useTheme() resolves "system" and pins the result here before first paint. */
+:root[data-theme='dark'] {
+  --bg: #101215;
+  --bg-deep: #08090b;
+  --surface: #1a1d22;
+  --surface-hover: #23272e;
+  --border: #2b2f36;
+  --border-strong: #464c56;
+  --text: #e8eaed;
+  --text-muted: #949aa4;
+  --text-faint: #6b7280;
+  --accent: #60a5fa;
+  --accent-text: #0b1220;
+  --danger: #f87171;
 }
 
 * {
@@ -48,18 +51,14 @@ body {
   overscroll-behavior-y: none;
 }
 
-h1 {
-  color: var(--text);
+:where(button, input, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 button {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-}
-
-:where(button, input):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 /* From tablet up the app reads as a card on a backdrop instead of a

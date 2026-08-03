@@ -1,21 +1,44 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type ComponentType, type ReactNode } from 'react'
+import { ListTodo, Settings2, ShoppingCart, StickyNote } from 'lucide-react'
+import { useTheme } from './lib/theme'
+import type { ThemePreference } from './lib/theme'
 import { ShoppingList } from './modules/shopping/ShoppingList'
+import { TaskList } from './modules/tasks/TaskList'
+import { Notes } from './modules/notes/Notes'
+import { Settings } from './modules/settings/Settings'
 import './App.css'
+
+type ModuleContext = {
+  theme: ThemePreference
+  onThemeChange: (theme: ThemePreference) => void
+}
 
 type Module = {
   id: string
   title: string
-  icon: string
-  render: () => ReactNode
+  Icon: ComponentType<{ size?: number; strokeWidth?: number }>
+  render: (context: ModuleContext) => ReactNode
 }
 
-/** Add a module here and the bottom nav appears automatically. */
+/** Add a module here and it shows up in the tab bar. */
 const MODULES: Module[] = [
-  { id: 'shopping', title: 'Boodschappen', icon: '🛒', render: () => <ShoppingList /> },
+  { id: 'shopping', title: 'Boodschappen', Icon: ShoppingCart, render: () => <ShoppingList /> },
+  { id: 'tasks', title: 'Taken', Icon: ListTodo, render: () => <TaskList /> },
+  { id: 'notes', title: 'Notities', Icon: StickyNote, render: () => <Notes /> },
+  {
+    id: 'settings',
+    title: 'Instellingen',
+    Icon: Settings2,
+    render: ({ theme, onThemeChange }) => (
+      <Settings theme={theme} onThemeChange={onThemeChange} />
+    ),
+  },
 ]
 
 export default function App() {
   const [activeId, setActiveId] = useState(MODULES[0].id)
+  const [theme, setTheme] = useTheme()
+
   const active = MODULES.find((module) => module.id === activeId) ?? MODULES[0]
 
   return (
@@ -24,26 +47,24 @@ export default function App() {
         <h1 className="app__title">{active.title}</h1>
       </header>
 
-      <main className="app__main">{active.render()}</main>
+      <main className="app__main">
+        {active.render({ theme, onThemeChange: setTheme })}
+      </main>
 
-      {MODULES.length > 1 && (
-        <nav className="app__nav">
-          {MODULES.map((module) => (
-            <button
-              key={module.id}
-              type="button"
-              className={module.id === activeId ? 'tab tab--active' : 'tab'}
-              onClick={() => setActiveId(module.id)}
-              aria-current={module.id === activeId}
-            >
-              <span className="tab__icon" aria-hidden="true">
-                {module.icon}
-              </span>
-              {module.title}
-            </button>
-          ))}
-        </nav>
-      )}
+      <nav className="app__nav" aria-label="Onderdelen">
+        {MODULES.map(({ id, title, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className={id === activeId ? 'tab tab--active' : 'tab'}
+            aria-current={id === activeId ? 'page' : undefined}
+            onClick={() => setActiveId(id)}
+          >
+            <Icon size={19} strokeWidth={id === activeId ? 2.3 : 1.8} />
+            <span className="tab__label">{title}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   )
 }
