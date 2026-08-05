@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Download, ExternalLink, Monitor, Moon, Sun, Trash2 } from 'lucide-react'
 import { clearAll, exportAll, storageKeys, usePersistentState } from '../../lib/storage'
-import { NEW_TOKEN_URL } from '../../lib/github'
+import { DEFAULT_MODEL, MODELS, NEW_TOKEN_URL } from '../../lib/github'
+import type { ModelId } from '../../lib/github'
 import type { ThemePreference } from '../../lib/theme'
 import './Settings.css'
 
@@ -19,6 +20,9 @@ type SettingsProps = {
 export function Settings({ theme, onThemeChange }: SettingsProps) {
   const [confirming, setConfirming] = useState(false)
   const [token, setToken] = usePersistentState('settings.githubToken', '')
+  const [model, setModel] = usePersistentState<ModelId>('settings.model', DEFAULT_MODEL)
+
+  const activeModel = MODELS.find((entry) => entry.id === model) ?? MODELS[0]
 
   function exportData() {
     const blob = new Blob([JSON.stringify(exportAll(), null, 2)], {
@@ -92,6 +96,27 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
         <p className="settings__note">
           Kies "Only select repositories" → personal, en onder Permissions:
           Issues → Read and write.
+        </p>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__heading micro">Model voor wensen</h2>
+        <div className="segmented" role="group" aria-label="Model voor wensen">
+          {MODELS.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              className={entry.id === model ? 'segment segment--active' : 'segment'}
+              aria-pressed={entry.id === model}
+              onClick={() => setModel(entry.id)}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
+        <p className="settings__note">
+          {activeModel.hint}. Het model gaat mee in de issue; de workflow kiest
+          het standaardmodel als het er niet in staat.
         </p>
       </section>
 

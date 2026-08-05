@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Plus, Send, X } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
-import { createIssue, prefillUrl } from '../../lib/github'
-import type { Issue } from '../../lib/github'
+import { createIssue, prefillUrl, DEFAULT_MODEL } from '../../lib/github'
+import type { Issue, ModelId } from '../../lib/github'
 import './Wishes.css'
 
 type Wish = {
@@ -16,6 +16,7 @@ type Wish = {
 export function Wishes() {
   const [wishes, setWishes] = usePersistentState<Wish[]>('wishes.items', [])
   const [token] = usePersistentState('settings.githubToken', '')
+  const [model] = usePersistentState<ModelId>('settings.model', DEFAULT_MODEL)
   const [draft, setDraft] = useState('')
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -52,7 +53,7 @@ export function Wishes() {
     // Without a token there is nothing to authenticate with, so hand the
     // request to GitHub's own form with everything filled in.
     if (!token) {
-      window.open(prefillUrl(wish.title, wish.detail), '_blank', 'noopener')
+      window.open(prefillUrl(wish.title, wish.detail, model), '_blank', 'noopener')
       return
     }
 
@@ -60,7 +61,7 @@ export function Wishes() {
     setErrors((current) => ({ ...current, [wish.id]: '' }))
 
     try {
-      const issue = await createIssue(token, wish.title, wish.detail)
+      const issue = await createIssue(token, wish.title, wish.detail, model)
       setWishes((current) =>
         current.map((item) => (item.id === wish.id ? { ...item, issue } : item)),
       )

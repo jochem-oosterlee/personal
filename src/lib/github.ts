@@ -8,6 +8,21 @@ export type Issue = {
   url: string
 }
 
+export type ModelId = 'claude-opus-5' | 'claude-sonnet-5' | 'claude-haiku-4-5'
+
+export const DEFAULT_MODEL: ModelId = 'claude-opus-5'
+
+/**
+ * Welk model de wens bouwt. De workflow keurt de waarde uit de issue-body af
+ * als hij niet in zijn eigen lijst staat — houd .github/workflows/claude.yml
+ * in sync met deze ids.
+ */
+export const MODELS: { id: ModelId; label: string; hint: string }[] = [
+  { id: 'claude-opus-5', label: 'Opus 5', hint: 'Sterkst; voor grotere wensen' },
+  { id: 'claude-sonnet-5', label: 'Sonnet 5', hint: 'Sneller en goedkoper' },
+  { id: 'claude-haiku-4-5', label: 'Haiku 4.5', hint: 'Alleen kleine klusjes' },
+]
+
 function describe(status: number): string {
   if (status === 401) return 'Token ongeldig of verlopen.'
   if (status === 403) return 'Token mist het recht "Issues: write".'
@@ -17,11 +32,11 @@ function describe(status: number): string {
   return `GitHub antwoordde met status ${status}.`
 }
 
-function issueBody(detail: string): string {
+// De regel "Model: <id>" is machineleesbaar — de workflow pikt hem hieruit.
+function issueBody(detail: string, model: ModelId): string {
   const trimmed = detail.trim()
-  return trimmed
-    ? `${trimmed}\n\n---\nIngediend vanuit de Personal PWA.`
-    : 'Ingediend vanuit de Personal PWA.'
+  const footer = `---\nIngediend vanuit de Personal PWA.\nModel: ${model}`
+  return trimmed ? `${trimmed}\n\n${footer}` : footer
 }
 
 /**
@@ -32,6 +47,7 @@ export async function createIssue(
   token: string,
   title: string,
   detail: string,
+  model: ModelId,
 ): Promise<Issue> {
   let response: Response
 
@@ -46,7 +62,7 @@ export async function createIssue(
       },
       body: JSON.stringify({
         title,
-        body: issueBody(detail),
+        body: issueBody(detail, model),
         labels: ['enhancement'],
       }),
     })
@@ -61,10 +77,10 @@ export async function createIssue(
 }
 
 /** Fallback when no token is set: GitHub's own form, pre-filled. */
-export function prefillUrl(title: string, detail: string): string {
+export function prefillUrl(title: string, detail: string, model: ModelId): string {
   const params = new URLSearchParams({
     title,
-    body: issueBody(detail),
+    body: issueBody(detail, model),
     labels: 'enhancement',
   })
   return `https://github.com/${REPO}/issues/new?${params}`

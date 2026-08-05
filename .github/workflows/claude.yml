@@ -47,13 +47,35 @@ jobs:
 
       - run: npm ci
 
+      # De app zet "Model: <id>" in de issue-body. Die waarde komt van buiten
+      # en gaat een CLI-argument in, dus hij wordt niet doorgegeven maar
+      # gematcht: alles wat niet in deze lijst staat valt terug op de default.
+      - name: Model bepalen
+        id: model
+        run: |
+          requested=$(gh issue view "$ISSUE" --json body --jq '.body' \
+            | sed -n 's/^Model: \([A-Za-z0-9.-]\{1,40\}\)[[:space:]]*$/\1/p' \
+            | head -n1)
+
+          case "${requested}" in
+            claude-opus-5|claude-sonnet-5|claude-haiku-4-5) model="${requested}" ;;
+            '') model=claude-opus-5 ;;
+            *)
+              model=claude-opus-5
+              echo "::warning::Onbekend model '${requested}' in issue #${ISSUE}; ${model} gebruikt."
+              ;;
+          esac
+
+          echo "model=${model}" >> "$GITHUB_OUTPUT"
+          echo "Bouwen met ${model}."
+
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           track_progress: true
           claude_args: |
-            --model claude-opus-5
+            --model ${{ steps.model.outputs.model }}
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(gh:*),Bash(npm:*)"
           prompt: |
             Lees issue #${{ github.event.issue.number || inputs.issue }} met

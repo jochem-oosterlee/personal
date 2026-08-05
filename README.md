@@ -36,6 +36,14 @@ Er kijkt dus niemand mee voordat het op je telefoon staat. Wil je dat wel, haal
 dan de stappen `Mergen` en `deploy` uit claude.yml; de rest blijft werken en je
 krijgt weer een PR om zelf te mergen.
 
+**Model kiezen** doe je in Instellingen → Model voor wensen. De app schrijft
+`Model: <id>` onderaan de issue-body. De workflow leest die regel, maar geeft
+hem niet door: hij matcht tegen een vaste lijst in de stap `Model bepalen` en
+valt bij alles wat daar niet in staat terug op `claude-opus-5`. Die waarde komt
+immers van buiten en gaat een CLI-argument in. Voeg je een model toe, doe dat
+dan op beide plekken — `MODELS` in [src/lib/github.ts](src/lib/github.ts) en de
+`case` in claude.yml.
+
 Pages zit in [pages.yml](.github/workflows/pages.yml) als herbruikbare workflow,
 aangeroepen door zowel deploy.yml als claude.yml. Reden: een merge met
 `GITHUB_TOKEN` vuurt geen push-event af dat andere workflows start, dus na een
