@@ -62,6 +62,26 @@
   border-color: var(--accent);
 }
 
+.settings__input {
+  height: var(--control-h);
+  padding: 0 0.625rem;
+  font: inherit;
+  font-size: max(1rem, var(--font-size)); /* keeps iOS from zooming on focus */
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.settings__input::placeholder {
+  color: var(--text-faint);
+}
+
+.settings__input:focus {
+  border-color: var(--line-strong);
+  outline: none;
+}
+
 .settings__action {
   display: flex;
   align-items: center;
@@ -74,6 +94,7 @@
   text-transform: uppercase;
   letter-spacing: 0.14em;
   white-space: nowrap;
+  text-decoration: none; /* the token link shares this class */
   color: var(--text-muted);
   background: none;
   border: 1px solid var(--line);

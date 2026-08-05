@@ -1,0 +1,203 @@
+.wishes {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Spacing comes from .sticky-top so the bar stays opaque while scrolling. */
+.wishes__add {
+  display: flex;
+}
+
+.wishes__input {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-h);
+  padding: 0 0.625rem;
+  font: inherit;
+  font-size: max(1rem, var(--font-size)); /* keeps iOS from zooming on focus */
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.wishes__input::placeholder {
+  color: var(--text-faint);
+}
+
+.wishes__input:focus {
+  border-color: var(--line-strong);
+  outline: none;
+}
+
+.wishes__submit {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  margin-left: -1px; /* share the hairline with the input */
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.wishes__submit:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .wishes__submit:not(:disabled):hover {
+    color: var(--accent-text);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+.wishes__empty {
+  margin: clamp(1.5rem, 6vh, 3rem) 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--text-faint);
+}
+
+.wishes__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.wish {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0 0.625rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.wish__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.wish__title {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.wish__remove {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .wish__remove:hover {
+    color: var(--danger);
+  }
+}
+
+.wish__remove:active {
+  color: var(--danger);
+}
+
+.wish__detail {
+  width: 100%;
+  padding: 0.125rem 0;
+  overflow: hidden;
+  font: inherit;
+  font-size: max(1rem, var(--font-size)); /* keeps iOS from zooming on focus */
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  resize: none;
+}
+
+.wish__detail::placeholder {
+  color: var(--text-faint);
+}
+
+.wish__detail:focus {
+  outline: none;
+}
+
+.wish__detail:disabled {
+  opacity: 1; /* iOS greys out disabled fields; keep it readable */
+  -webkit-text-fill-color: var(--text-muted);
+}
+
+.wish__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.625rem;
+  margin-top: 0.375rem;
+}
+
+.wish__send,
+.wish__issue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.1875rem 0.5rem;
+  font: inherit;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.wish__send {
+  color: var(--accent);
+  background: none;
+  cursor: pointer;
+}
+
+.wish__send:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .wish__send:not(:disabled):hover {
+    color: var(--accent-text);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+.wish__issue {
+  color: var(--text-muted);
+}
+
+@media (hover: hover) {
+  .wish__issue:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+.wish__error {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--danger);
+}

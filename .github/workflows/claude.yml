@@ -1,0 +1,76 @@
+name: Claude bouwt de wens
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Nummer van de issue die Claude moet oppakken
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+# Eén run per issue; een tweede push wacht in plaats van parallel te draaien.
+concurrency:
+  group: claude-${{ github.event.issue.number || inputs.issue }}
+  cancel-in-progress: false
+
+jobs:
+  build-wish:
+    # Alleen wensen van de eigenaar zelf, en alleen met het label uit de PWA.
+    # Zonder deze guard kan iedere GitHub-gebruiker die een issue kan labelen
+    # een Claude-run starten op jouw rekening.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'enhancement' &&
+       github.event.issue.user.login == github.repository_owner)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          track_progress: true
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(gh:*),Bash(npm:*)"
+          prompt: |
+            Lees issue #${{ github.event.issue.number || inputs.issue }} met
+            `gh issue view` en implementeer wat er gevraagd wordt in deze repo.
+
+            Dit is een persoonlijke PWA: Vite + React + TypeScript, met een
+            module-registry in src/App.tsx. Lees README.md voor de structuur en
+            volg de bestaande stijl — zandkleurig palet, hairlines, JetBrains
+            Mono, lucide-iconen, geen afgeronde hoeken. Kleuren en maten zijn
+            custom properties in src/index.css; gebruik die in plaats van
+            nieuwe waarden te verzinnen.
+
+            Werk op een nieuwe branch. Voordat je de PR opent moeten
+            `npm run build` en `npm run lint` allebei slagen — lukt dat niet,
+            los het op in plaats van het te melden.
+
+            Open daarna een pull request die naar de issue verwijst met
+            "Closes #${{ github.event.issue.number || inputs.issue }}", en zet
+            in de omschrijving kort wat er veranderd is en wat de indiener zelf
+            moet controleren. Merge niet zelf.
+
+            Is het verzoek onduidelijk of te groot voor één PR, reageer dan op
+            de issue met wat je nodig hebt in plaats van te gokken.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Download, Monitor, Moon, Sun, Trash2 } from 'lucide-react'
-import { clearAll, exportAll, storageKeys } from '../../lib/storage'
+import { Download, ExternalLink, Monitor, Moon, Sun, Trash2 } from 'lucide-react'
+import { clearAll, exportAll, storageKeys, usePersistentState } from '../../lib/storage'
+import { NEW_TOKEN_URL } from '../../lib/github'
 import type { ThemePreference } from '../../lib/theme'
 import './Settings.css'
 
@@ -17,6 +18,7 @@ type SettingsProps = {
 
 export function Settings({ theme, onThemeChange }: SettingsProps) {
   const [confirming, setConfirming] = useState(false)
+  const [token, setToken] = usePersistentState('settings.githubToken', '')
 
   function exportData() {
     const blob = new Blob([JSON.stringify(exportAll(), null, 2)], {
@@ -56,6 +58,41 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__heading micro">GitHub</h2>
+        <p className="settings__note">
+          Met een token maakt Wensen de issue direct aan. Zonder token opent de
+          app de GitHub-pagina met alles vooringevuld. Het token blijft op dit
+          apparaat en gaat alleen naar github.com.
+        </p>
+
+        <input
+          className="settings__input"
+          type="password"
+          value={token}
+          onChange={(event) => setToken(event.target.value.trim())}
+          placeholder="github_pat_…"
+          aria-label="GitHub-token"
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+        />
+
+        <a
+          className="settings__action"
+          href={NEW_TOKEN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <ExternalLink size={14} strokeWidth={1.4} aria-hidden="true" />
+          Token aanmaken
+        </a>
+        <p className="settings__note">
+          Kies "Only select repositories" → personal, en onder Permissions:
+          Issues → Read and write.
+        </p>
       </section>
 
       <section className="settings__group">

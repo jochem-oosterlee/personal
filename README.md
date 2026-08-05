@@ -19,6 +19,27 @@ npm run build     # tsc + vite build naar dist/
 npm run preview   # dist/ serveren zoals in productie
 ```
 
+## Wensen → issue → PR
+
+De module **Wensen** dient een feature-verzoek in als GitHub-issue met het label
+`enhancement`. Dat label start
+[.github/workflows/claude.yml](.github/workflows/claude.yml), waarin Claude het
+verzoek implementeert, `npm run build` en `npm run lint` draait en een pull
+request opent. Mergen doe jij.
+
+Twee dingen zijn eenmalig nodig:
+
+1. **Repo-secret `ANTHROPIC_API_KEY`** — anders faalt de workflow.
+   `gh secret set ANTHROPIC_API_KEY -R jochem-oosterlee/personal`
+2. **Token in de app** (Instellingen → GitHub) — een fine-grained PAT met
+   `Issues: read and write` op deze repo. Zonder token opent Wensen in plaats
+   daarvan de GitHub-pagina met titel en toelichting vooringevuld.
+
+Het token staat in `localStorage` op je telefoon en gaat alleen naar
+`api.github.com` — er is geen backend die hem doorgeeft. De workflow draait
+alleen op issues van de repo-eigenaar, zodat niemand anders er Claude-runs mee
+kan starten.
+
 ## Deploy
 
 Elke push naar `main` bouwt en publiceert naar GitHub Pages via
@@ -36,11 +57,13 @@ src/
 ├─ components/Checklist.tsx     gedeeld door Boodschappen en Taken
 ├─ lib/
 │  ├─ storage.ts                usePersistentState + export/wissen
-│  └─ theme.ts                  licht/donker/systeem
+│  ├─ theme.ts                  licht/donker/systeem
+│  └─ github.ts                 issue aanmaken vanuit Wensen
 └─ modules/
    ├─ shopping/                 Boodschappen
    ├─ tasks/                    Taken
    ├─ notes/                    Notities
+   ├─ wishes/                   Wensen
    └─ settings/                 Instellingen
 ```
 

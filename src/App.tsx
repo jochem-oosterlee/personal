@@ -1,10 +1,11 @@
 import { useState, type ComponentType, type ReactNode } from 'react'
-import { ListTodo, Settings2, ShoppingCart, StickyNote } from 'lucide-react'
+import { Lightbulb, ListTodo, Settings2, ShoppingCart, StickyNote } from 'lucide-react'
 import { useTheme } from './lib/theme'
 import type { ThemePreference } from './lib/theme'
 import { ShoppingList } from './modules/shopping/ShoppingList'
 import { TaskList } from './modules/tasks/TaskList'
 import { Notes } from './modules/notes/Notes'
+import { Wishes } from './modules/wishes/Wishes'
 import { Settings } from './modules/settings/Settings'
 import './App.css'
 
@@ -25,6 +26,7 @@ const MODULES: Module[] = [
   { id: 'shopping', title: 'Boodschappen', Icon: ShoppingCart, render: () => <ShoppingList /> },
   { id: 'tasks', title: 'Taken', Icon: ListTodo, render: () => <TaskList /> },
   { id: 'notes', title: 'Notities', Icon: StickyNote, render: () => <Notes /> },
+  { id: 'wishes', title: 'Wensen', Icon: Lightbulb, render: () => <Wishes /> },
   {
     id: 'settings',
     title: 'Instellingen',
