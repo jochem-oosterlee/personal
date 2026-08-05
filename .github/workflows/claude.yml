@@ -9,11 +9,6 @@ on:
         description: Nummer van de issue die Claude moet oppakken
         required: true
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-
 # Eén run per issue; een tweede push wacht in plaats van parallel te draaien.
 concurrency:
   group: claude-${{ github.event.issue.number || inputs.issue }}
@@ -29,6 +24,16 @@ jobs:
       (github.event.label.name == 'enhancement' &&
        github.event.issue.user.login == github.repository_owner)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    outputs:
+      merged: ${{ steps.merge.outputs.merged }}
+
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ISSUE: ${{ github.event.issue.number || inputs.issue }}
 
     steps:
       - uses: actions/checkout@v7
@@ -61,6 +66,12 @@ jobs:
             custom properties in src/index.css; gebruik die in plaats van
             nieuwe waarden te verzinnen.
 
+            Blijf bij wat er gevraagd wordt. Deze PR wordt automatisch gemerged
+            en uitgerold zodra build en lint slagen, dus er kijkt niemand mee
+            voordat het live staat. Geen extra features, geen refactors die er
+            niet bij horen, geen afhandeling van situaties die niet kunnen
+            voorkomen.
+
             Werk op een nieuwe branch. Voordat je de PR opent moeten
             `npm run build` en `npm run lint` allebei slagen — lukt dat niet,
             los het op in plaats van het te melden.
@@ -68,9 +79,54 @@ jobs:
             Open daarna een pull request die naar de issue verwijst met
             "Closes #${{ github.event.issue.number || inputs.issue }}", en zet
             in de omschrijving kort wat er veranderd is en wat de indiener zelf
-            moet controleren. Merge niet zelf.
+            moet controleren. Merge niet zelf; dat doet de workflow.
 
             Is het verzoek onduidelijk of te groot voor één PR, reageer dan op
-            de issue met wat je nodig hebt in plaats van te gokken.
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            de issue met wat je nodig hebt en open géén PR.
+
+      - name: PR opzoeken
+        id: pr
+        run: |
+          number=$(gh pr list --state open --json number,headRefName \
+            --jq "[.[] | select(.headRefName | startswith(\"claude/issue-${ISSUE}-\"))] | first | .number // empty")
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
+          if [ -z "${number}" ]; then
+            echo "::notice::Claude heeft geen PR geopend voor issue #${ISSUE}."
+          fi
+
+      # De poort staat hier, niet in de prompt: dat het model zegt dat build en
+      # lint slagen is geen bewijs. Faalt dit, dan blijft de PR gewoon open.
+      - name: Build en lint op de PR
+        if: steps.pr.outputs.number != ''
+        run: |
+          gh pr checkout ${{ steps.pr.outputs.number }}
+          npm ci
+          npm run build
+          npm run lint
+
+      - name: Mergen
+        id: merge
+        if: steps.pr.outputs.number != ''
+        run: |
+          gh pr merge ${{ steps.pr.outputs.number }} --squash --delete-branch
+          echo "merged=true" >> "$GITHUB_OUTPUT"
+
+      - name: Melden waarom er niet gemerged is
+        if: failure() && steps.pr.outputs.number != ''
+        run: |
+          gh pr comment ${{ steps.pr.outputs.number }} --body \
+            "Niet automatisch gemerged: \`npm run build\` of \`npm run lint\` faalde in [run ${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}). De PR blijft open."
+
+  # Een merge met GITHUB_TOKEN vuurt geen push-event af dat workflows start,
+  # dus deploy.yml komt hier niet vanzelf langs — we roepen Pages zelf aan.
+  deploy:
+    needs: build-wish
+    if: needs.build-wish.outputs.merged == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    uses: ./.github/workflows/pages.yml

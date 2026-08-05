@@ -23,9 +23,23 @@ npm run preview   # dist/ serveren zoals in productie
 
 De module **Wensen** dient een feature-verzoek in als GitHub-issue met het label
 `enhancement`. Dat label start
-[.github/workflows/claude.yml](.github/workflows/claude.yml), waarin Claude het
-verzoek implementeert, `npm run build` en `npm run lint` draait en een pull
-request opent. Mergen doe jij.
+[.github/workflows/claude.yml](.github/workflows/claude.yml), en van daar loopt
+het door zonder tussenkomst: Claude implementeert het verzoek en opent een PR,
+de workflow draait zelf `npm run build` en `npm run lint` op die PR, mergt bij
+groen, en publiceert naar Pages.
+
+Die build-en-lint-stap staat bewust in de workflow en niet alleen in de prompt —
+dat het model zégt dat het slaagt, is geen bewijs. Faalt de poort, dan blijft de
+PR open met een comment erbij en verandert er niets aan `main`.
+
+Er kijkt dus niemand mee voordat het op je telefoon staat. Wil je dat wel, haal
+dan de stappen `Mergen` en `deploy` uit claude.yml; de rest blijft werken en je
+krijgt weer een PR om zelf te mergen.
+
+Pages zit in [pages.yml](.github/workflows/pages.yml) als herbruikbare workflow,
+aangeroepen door zowel deploy.yml als claude.yml. Reden: een merge met
+`GITHUB_TOKEN` vuurt geen push-event af dat andere workflows start, dus na een
+auto-merge moet claude.yml de deploy zelf aanroepen.
 
 Drie dingen zijn eenmalig nodig:
 
