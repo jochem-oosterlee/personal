@@ -1,0 +1,13 @@
+/* Reads as a subtitle under the page title; spacing comes from
+   .checklist__top so it lines up with the add row below it. */
+.tasks__date {
+  display: block;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+/* nl-NL formats weekdays in lowercase. */
+.tasks__date::first-letter {
+  text-transform: uppercase;
+}
