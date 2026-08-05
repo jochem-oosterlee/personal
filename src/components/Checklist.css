@@ -8,11 +8,6 @@
   display: flex;
 }
 
-/* An optional header shares the sticky block, so it stays in view too. */
-.checklist__top > :first-child:not(.checklist__add) {
-  margin-bottom: 0.5rem;
-}
-
 .checklist__input {
   flex: 1;
   min-width: 0;
