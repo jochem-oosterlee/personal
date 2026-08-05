@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { Check, Plus, X } from 'lucide-react'
 import { usePersistentState } from '../lib/storage'
 import './Checklist.css'
@@ -16,6 +16,8 @@ type ChecklistProps = {
   placeholder: string
   addLabel: string
   emptyText: string
+  /** Optional line above the add row; stays pinned along with it. */
+  header?: ReactNode
 }
 
 export function Checklist({
@@ -23,6 +25,7 @@ export function Checklist({
   placeholder,
   addLabel,
   emptyText,
+  header,
 }: ChecklistProps) {
   const [items, setItems] = usePersistentState<ChecklistItem[]>(storageKey, [])
   const [draft, setDraft] = useState('')
@@ -67,27 +70,31 @@ export function Checklist({
 
   return (
     <div className="checklist">
-      <form className="checklist__add sticky-top" onSubmit={addItem}>
-        <input
-          ref={inputRef}
-          className="checklist__input"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder={placeholder}
-          aria-label={addLabel}
-          enterKeyHint="done"
-          autoComplete="off"
-          autoCapitalize="sentences"
-        />
-        <button
-          className="checklist__submit"
-          type="submit"
-          disabled={!draft.trim()}
-          aria-label={addLabel}
-        >
-          <Plus size={17} strokeWidth={1.5} aria-hidden="true" />
-        </button>
-      </form>
+      <div className="checklist__top sticky-top">
+        {header}
+
+        <form className="checklist__add" onSubmit={addItem}>
+          <input
+            ref={inputRef}
+            className="checklist__input"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={placeholder}
+            aria-label={addLabel}
+            enterKeyHint="done"
+            autoComplete="off"
+            autoCapitalize="sentences"
+          />
+          <button
+            className="checklist__submit"
+            type="submit"
+            disabled={!draft.trim()}
+            aria-label={addLabel}
+          >
+            <Plus size={17} strokeWidth={1.5} aria-hidden="true" />
+          </button>
+        </form>
+      </div>
 
       {items.length === 0 ? (
         <p className="checklist__empty">{emptyText}</p>
