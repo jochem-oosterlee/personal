@@ -8,6 +8,12 @@ export type Issue = {
   url: string
 }
 
+export type IssueStatus = {
+  state: 'open' | 'closed'
+  reason: string | null
+  comments: number
+}
+
 export type ModelId = 'claude-opus-5' | 'claude-sonnet-5' | 'claude-haiku-4-5'
 
 export const DEFAULT_MODEL: ModelId = 'claude-opus-5'
@@ -74,6 +80,28 @@ export async function createIssue(
 
   const data = await response.json()
   return { number: data.number, url: data.html_url }
+}
+
+/**
+ * Polls the issue's own state instead of trying to track the workflow that
+ * acts on it — that keeps this in sync with any outcome (PR merged, closed
+ * as not planned, closed by hand) without hard-coding the workflow's steps.
+ * Works without a token too (the repo is public), just at a lower rate limit.
+ */
+export async function getIssueStatus(token: string, issueNumber: number): Promise<IssueStatus> {
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const response = await fetch(`https://api.github.com/repos/${REPO}/issues/${issueNumber}`, {
+    headers,
+  })
+  if (!response.ok) throw new Error(describe(response.status))
+
+  const data = await response.json()
+  return { state: data.state, reason: data.state_reason ?? null, comments: data.comments }
 }
 
 /** Fallback when no token is set: GitHub's own form, pre-filled. */

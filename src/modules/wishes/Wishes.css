@@ -196,6 +196,31 @@
   }
 }
 
+.wish__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1875rem 0.5rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+}
+
+.wish__status--progress {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.wish__status--done {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+.wish__status--rejected {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
 .wish__error {
   font-size: 0.6875rem;
   line-height: 1.4;
