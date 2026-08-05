@@ -13,6 +13,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  actions: write # anders weigert de cache-service de npm-cache te schrijven
 
 # Eén run per issue; een tweede push wacht in plaats van parallel te draaien.
 concurrency:

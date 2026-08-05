@@ -27,13 +27,16 @@ De module **Wensen** dient een feature-verzoek in als GitHub-issue met het label
 verzoek implementeert, `npm run build` en `npm run lint` draait en een pull
 request opent. Mergen doe jij.
 
-Twee dingen zijn eenmalig nodig:
+Drie dingen zijn eenmalig nodig:
 
 1. **Repo-secret `ANTHROPIC_API_KEY`** — anders faalt de workflow.
    `gh secret set ANTHROPIC_API_KEY -R jochem-oosterlee/personal`
 2. **Token in de app** (Instellingen → GitHub) — een fine-grained PAT met
    `Issues: read and write` op deze repo. Zonder token opent Wensen in plaats
    daarvan de GitHub-pagina met titel en toelichting vooringevuld.
+3. **Actions mag PR's aanmaken** — staat standaard uit; zonder dit pusht Claude
+   wel een branch maar opent hij geen PR.
+   `gh api repos/jochem-oosterlee/personal/actions/permissions/workflow -X PUT -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true`
 
 Het token staat in `localStorage` op je telefoon en gaat alleen naar
 `api.github.com` — er is geen backend die hem doorgeeft. De workflow draait
