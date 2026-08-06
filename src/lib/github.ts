@@ -124,6 +124,11 @@ export type UploadedScreenshot = { path: string; url: string }
  */
 const SCREENSHOT_DIR = 'screenshots'
 
+// Niet main: een commit daar start deploy.yml, dus elke screenshot zou een
+// volledige rebuild en Pages-deploy veroorzaken. download_url wijst vanzelf
+// naar de juiste branch, dus de URL in de issue blijft kloppen.
+const SCREENSHOT_BRANCH = 'wish-assets'
+
 /**
  * Zet elke screenshot als bestand in de repo in plaats van in een gist: de run
  * die de issue oppakt heeft hem dan gewoon in zijn checkout staan en kan hem
@@ -156,6 +161,7 @@ export async function uploadScreenshots(
         },
         body: JSON.stringify({
           message: 'Screenshot bij een wens uit de Personal PWA',
+          branch: SCREENSHOT_BRANCH,
           // Wat achter de komma van de data:-URI staat is al base64 — precies
           // wat de API als bestandsinhoud verwacht.
           content: image.dataUrl.slice(image.dataUrl.indexOf(',') + 1),

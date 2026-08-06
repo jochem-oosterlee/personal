@@ -98,11 +98,16 @@ jobs:
           track_progress: true
           claude_args: |
             --model ${{ steps.model.outputs.model }}
-            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(gh:*),Bash(npm:*)"
+            --allowedTools "Read,Edit,Write,Glob,Grep,WebFetch,Bash(git:*),Bash(gh:*),Bash(npm:*),Bash(curl:*)"
           prompt: |
             Lees issue #${{ github.event.issue.number || inputs.issue }} met
             `gh issue view --comments` en implementeer wat er gevraagd wordt in
             deze repo.
+
+            Zit er een screenshot bij de wens, kijk er dan naar voordat je iets
+            verandert: haal hem op met `curl -sSL <url> -o /tmp/shot.jpg` en
+            open dat bestand met Read. Bij een plaatsings- of uitlijnprobleem
+            is gokken zonder te kijken zinloos.
 
             Lees de hele draad, niet alleen de openingspost. Staat er al een
             vraag van jou in met een antwoord eronder, ga dan verder op basis
