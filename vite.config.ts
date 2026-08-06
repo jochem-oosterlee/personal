@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -6,9 +7,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 // slash matters for the service worker scope.
 const base = '/personal/'
 
+const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
+const buildDate = new Date().toISOString().slice(0, 10)
+
 // https://vite.dev/config/
 export default defineConfig({
   base,
+  define: {
+    __BUILD_VERSION__: JSON.stringify(`${buildDate} ${commitHash}`),
+  },
   plugins: [
     react(),
     VitePWA({

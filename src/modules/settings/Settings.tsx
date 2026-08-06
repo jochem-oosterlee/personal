@@ -179,6 +179,10 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
           </button>
         )}
       </section>
+
+      <p className="settings__version">
+        {t.settings.version} {__BUILD_VERSION__}
+      </p>
     </div>
   )
 }
