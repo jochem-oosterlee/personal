@@ -87,6 +87,7 @@ const nl = {
     wipeYes: 'Ja, wissen',
     cancel: 'Annuleren',
     wipeAll: 'Wis alle gegevens',
+    version: 'Versie',
   },
 }
 
@@ -177,6 +178,7 @@ const en: typeof nl = {
     wipeYes: 'Yes, clear',
     cancel: 'Cancel',
     wipeAll: 'Clear all data',
+    version: 'Version',
   },
 }
 
