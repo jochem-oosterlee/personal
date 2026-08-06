@@ -37,6 +37,19 @@ wél eerst naar wilt kijken: zet het label `review` op de issue. De workflow
 bouwt en opent dan wel een PR, maar mergt hem niet. Wil je het permanent, haal
 dan de stappen `Mergen` en `deploy` uit claude.yml.
 
+**Wie kan een run starten.** Alleen jij. De guards eisen dat de *auteur* van de
+issue (niet degene die labelt) de repo-eigenaar is, en hetzelfde voor comments;
+`workflow_dispatch` vereist schrijfrechten. Een buitenstaander zonder token valt
+in de app terug op GitHub's eigen formulier, en kan daar het `enhancement`-label
+niet zetten. Er is dus geen route waarlangs iemand anders jouw Claude-budget
+aanspreekt.
+
+Wel kan iedereen op een publieke issue reageren, en die comments belanden in de
+context zodra jij antwoordt. De prompt zegt daarom expliciet dat alleen de
+openingspost en comments van de eigenaar opdrachten zijn. Wil je dat harder
+dichtzetten: Settings → Moderation → Interaction limits beperkt reageren tot
+collaborators.
+
 **Als Claude een vraag heeft** pusht hij niets en reageert hij op de issue. Een
 antwoord van jou op diezelfde issue start de workflow opnieuw, en hij leest de
 hele draad met `gh issue view --comments`. Die comment-trigger heeft eigen
