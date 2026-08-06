@@ -60,6 +60,7 @@ const nl = {
     hideThread: 'Reacties verbergen',
     attachScreenshot: 'Screenshot toevoegen',
     removeScreenshot: 'Screenshot verwijderen',
+    attachFailed: 'Deze afbeelding kon niet worden toegevoegd.',
   },
   github: {
     tokenInvalid: 'Token ongeldig of verlopen.',
@@ -163,6 +164,7 @@ const en: typeof nl = {
     hideThread: 'Hide comments',
     attachScreenshot: 'Add screenshot',
     removeScreenshot: 'Remove screenshot',
+    attachFailed: 'That image could not be added.',
   },
   github: {
     tokenInvalid: 'Token invalid or expired.',

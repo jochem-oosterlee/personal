@@ -34,12 +34,20 @@ const MAX_SCREENSHOT_DIMENSION = 1440
 
 function compressScreenshot(file: File): Promise<Screenshot> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(reader.error)
-    reader.onload = () => {
-      const image = new Image()
-      image.onerror = () => reject(new Error('image decode failed'))
-      image.onload = () => {
+    // Een object-URL, geen data:-URL: een foto van 12 MB wordt als base64 een
+    // string van zo'n 16 MB, en daar loopt Safari in een PWA op stuk voordat
+    // het plaatje ook maar gedecodeerd is. Hier houdt de browser de bytes
+    // gewoon vast en lezen we er alleen naar.
+    const source = URL.createObjectURL(file)
+    const image = new Image()
+
+    image.onerror = () => {
+      URL.revokeObjectURL(source)
+      reject(new Error('image decode failed'))
+    }
+
+    image.onload = () => {
+      try {
         const scale = Math.min(1, MAX_SCREENSHOT_DIMENSION / Math.max(image.width, image.height))
         const width = Math.round(image.width * scale)
         const height = Math.round(image.height * scale)
@@ -48,16 +56,23 @@ function compressScreenshot(file: File): Promise<Screenshot> {
         canvas.width = width
         canvas.height = height
         const context = canvas.getContext('2d')
-        if (!context) {
-          reject(new Error('canvas unavailable'))
-          return
-        }
+        if (!context) throw new Error('canvas unavailable')
+
         context.drawImage(image, 0, 0, width, height)
-        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.72) })
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.72)
+        // Safari gooit geen fout als het exporteren niet lukt, maar geeft
+        // "data:," terug — dat zou als lege bijlage doorgaan.
+        if (!dataUrl.startsWith('data:image/jpeg')) throw new Error('canvas export failed')
+
+        resolve({ dataUrl })
+      } catch (error) {
+        reject(error)
+      } finally {
+        URL.revokeObjectURL(source)
       }
-      image.src = reader.result as string
     }
-    reader.readAsDataURL(file)
+
+    image.src = source
   })
 }
 
@@ -190,9 +205,11 @@ export function Wishes() {
     setWishes((current) => current.filter((wish) => wish.id !== id))
   }
 
-  async function addAttachments(id: string, files: FileList | null) {
-    if (!files) return
-    for (const file of Array.from(files)) {
+  async function addAttachments(id: string, files: File[]) {
+    if (files.length === 0) return
+    let failed = 0
+
+    for (const file of files) {
       try {
         const screenshot = await compressScreenshot(file)
         setWishes((current) =>
@@ -209,9 +226,13 @@ export function Wishes() {
           ),
         )
       } catch {
-        // Not a decodable image — skip it rather than fail the whole batch.
+        // Doorgaan met de rest van de selectie, maar het wél melden: hier
+        // zwijgen betekent dat je een foto kiest en er niets gebeurt.
+        failed += 1
       }
     }
+
+    setErrors((current) => ({ ...current, [id]: failed ? t.wishes.attachFailed : '' }))
   }
 
   function removeAttachment(wishId: string, attachmentId: string) {
@@ -329,8 +350,12 @@ export function Wishes() {
                       accept="image/*"
                       multiple
                       onChange={(event) => {
-                        addAttachments(wish.id, event.target.files)
+                        // Eerst de selectie vastleggen, dan pas het veld
+                        // leegmaken — anders is er niets meer te lezen als
+                        // je dezelfde foto nog eens kiest.
+                        const files = Array.from(event.target.files ?? [])
                         event.target.value = ''
+                        addAttachments(wish.id, files)
                       }}
                     />
                   </label>
