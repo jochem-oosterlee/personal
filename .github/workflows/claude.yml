@@ -94,27 +94,51 @@ jobs:
             niet bij horen, geen afhandeling van situaties die niet kunnen
             voorkomen.
 
-            Werk op een nieuwe branch. Voordat je de PR opent moeten
-            `npm run build` en `npm run lint` allebei slagen — lukt dat niet,
-            los het op in plaats van het te melden.
+            Werk op een nieuwe branch, commit en push die. Voordat je pusht
+            moeten `npm run build` en `npm run lint` allebei slagen — lukt dat
+            niet, los het op in plaats van het te melden.
 
-            Open daarna een pull request die naar de issue verwijst met
-            "Closes #${{ github.event.issue.number || inputs.issue }}", en zet
-            in de omschrijving kort wat er veranderd is en wat de indiener zelf
-            moet controleren. Merge niet zelf; dat doet de workflow.
+            Open zelf géén pull request en merge niet: de workflow maakt de PR
+            aan vanaf jouw branch en mergt hem als build en lint daar ook
+            slagen. Zet in je comment op de issue kort wat er veranderd is en
+            wat de indiener zelf moet controleren.
 
-            Is het verzoek onduidelijk of te groot voor één PR, reageer dan op
-            de issue met wat je nodig hebt en open géén PR.
+            Is het verzoek onduidelijk of te groot voor één keer, push dan
+            niets en reageer op de issue met wat je nodig hebt.
 
-      - name: PR opzoeken
+      # De PR wordt hier gemaakt, niet door het model. De action heeft een
+      # eigen systeemprompt die Claude opdraagt alleen een "Create a PR"-link
+      # te geven; of hij die of onze instructie volgt, verschilt per run.
+      - name: PR opzoeken of aanmaken
         id: pr
         run: |
-          number=$(gh pr list --state open --json number,headRefName \
-            --jq "[.[] | select(.headRefName | startswith(\"claude/issue-${ISSUE}-\"))] | first | .number // empty")
-          echo "number=${number}" >> "$GITHUB_OUTPUT"
+          find_pr() {
+            gh pr list --state open --json number,headRefName \
+              --jq "[.[] | select(.headRefName | startswith(\"claude/issue-${ISSUE}-\"))] | first | .number // empty"
+          }
+
+          number=$(find_pr)
+
           if [ -z "${number}" ]; then
-            echo "::notice::Claude heeft geen PR geopend voor issue #${ISSUE}."
+            git fetch --quiet origin
+            branch=$(git for-each-ref --sort=-committerdate --format='%(refname:short)' \
+              "refs/remotes/origin/claude/issue-${ISSUE}-*" | head -n1 | sed 's#^origin/##')
+
+            if [ -z "${branch}" ]; then
+              echo "::notice::Claude heeft niets gepusht voor issue #${ISSUE} — zie zijn comment op de issue."
+            elif [ "$(git rev-list --count "origin/main..origin/${branch}")" -eq 0 ]; then
+              echo "::notice::Branch ${branch} loopt niet voor op main; niets te mergen."
+            else
+              body=$(printf 'Closes #%s\n\nAangemaakt door de workflow vanaf `%s`. Wat er precies veranderd is, staat in de comment op #%s.' \
+                "$ISSUE" "$branch" "$ISSUE")
+              gh pr create --base main --head "${branch}" \
+                --title "$(gh issue view "$ISSUE" --json title --jq '.title')" \
+                --body "${body}"
+              number=$(find_pr)
+            fi
           fi
+
+          echo "number=${number}" >> "$GITHUB_OUTPUT"
 
       # De poort staat hier, niet in de prompt: dat het model zegt dat build en
       # lint slagen is geen bewijs. Faalt dit, dan blijft de PR gewoon open.
