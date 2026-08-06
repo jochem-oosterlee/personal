@@ -174,10 +174,12 @@
   place-items: center;
   width: 1.125rem;
   height: 1.125rem;
+  padding: 0;
   color: var(--text-faint);
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 0;
+  appearance: none;
   cursor: pointer;
 }
 
