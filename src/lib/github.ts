@@ -1,6 +1,9 @@
 const REPO = 'jochem-oosterlee/personal'
 
-/** Fine-grained token, scoped to this repo, with Issues: read and write. */
+/**
+ * Fine-grained token, scoped to this repo, with Issues: read and write —
+ * plus Contents: read and write om screenshots mee te kunnen sturen.
+ */
 export const NEW_TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new'
 
 export type Issue = {
@@ -22,7 +25,7 @@ export const DEFAULT_MODEL: ModelId = 'claude-opus-5'
 export type GithubStrings = {
   tokenInvalid: string
   tokenMissingScope: string
-  gistMissingScope: string
+  contentsMissingScope: string
   noAccess: (repo: string) => string
   contentRejected: string
   rateLimited: string
@@ -111,56 +114,76 @@ export async function createIssue(
   return { number: data.number, url: data.html_url }
 }
 
-export type Screenshot = { dataUrl: string; width: number; height: number }
+export type Screenshot = { dataUrl: string }
 
-function svgWrapper(image: Screenshot): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${image.width}" height="${image.height}" viewBox="0 0 ${image.width} ${image.height}"><image width="${image.width}" height="${image.height}" href="${image.dataUrl}" xlink:href="${image.dataUrl}"/></svg>`
-}
+export type UploadedScreenshot = { path: string; url: string }
 
 /**
- * Gists only accept text file content, not raw image bytes. Each screenshot
- * is wrapped as a small SVG that embeds it as a data: URI — that makes the
- * file itself plain UTF-8 text for the API, while the raw gist URL still
- * renders as the screenshot. GitHub's issue sanitizer strips data: URIs from
- * an issue body directly, but doesn't inspect what an https:// <img> points
- * at, so the raw gist URL can go straight into the issue as ![](url).
+ * Map buiten de Vite-build, dus screenshots komen niet in `dist` terecht. Wel
+ * op `main`, dus elke upload is een commit die een Pages-deploy start.
+ */
+const SCREENSHOT_DIR = 'screenshots'
+
+/**
+ * Zet elke screenshot als bestand in de repo in plaats van in een gist: de run
+ * die de issue oppakt heeft hem dan gewoon in zijn checkout staan en kan hem
+ * met Read openen, zonder netwerktoegang. De Contents API doet één bestand per
+ * verzoek en twee commits tegelijk op dezelfde branch botsen, dus na elkaar.
  */
 export async function uploadScreenshots(
   token: string,
   images: Screenshot[],
   strings: GithubStrings,
-): Promise<string[]> {
-  if (images.length === 0) return []
+): Promise<UploadedScreenshot[]> {
+  // Tijdstip in de naam: uniek genoeg voor één telefoon, en de screenshots van
+  // dezelfde wens staan zo bij elkaar in de map.
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+  const uploaded: UploadedScreenshot[] = []
 
-  const files: Record<string, { content: string }> = {}
-  images.forEach((image, index) => {
-    files[`screenshot-${index + 1}.svg`] = { content: svgWrapper(image) }
-  })
+  for (const [index, image] of images.entries()) {
+    // .jpg omdat de app ze als JPEG uit het canvas haalt.
+    const path = `${SCREENSHOT_DIR}/${stamp}-${index + 1}.jpg`
+    let response: Response
 
-  let response: Response
-  try {
-    response = await fetch('https://api.github.com/gists', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        description: 'Screenshot bij een wens in de Personal PWA.',
-        public: false,
-        files,
-      }),
-    })
-  } catch {
-    throw new Error(strings.noConnection)
+    try {
+      response = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: 'Screenshot bij een wens uit de Personal PWA',
+          // Wat achter de komma van de data:-URI staat is al base64 — precies
+          // wat de API als bestandsinhoud verwacht.
+          content: image.dataUrl.slice(image.dataUrl.indexOf(',') + 1),
+        }),
+      })
+    } catch {
+      throw new Error(strings.noConnection)
+    }
+
+    if (!response.ok) {
+      throw new Error(describe(response.status, strings, strings.contentsMissingScope))
+    }
+
+    const data = await response.json()
+    uploaded.push({ path, url: data.content.download_url })
   }
 
-  if (!response.ok) throw new Error(describe(response.status, strings, strings.gistMissingScope))
+  return uploaded
+}
 
-  const data = await response.json()
-  return images.map((_, index) => data.files[`screenshot-${index + 1}.svg`].raw_url)
+/**
+ * De plaatjes renderen in de issue via hun raw-URL; het pad staat er los bij,
+ * want daarmee vindt de run ze in zijn eigen checkout terug.
+ */
+export function screenshotSection(uploaded: UploadedScreenshot[]): string {
+  const images = uploaded.map((item) => `![](${item.url})`).join('\n')
+  const paths = uploaded.map((item) => `\`${item.path}\``).join(', ')
+  return `${images}\n\nStaat in de repo als ${paths} — daar met Read te openen.`
 }
 
 /**

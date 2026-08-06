@@ -8,6 +8,7 @@ import {
   getComments,
   getIssueStatus,
   prefillUrl,
+  screenshotSection,
   uploadScreenshots,
   DEFAULT_MODEL,
 } from '../../lib/github'
@@ -27,8 +28,8 @@ type Wish = {
   attachments?: Attachment[]
 }
 
-// Big enough to keep detail readable in a screenshot, small enough to stay
-// well under a gist's per-file size once base64-encoded.
+// Big enough to keep detail readable in a screenshot, small enough to stay a
+// modest file in the repo once base64-encoded.
 const MAX_SCREENSHOT_DIMENSION = 1440
 
 function compressScreenshot(file: File): Promise<Screenshot> {
@@ -52,7 +53,7 @@ function compressScreenshot(file: File): Promise<Screenshot> {
           return
         }
         context.drawImage(image, 0, 0, width, height)
-        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.72), width, height })
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.72) })
       }
       image.src = reader.result as string
     }
@@ -236,9 +237,9 @@ export function Wishes() {
     setErrors((current) => ({ ...current, [wish.id]: '' }))
 
     try {
-      const imageUrls = await uploadScreenshots(token, wish.attachments ?? [], t.github)
-      const detail = imageUrls.length
-        ? `${wish.detail}\n\n${imageUrls.map((url) => `![](${url})`).join('\n')}`
+      const uploaded = await uploadScreenshots(token, wish.attachments ?? [], t.github)
+      const detail = uploaded.length
+        ? `${wish.detail}\n\n${screenshotSection(uploaded)}`
         : wish.detail
       const issue = await createIssue(token, wish.title, detail, model, t.github)
       const status = await getIssueStatus(token, issue.number, t.github).catch(() => undefined)
