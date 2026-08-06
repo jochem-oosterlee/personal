@@ -112,6 +112,12 @@ jobs:
       - name: PR opzoeken of aanmaken
         id: pr
         run: |
+          # Label "review" op de issue houdt de merge tegen: de PR wordt wel
+          # aangemaakt, maar blijft open zodat je hem eerst kunt bekijken.
+          review=$(gh issue view "$ISSUE" --json labels \
+            --jq '[.labels[].name] | index("review") != null')
+          echo "review=${review}" >> "$GITHUB_OUTPUT"
+
           find_pr() {
             gh pr list --state open --json number,headRefName \
               --jq "[.[] | select(.headRefName | startswith(\"claude/issue-${ISSUE}-\"))] | first | .number // empty"
@@ -152,10 +158,16 @@ jobs:
 
       - name: Mergen
         id: merge
-        if: steps.pr.outputs.number != ''
+        if: steps.pr.outputs.number != '' && steps.pr.outputs.review != 'true'
         run: |
           gh pr merge ${{ steps.pr.outputs.number }} --squash --delete-branch
           echo "merged=true" >> "$GITHUB_OUTPUT"
+
+      - name: Vasthouden voor review
+        if: steps.pr.outputs.number != '' && steps.pr.outputs.review == 'true'
+        run: |
+          gh pr comment ${{ steps.pr.outputs.number }} --body \
+            "Niet automatisch gemerged omdat issue #${ISSUE} het label \`review\` heeft. Build en lint slaagden wel. Haal het label weg en label de issue opnieuw met \`enhancement\` om alsnog automatisch te laten lopen, of merge zelf."
 
       - name: Melden waarom er niet gemerged is
         if: failure() && steps.pr.outputs.number != ''

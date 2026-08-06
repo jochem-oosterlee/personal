@@ -32,9 +32,10 @@ Die build-en-lint-stap staat bewust in de workflow en niet alleen in de prompt �
 dat het model zégt dat het slaagt, is geen bewijs. Faalt de poort, dan blijft de
 PR open met een comment erbij en verandert er niets aan `main`.
 
-Er kijkt dus niemand mee voordat het op je telefoon staat. Wil je dat wel, haal
-dan de stappen `Mergen` en `deploy` uit claude.yml; de rest blijft werken en je
-krijgt weer een PR om zelf te mergen.
+Er kijkt dus niemand mee voordat het op je telefoon staat. Voor een wens waar je
+wél eerst naar wilt kijken: zet het label `review` op de issue. De workflow
+bouwt en opent dan wel een PR, maar mergt hem niet. Wil je het permanent, haal
+dan de stappen `Mergen` en `deploy` uit claude.yml.
 
 **Model kiezen** doe je in Instellingen → Model voor wensen. De app schrijft
 `Model: <id>` onderaan de issue-body. De workflow leest die regel, maar geeft
