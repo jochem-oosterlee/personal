@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Plus, Send, X } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
-import { createIssue, prefillUrl, DEFAULT_MODEL } from '../../lib/github'
-import type { Issue, ModelId } from '../../lib/github'
+import { createIssue, getIssueStatus, prefillUrl, DEFAULT_MODEL } from '../../lib/github'
+import type { Issue, IssueStatus, ModelId } from '../../lib/github'
 import './Wishes.css'
 
 type Wish = {
@@ -11,6 +11,29 @@ type Wish = {
   detail: string
   createdAt: number
   issue?: Issue
+  status?: IssueStatus
+}
+
+// How often to poll while a wish's issue is still open — tight enough to feel
+// live, loose enough to stay well under GitHub's rate limit.
+const POLL_INTERVAL_MS = 30_000
+
+function statusKind(status: IssueStatus): 'open' | 'progress' | 'done' | 'rejected' {
+  if (status.state === 'open') return status.comments > 0 ? 'progress' : 'open'
+  return status.reason === 'not_planned' ? 'rejected' : 'done'
+}
+
+function statusLabel(status: IssueStatus): string {
+  switch (statusKind(status)) {
+    case 'progress':
+      return 'Wordt opgepakt'
+    case 'done':
+      return 'Voltooid'
+    case 'rejected':
+      return 'Niet uitgevoerd'
+    default:
+      return 'Open'
+  }
 }
 
 export function Wishes() {
@@ -25,6 +48,50 @@ export function Wishes() {
   // Newest first, by creation — sorting on edit would yank a wish out from
   // under the cursor while you type in it.
   const sorted = [...wishes].sort((a, b) => b.createdAt - a.createdAt)
+
+  // Read through a ref instead of depending on `wishes` directly, so editing
+  // a wish's text doesn't tear down and restart the poll timer.
+  const wishesRef = useRef(wishes)
+  wishesRef.current = wishes
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function refresh() {
+      const pending = wishesRef.current.filter(
+        (wish) => wish.issue && wish.status?.state !== 'closed',
+      )
+      if (pending.length === 0) return
+
+      const statuses = await Promise.all(
+        pending.map((wish) =>
+          getIssueStatus(token, wish.issue!.number).catch(() => undefined),
+        ),
+      )
+      if (cancelled) return
+
+      setWishes((current) =>
+        current.map((wish) => {
+          const index = pending.findIndex((item) => item.id === wish.id)
+          const status = index === -1 ? undefined : statuses[index]
+          return status ? { ...wish, status } : wish
+        }),
+      )
+    }
+
+    refresh()
+    const interval = setInterval(refresh, POLL_INTERVAL_MS)
+    function onVisible() {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [token, setWishes])
 
   function addWish(event: React.FormEvent) {
     event.preventDefault()
@@ -62,8 +129,9 @@ export function Wishes() {
 
     try {
       const issue = await createIssue(token, wish.title, wish.detail, model)
+      const status = await getIssueStatus(token, issue.number).catch(() => undefined)
       setWishes((current) =>
-        current.map((item) => (item.id === wish.id ? { ...item, issue } : item)),
+        current.map((item) => (item.id === wish.id ? { ...item, issue, status } : item)),
       )
     } catch (error) {
       setErrors((current) => ({
@@ -128,15 +196,24 @@ export function Wishes() {
 
               <div className="wish__foot">
                 {wish.issue ? (
-                  <a
-                    className="wish__issue"
-                    href={wish.issue.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={12} strokeWidth={1.4} aria-hidden="true" />
-                    Issue #{wish.issue.number}
-                  </a>
+                  <>
+                    <a
+                      className="wish__issue"
+                      href={wish.issue.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink size={12} strokeWidth={1.4} aria-hidden="true" />
+                      Issue #{wish.issue.number}
+                    </a>
+                    {wish.status && (
+                      <span
+                        className={`wish__status wish__status--${statusKind(wish.status)}`}
+                      >
+                        {statusLabel(wish.status)}
+                      </span>
+                    )}
+                  </>
                 ) : (
                   <button
                     className="wish__send"
