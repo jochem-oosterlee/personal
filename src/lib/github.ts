@@ -18,24 +18,47 @@ export type ModelId = 'claude-opus-5' | 'claude-sonnet-5' | 'claude-haiku-4-5'
 
 export const DEFAULT_MODEL: ModelId = 'claude-opus-5'
 
+/** Error strings, supplied by the caller so this file doesn't own UI text. */
+export type GithubStrings = {
+  tokenInvalid: string
+  tokenMissingScope: string
+  noAccess: (repo: string) => string
+  contentRejected: string
+  rateLimited: string
+  statusError: (status: number) => string
+  noConnection: string
+}
+
 /**
  * Welk model de wens bouwt. De workflow keurt de waarde uit de issue-body af
  * als hij niet in zijn eigen lijst staat — houd .github/workflows/claude.yml
  * in sync met deze ids.
  */
-export const MODELS: { id: ModelId; label: string; hint: string }[] = [
-  { id: 'claude-opus-5', label: 'Opus 5', hint: 'Sterkst; voor grotere wensen' },
-  { id: 'claude-sonnet-5', label: 'Sonnet 5', hint: 'Sneller en goedkoper' },
-  { id: 'claude-haiku-4-5', label: 'Haiku 4.5', hint: 'Alleen kleine klusjes' },
+export const MODELS: { id: ModelId; label: string; hint: { nl: string; en: string } }[] = [
+  {
+    id: 'claude-opus-5',
+    label: 'Opus 5',
+    hint: { nl: 'Sterkst; voor grotere wensen', en: 'Strongest; for bigger wishes' },
+  },
+  {
+    id: 'claude-sonnet-5',
+    label: 'Sonnet 5',
+    hint: { nl: 'Sneller en goedkoper', en: 'Faster and cheaper' },
+  },
+  {
+    id: 'claude-haiku-4-5',
+    label: 'Haiku 4.5',
+    hint: { nl: 'Alleen kleine klusjes', en: 'Small jobs only' },
+  },
 ]
 
-function describe(status: number): string {
-  if (status === 401) return 'Token ongeldig of verlopen.'
-  if (status === 403) return 'Token mist het recht "Issues: write".'
-  if (status === 404) return `Geen toegang tot ${REPO} met dit token.`
-  if (status === 422) return 'GitHub weigerde de inhoud van de issue.'
-  if (status === 429) return 'Te veel verzoeken — probeer het zo nog eens.'
-  return `GitHub antwoordde met status ${status}.`
+function describe(status: number, strings: GithubStrings): string {
+  if (status === 401) return strings.tokenInvalid
+  if (status === 403) return strings.tokenMissingScope
+  if (status === 404) return strings.noAccess(REPO)
+  if (status === 422) return strings.contentRejected
+  if (status === 429) return strings.rateLimited
+  return strings.statusError(status)
 }
 
 // De regel "Model: <id>" is machineleesbaar — de workflow pikt hem hieruit.
@@ -54,6 +77,7 @@ export async function createIssue(
   title: string,
   detail: string,
   model: ModelId,
+  strings: GithubStrings,
 ): Promise<Issue> {
   let response: Response
 
@@ -73,10 +97,10 @@ export async function createIssue(
       }),
     })
   } catch {
-    throw new Error('Geen verbinding met GitHub.')
+    throw new Error(strings.noConnection)
   }
 
-  if (!response.ok) throw new Error(describe(response.status))
+  if (!response.ok) throw new Error(describe(response.status, strings))
 
   const data = await response.json()
   return { number: data.number, url: data.html_url }
@@ -88,7 +112,11 @@ export async function createIssue(
  * as not planned, closed by hand) without hard-coding the workflow's steps.
  * Works without a token too (the repo is public), just at a lower rate limit.
  */
-export async function getIssueStatus(token: string, issueNumber: number): Promise<IssueStatus> {
+export async function getIssueStatus(
+  token: string,
+  issueNumber: number,
+  strings: GithubStrings,
+): Promise<IssueStatus> {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
@@ -98,7 +126,7 @@ export async function getIssueStatus(token: string, issueNumber: number): Promis
   const response = await fetch(`https://api.github.com/repos/${REPO}/issues/${issueNumber}`, {
     headers,
   })
-  if (!response.ok) throw new Error(describe(response.status))
+  if (!response.ok) throw new Error(describe(response.status, strings))
 
   const data = await response.json()
   return { state: data.state, reason: data.state_reason ?? null, comments: data.comments }

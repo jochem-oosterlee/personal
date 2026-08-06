@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Check, Plus, X } from 'lucide-react'
 import { usePersistentState } from '../lib/storage'
+import { useLanguage } from '../lib/language'
 import './Checklist.css'
 
 type ChecklistItem = {
@@ -24,6 +25,7 @@ export function Checklist({
   addLabel,
   emptyText,
 }: ChecklistProps) {
+  const { t } = useLanguage()
   const [items, setItems] = usePersistentState<ChecklistItem[]>(storageKey, [])
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -112,7 +114,7 @@ export function Checklist({
                   className="row__remove"
                   type="button"
                   onClick={() => removeItem(item.id)}
-                  aria-label={`${item.name} verwijderen`}
+                  aria-label={t.checklist.remove(item.name)}
                 >
                   <X size={14} strokeWidth={1.4} aria-hidden="true" />
                 </button>
@@ -121,12 +123,10 @@ export function Checklist({
           </ul>
 
           <footer className="checklist__footer">
-            <span>
-              {doneCount} van {items.length} afgevinkt
-            </span>
+            <span>{t.checklist.doneOf(doneCount, items.length)}</span>
             {doneCount > 0 && (
               <button className="checklist__clear" type="button" onClick={clearDone}>
-                Wis afgevinkte
+                {t.checklist.clearDone}
               </button>
             )}
           </footer>

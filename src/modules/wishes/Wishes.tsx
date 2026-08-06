@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Plus, Send, X } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
+import { useLanguage } from '../../lib/language'
 import { createIssue, getIssueStatus, prefillUrl, DEFAULT_MODEL } from '../../lib/github'
 import type { Issue, IssueStatus, ModelId } from '../../lib/github'
+import type { Translations } from '../../lib/translations'
 import './Wishes.css'
 
 type Wish = {
@@ -23,20 +25,21 @@ function statusKind(status: IssueStatus): 'open' | 'progress' | 'done' | 'reject
   return status.reason === 'not_planned' ? 'rejected' : 'done'
 }
 
-function statusLabel(status: IssueStatus): string {
+function statusLabel(status: IssueStatus, t: Translations): string {
   switch (statusKind(status)) {
     case 'progress':
-      return 'Wordt opgepakt'
+      return t.wishes.statusProgress
     case 'done':
-      return 'Voltooid'
+      return t.wishes.statusDone
     case 'rejected':
-      return 'Niet uitgevoerd'
+      return t.wishes.statusRejected
     default:
-      return 'Open'
+      return t.wishes.statusOpen
   }
 }
 
 export function Wishes() {
+  const { t } = useLanguage()
   const [wishes, setWishes] = usePersistentState<Wish[]>('wishes.items', [])
   const [token] = usePersistentState('settings.githubToken', '')
   const [model] = usePersistentState<ModelId>('settings.model', DEFAULT_MODEL)
@@ -65,7 +68,7 @@ export function Wishes() {
 
       const statuses = await Promise.all(
         pending.map((wish) =>
-          getIssueStatus(token, wish.issue!.number).catch(() => undefined),
+          getIssueStatus(token, wish.issue!.number, t.github).catch(() => undefined),
         ),
       )
       if (cancelled) return
@@ -91,7 +94,7 @@ export function Wishes() {
       clearInterval(interval)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [token, setWishes])
+  }, [token, setWishes, t])
 
   function addWish(event: React.FormEvent) {
     event.preventDefault()
@@ -128,15 +131,15 @@ export function Wishes() {
     setErrors((current) => ({ ...current, [wish.id]: '' }))
 
     try {
-      const issue = await createIssue(token, wish.title, wish.detail, model)
-      const status = await getIssueStatus(token, issue.number).catch(() => undefined)
+      const issue = await createIssue(token, wish.title, wish.detail, model, t.github)
+      const status = await getIssueStatus(token, issue.number, t.github).catch(() => undefined)
       setWishes((current) =>
         current.map((item) => (item.id === wish.id ? { ...item, issue, status } : item)),
       )
     } catch (error) {
       setErrors((current) => ({
         ...current,
-        [wish.id]: error instanceof Error ? error.message : 'Onbekende fout.',
+        [wish.id]: error instanceof Error ? error.message : t.wishes.unknownError,
       }))
     } finally {
       setSendingId(null)
@@ -151,8 +154,8 @@ export function Wishes() {
           className="wishes__input"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Wat mist er?"
-          aria-label="Nieuwe wens"
+          placeholder={t.wishes.placeholder}
+          aria-label={t.wishes.inputLabel}
           enterKeyHint="done"
           autoComplete="off"
           autoCapitalize="sentences"
@@ -161,17 +164,14 @@ export function Wishes() {
           className="wishes__submit"
           type="submit"
           disabled={!draft.trim()}
-          aria-label="Wens toevoegen"
+          aria-label={t.wishes.addLabel}
         >
           <Plus size={17} strokeWidth={1.5} aria-hidden="true" />
         </button>
       </form>
 
       {wishes.length === 0 ? (
-        <p className="wishes__empty">
-          Nog geen wensen. Schrijf op wat je mist; versturen kan later, ook
-          offline opgeschreven.
-        </p>
+        <p className="wishes__empty">{t.wishes.empty}</p>
       ) : (
         <ul className="wishes__list">
           {sorted.map((wish) => (
@@ -182,7 +182,7 @@ export function Wishes() {
                   className="wish__remove"
                   type="button"
                   onClick={() => removeWish(wish.id)}
-                  aria-label={`${wish.title} verwijderen`}
+                  aria-label={t.wishes.remove(wish.title)}
                 >
                   <X size={14} strokeWidth={1.4} aria-hidden="true" />
                 </button>
@@ -204,13 +204,13 @@ export function Wishes() {
                       rel="noopener noreferrer"
                     >
                       <ExternalLink size={12} strokeWidth={1.4} aria-hidden="true" />
-                      Issue #{wish.issue.number}
+                      {t.wishes.issue(wish.issue.number)}
                     </a>
                     {wish.status && (
                       <span
                         className={`wish__status wish__status--${statusKind(wish.status)}`}
                       >
-                        {statusLabel(wish.status)}
+                        {statusLabel(wish.status, t)}
                       </span>
                     )}
                   </>
@@ -223,10 +223,10 @@ export function Wishes() {
                   >
                     <Send size={12} strokeWidth={1.4} aria-hidden="true" />
                     {sendingId === wish.id
-                      ? 'Versturen…'
+                      ? t.wishes.sending
                       : token
-                        ? 'Maak issue aan'
-                        : 'Openen op GitHub'}
+                        ? t.wishes.createIssue
+                        : t.wishes.openOnGithub}
                   </button>
                 )}
 
@@ -251,6 +251,7 @@ type DetailEditorProps = {
 }
 
 function DetailEditor({ text, disabled, onChange }: DetailEditorProps) {
+  const { t } = useLanguage()
   const ref = useRef<HTMLTextAreaElement>(null)
 
   // Grow with the content instead of showing an inner scrollbar.
@@ -268,8 +269,8 @@ function DetailEditor({ text, disabled, onChange }: DetailEditorProps) {
       value={text}
       rows={1}
       disabled={disabled}
-      placeholder={disabled ? '' : 'Toelichting (optioneel)…'}
-      aria-label="Toelichting"
+      placeholder={disabled ? '' : t.wishes.detailPlaceholder}
+      aria-label={t.wishes.detailLabel}
       onChange={(event) => onChange(event.target.value)}
     />
   )
