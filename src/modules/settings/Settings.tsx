@@ -4,13 +4,9 @@ import { clearAll, exportAll, storageKeys, usePersistentState } from '../../lib/
 import { DEFAULT_MODEL, MODELS, NEW_TOKEN_URL } from '../../lib/github'
 import type { ModelId } from '../../lib/github'
 import type { ThemePreference } from '../../lib/theme'
+import { useLanguage } from '../../lib/language'
+import type { LanguagePreference } from '../../lib/language'
 import './Settings.css'
-
-const THEMES: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
-  { value: 'system', label: 'Systeem', Icon: Monitor },
-  { value: 'light', label: 'Licht', Icon: Sun },
-  { value: 'dark', label: 'Donker', Icon: Moon },
-]
 
 type SettingsProps = {
   theme: ThemePreference
@@ -18,9 +14,23 @@ type SettingsProps = {
 }
 
 export function Settings({ theme, onThemeChange }: SettingsProps) {
+  const { preference: languagePreference, setPreference: setLanguagePreference, language, t } =
+    useLanguage()
   const [confirming, setConfirming] = useState(false)
   const [token, setToken] = usePersistentState('settings.githubToken', '')
   const [model, setModel] = usePersistentState<ModelId>('settings.model', DEFAULT_MODEL)
+
+  const THEMES: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
+    { value: 'system', label: t.settings.themeSystem, Icon: Monitor },
+    { value: 'light', label: t.settings.themeLight, Icon: Sun },
+    { value: 'dark', label: t.settings.themeDark, Icon: Moon },
+  ]
+
+  const LANGUAGES: { value: LanguagePreference; label: string }[] = [
+    { value: 'system', label: t.settings.languageSystem },
+    { value: 'nl', label: t.settings.languageNl },
+    { value: 'en', label: t.settings.languageEn },
+  ]
 
   const activeModel = MODELS.find((entry) => entry.id === model) ?? MODELS[0]
 
@@ -47,8 +57,8 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
   return (
     <div className="settings">
       <section className="settings__group">
-        <h2 className="settings__heading micro">Thema</h2>
-        <div className="segmented" role="group" aria-label="Thema">
+        <h2 className="settings__heading micro">{t.settings.theme}</h2>
+        <div className="segmented" role="group" aria-label={t.settings.theme}>
           {THEMES.map(({ value, label, Icon }) => (
             <button
               key={value}
@@ -65,20 +75,33 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
       </section>
 
       <section className="settings__group">
-        <h2 className="settings__heading micro">GitHub</h2>
-        <p className="settings__note">
-          Met een token maakt Wensen de issue direct aan. Zonder token opent de
-          app de GitHub-pagina met alles vooringevuld. Het token blijft op dit
-          apparaat en gaat alleen naar github.com.
-        </p>
+        <h2 className="settings__heading micro">{t.settings.language}</h2>
+        <div className="segmented" role="group" aria-label={t.settings.language}>
+          {LANGUAGES.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              className={value === languagePreference ? 'segment segment--active' : 'segment'}
+              aria-pressed={value === languagePreference}
+              onClick={() => setLanguagePreference(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__heading micro">{t.settings.github}</h2>
+        <p className="settings__note">{t.settings.githubNote}</p>
 
         <input
           className="settings__input"
           type="password"
           value={token}
           onChange={(event) => setToken(event.target.value.trim())}
-          placeholder="github_pat_…"
-          aria-label="GitHub-token"
+          placeholder={t.settings.tokenPlaceholder}
+          aria-label={t.settings.tokenLabel}
           autoComplete="off"
           autoCapitalize="none"
           spellCheck={false}
@@ -91,17 +114,14 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
           rel="noopener noreferrer"
         >
           <ExternalLink size={14} strokeWidth={1.4} aria-hidden="true" />
-          Token aanmaken
+          {t.settings.createToken}
         </a>
-        <p className="settings__note">
-          Kies "Only select repositories" → personal, en onder Permissions:
-          Issues → Read and write.
-        </p>
+        <p className="settings__note">{t.settings.tokenHint}</p>
       </section>
 
       <section className="settings__group">
-        <h2 className="settings__heading micro">Model voor wensen</h2>
-        <div className="segmented" role="group" aria-label="Model voor wensen">
+        <h2 className="settings__heading micro">{t.settings.model}</h2>
+        <div className="segmented" role="group" aria-label={t.settings.model}>
           {MODELS.map((entry) => (
             <button
               key={entry.id}
@@ -115,40 +135,36 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
           ))}
         </div>
         <p className="settings__note">
-          {activeModel.hint}. Het model gaat mee in de issue; de workflow kiest
-          het standaardmodel als het er niet in staat.
+          {activeModel.hint[language]}. {t.settings.modelNote}
         </p>
       </section>
 
       <section className="settings__group">
-        <h2 className="settings__heading micro">Gegevens</h2>
-        <p className="settings__note">
-          {storageKeys().length} sleutel(s) opgeslagen op dit apparaat. Er is geen
-          backend — niets wordt gesynchroniseerd.
-        </p>
+        <h2 className="settings__heading micro">{t.settings.data}</h2>
+        <p className="settings__note">{t.settings.dataNote(storageKeys().length)}</p>
 
         <button className="settings__action" type="button" onClick={exportData}>
           <Download size={14} strokeWidth={1.4} aria-hidden="true" />
-          Exporteer als JSON
+          {t.settings.exportJson}
         </button>
 
         {confirming ? (
           <div className="settings__confirm">
-            <span>Alles wissen? Dit kan niet ongedaan worden gemaakt.</span>
+            <span>{t.settings.wipeConfirm}</span>
             <div className="settings__confirm-actions">
               <button
                 className="settings__action settings__action--danger"
                 type="button"
                 onClick={wipe}
               >
-                Ja, wissen
+                {t.settings.wipeYes}
               </button>
               <button
                 className="settings__action"
                 type="button"
                 onClick={() => setConfirming(false)}
               >
-                Annuleren
+                {t.settings.cancel}
               </button>
             </div>
           </div>
@@ -159,7 +175,7 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
             onClick={() => setConfirming(true)}
           >
             <Trash2 size={14} strokeWidth={1.4} aria-hidden="true" />
-            Wis alle gegevens
+            {t.settings.wipeAll}
           </button>
         )}
       </section>

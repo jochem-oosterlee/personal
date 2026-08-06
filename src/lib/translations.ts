@@ -1,0 +1,185 @@
+export type Language = 'nl' | 'en'
+
+const nl = {
+  nav: {
+    shopping: 'Boodschappen',
+    tasks: 'Taken',
+    notes: 'Notities',
+    wishes: 'Wensen',
+    settings: 'Instellingen',
+    aria: 'Onderdelen',
+  },
+  shopping: {
+    placeholder: 'Wat heb je nodig?',
+    addLabel: 'Boodschap toevoegen',
+    emptyText: 'Je lijstje is leeg.',
+  },
+  tasks: {
+    placeholder: 'Wat moet er gebeuren?',
+    addLabel: 'Taak toevoegen',
+    emptyText: 'Geen openstaande taken.',
+  },
+  checklist: {
+    remove: (name: string) => `${name} verwijderen`,
+    doneOf: (done: number, total: number) => `${done} van ${total} afgevinkt`,
+    clearDone: 'Wis afgevinkte',
+  },
+  notes: {
+    add: 'Nieuwe notitie',
+    empty: 'Nog geen notities.',
+    placeholder: 'Typ je notitie…',
+    label: 'Notitie',
+    remove: 'Notitie verwijderen',
+  },
+  wishes: {
+    placeholder: 'Wat mist er?',
+    inputLabel: 'Nieuwe wens',
+    addLabel: 'Wens toevoegen',
+    empty:
+      'Nog geen wensen. Schrijf op wat je mist; versturen kan later, ook offline opgeschreven.',
+    remove: (title: string) => `${title} verwijderen`,
+    detailPlaceholder: 'Toelichting (optioneel)…',
+    detailLabel: 'Toelichting',
+    issue: (number: number) => `Issue #${number}`,
+    statusProgress: 'Wordt opgepakt',
+    statusDone: 'Voltooid',
+    statusRejected: 'Niet uitgevoerd',
+    statusOpen: 'Open',
+    sending: 'Versturen…',
+    createIssue: 'Maak issue aan',
+    openOnGithub: 'Openen op GitHub',
+    unknownError: 'Onbekende fout.',
+  },
+  github: {
+    tokenInvalid: 'Token ongeldig of verlopen.',
+    tokenMissingScope: 'Token mist het recht "Issues: write".',
+    noAccess: (repo: string) => `Geen toegang tot ${repo} met dit token.`,
+    contentRejected: 'GitHub weigerde de inhoud van de issue.',
+    rateLimited: 'Te veel verzoeken — probeer het zo nog eens.',
+    statusError: (status: number) => `GitHub antwoordde met status ${status}.`,
+    noConnection: 'Geen verbinding met GitHub.',
+  },
+  settings: {
+    theme: 'Thema',
+    themeSystem: 'Systeem',
+    themeLight: 'Licht',
+    themeDark: 'Donker',
+    language: 'Taal',
+    languageSystem: 'Systeem',
+    languageNl: 'Nederlands',
+    languageEn: 'Engels',
+    github: 'GitHub',
+    githubNote:
+      'Met een token maakt Wensen de issue direct aan. Zonder token opent de app de GitHub-pagina met alles vooringevuld. Het token blijft op dit apparaat en gaat alleen naar github.com.',
+    tokenPlaceholder: 'github_pat_…',
+    tokenLabel: 'GitHub-token',
+    createToken: 'Token aanmaken',
+    tokenHint:
+      'Kies "Only select repositories" → personal, en onder Permissions: Issues → Read and write.',
+    model: 'Model voor wensen',
+    modelNote:
+      'Het model gaat mee in de issue; de workflow kiest het standaardmodel als het er niet in staat.',
+    data: 'Gegevens',
+    dataNote: (count: number) =>
+      `${count} sleutel(s) opgeslagen op dit apparaat. Er is geen backend — niets wordt gesynchroniseerd.`,
+    exportJson: 'Exporteer als JSON',
+    wipeConfirm: 'Alles wissen? Dit kan niet ongedaan worden gemaakt.',
+    wipeYes: 'Ja, wissen',
+    cancel: 'Annuleren',
+    wipeAll: 'Wis alle gegevens',
+  },
+}
+
+const en: typeof nl = {
+  nav: {
+    shopping: 'Groceries',
+    tasks: 'Tasks',
+    notes: 'Notes',
+    wishes: 'Wishes',
+    settings: 'Settings',
+    aria: 'Sections',
+  },
+  shopping: {
+    placeholder: 'What do you need?',
+    addLabel: 'Add item',
+    emptyText: 'Your list is empty.',
+  },
+  tasks: {
+    placeholder: 'What needs to be done?',
+    addLabel: 'Add task',
+    emptyText: 'No open tasks.',
+  },
+  checklist: {
+    remove: (name: string) => `Remove ${name}`,
+    doneOf: (done: number, total: number) => `${done} of ${total} checked off`,
+    clearDone: 'Clear checked off',
+  },
+  notes: {
+    add: 'New note',
+    empty: 'No notes yet.',
+    placeholder: 'Type your note…',
+    label: 'Note',
+    remove: 'Remove note',
+  },
+  wishes: {
+    placeholder: "What's missing?",
+    inputLabel: 'New wish',
+    addLabel: 'Add wish',
+    empty:
+      "No wishes yet. Write down what you're missing; you can send it later, even if you wrote it offline.",
+    remove: (title: string) => `Remove ${title}`,
+    detailPlaceholder: 'Details (optional)…',
+    detailLabel: 'Details',
+    issue: (number: number) => `Issue #${number}`,
+    statusProgress: 'In progress',
+    statusDone: 'Done',
+    statusRejected: 'Not implemented',
+    statusOpen: 'Open',
+    sending: 'Sending…',
+    createIssue: 'Create issue',
+    openOnGithub: 'Open on GitHub',
+    unknownError: 'Unknown error.',
+  },
+  github: {
+    tokenInvalid: 'Token invalid or expired.',
+    tokenMissingScope: 'Token is missing the "Issues: write" permission.',
+    noAccess: (repo: string) => `No access to ${repo} with this token.`,
+    contentRejected: 'GitHub rejected the content of the issue.',
+    rateLimited: 'Too many requests — try again shortly.',
+    statusError: (status: number) => `GitHub responded with status ${status}.`,
+    noConnection: 'No connection to GitHub.',
+  },
+  settings: {
+    theme: 'Theme',
+    themeSystem: 'System',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    language: 'Language',
+    languageSystem: 'System',
+    languageNl: 'Dutch',
+    languageEn: 'English',
+    github: 'GitHub',
+    githubNote:
+      'With a token, Wishes creates the issue directly. Without a token, the app opens the GitHub page with everything pre-filled. The token stays on this device and only goes to github.com.',
+    tokenPlaceholder: 'github_pat_…',
+    tokenLabel: 'GitHub token',
+    createToken: 'Create token',
+    tokenHint:
+      'Choose "Only select repositories" → personal, and under Permissions: Issues → Read and write.',
+    model: 'Model for wishes',
+    modelNote:
+      "The model is sent along with the issue; the workflow falls back to the default model if it isn't in its list.",
+    data: 'Data',
+    dataNote: (count: number) =>
+      `${count} key(s) stored on this device. There is no backend — nothing is synced.`,
+    exportJson: 'Export as JSON',
+    wipeConfirm: 'Clear everything? This cannot be undone.',
+    wipeYes: 'Yes, clear',
+    cancel: 'Cancel',
+    wipeAll: 'Clear all data',
+  },
+}
+
+export type Translations = typeof nl
+
+export const translations: Record<Language, Translations> = { nl, en }

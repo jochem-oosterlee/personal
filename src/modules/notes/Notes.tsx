@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
+import { useLanguage } from '../../lib/language'
 import './Notes.css'
 
 type Note = {
@@ -10,6 +11,7 @@ type Note = {
 }
 
 export function Notes() {
+  const { t } = useLanguage()
   const [notes, setNotes] = usePersistentState<Note[]>('notes.items', [])
   // Set when a note is created, so the fresh textarea can take focus.
   const focusId = useRef<string | null>(null)
@@ -39,12 +41,12 @@ export function Notes() {
       <div className="notes__bar sticky-top">
         <button className="notes__add" type="button" onClick={addNote}>
           <Plus size={15} strokeWidth={1.5} aria-hidden="true" />
-          Nieuwe notitie
+          {t.notes.add}
         </button>
       </div>
 
       {notes.length === 0 ? (
-        <p className="notes__empty">Nog geen notities.</p>
+        <p className="notes__empty">{t.notes.empty}</p>
       ) : (
         <ul className="notes__list">
           {sorted.map((note) => (
@@ -58,7 +60,7 @@ export function Notes() {
                 className="note__remove"
                 type="button"
                 onClick={() => removeNote(note.id)}
-                aria-label="Notitie verwijderen"
+                aria-label={t.notes.remove}
               >
                 <Trash2 size={13} strokeWidth={1.4} aria-hidden="true" />
               </button>
@@ -77,6 +79,7 @@ type NoteEditorProps = {
 }
 
 function NoteEditor({ text, autoFocus, onChange }: NoteEditorProps) {
+  const { t } = useLanguage()
   const ref = useRef<HTMLTextAreaElement>(null)
 
   // Grow with the content instead of showing an inner scrollbar.
@@ -97,8 +100,8 @@ function NoteEditor({ text, autoFocus, onChange }: NoteEditorProps) {
       className="note__text"
       value={text}
       rows={1}
-      placeholder="Typ je notitie…"
-      aria-label="Notitie"
+      placeholder={t.notes.placeholder}
+      aria-label={t.notes.label}
       onChange={(event) => onChange(event.target.value)}
     />
   )
