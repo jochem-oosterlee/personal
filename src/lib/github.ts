@@ -22,6 +22,7 @@ export const DEFAULT_MODEL: ModelId = 'claude-opus-5'
 export type GithubStrings = {
   tokenInvalid: string
   tokenMissingScope: string
+  gistMissingScope: string
   noAccess: (repo: string) => string
   contentRejected: string
   rateLimited: string
@@ -52,9 +53,13 @@ export const MODELS: { id: ModelId; label: string; hint: { nl: string; en: strin
   },
 ]
 
-function describe(status: number, strings: GithubStrings): string {
+function describe(
+  status: number,
+  strings: GithubStrings,
+  missingScope: string = strings.tokenMissingScope,
+): string {
   if (status === 401) return strings.tokenInvalid
-  if (status === 403) return strings.tokenMissingScope
+  if (status === 403) return missingScope
   if (status === 404) return strings.noAccess(REPO)
   if (status === 422) return strings.contentRejected
   if (status === 429) return strings.rateLimited
@@ -104,6 +109,58 @@ export async function createIssue(
 
   const data = await response.json()
   return { number: data.number, url: data.html_url }
+}
+
+export type Screenshot = { dataUrl: string; width: number; height: number }
+
+function svgWrapper(image: Screenshot): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${image.width}" height="${image.height}" viewBox="0 0 ${image.width} ${image.height}"><image width="${image.width}" height="${image.height}" href="${image.dataUrl}" xlink:href="${image.dataUrl}"/></svg>`
+}
+
+/**
+ * Gists only accept text file content, not raw image bytes. Each screenshot
+ * is wrapped as a small SVG that embeds it as a data: URI — that makes the
+ * file itself plain UTF-8 text for the API, while the raw gist URL still
+ * renders as the screenshot. GitHub's issue sanitizer strips data: URIs from
+ * an issue body directly, but doesn't inspect what an https:// <img> points
+ * at, so the raw gist URL can go straight into the issue as ![](url).
+ */
+export async function uploadScreenshots(
+  token: string,
+  images: Screenshot[],
+  strings: GithubStrings,
+): Promise<string[]> {
+  if (images.length === 0) return []
+
+  const files: Record<string, { content: string }> = {}
+  images.forEach((image, index) => {
+    files[`screenshot-${index + 1}.svg`] = { content: svgWrapper(image) }
+  })
+
+  let response: Response
+  try {
+    response = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        description: 'Screenshot bij een wens in de Personal PWA.',
+        public: false,
+        files,
+      }),
+    })
+  } catch {
+    throw new Error(strings.noConnection)
+  }
+
+  if (!response.ok) throw new Error(describe(response.status, strings, strings.gistMissingScope))
+
+  const data = await response.json()
+  return images.map((_, index) => data.files[`screenshot-${index + 1}.svg`].raw_url)
 }
 
 /**

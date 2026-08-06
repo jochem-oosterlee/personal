@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ExternalLink, Plus, Send, X } from 'lucide-react'
+import { ExternalLink, ImagePlus, Plus, Send, X } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import {
@@ -8,11 +8,14 @@ import {
   getComments,
   getIssueStatus,
   prefillUrl,
+  uploadScreenshots,
   DEFAULT_MODEL,
 } from '../../lib/github'
-import type { Issue, IssueComment, IssueStatus, ModelId } from '../../lib/github'
+import type { Issue, IssueComment, IssueStatus, ModelId, Screenshot } from '../../lib/github'
 import type { Translations } from '../../lib/translations'
 import './Wishes.css'
+
+type Attachment = Screenshot & { id: string }
 
 type Wish = {
   id: string
@@ -21,6 +24,40 @@ type Wish = {
   createdAt: number
   issue?: Issue
   status?: IssueStatus
+  attachments?: Attachment[]
+}
+
+// Big enough to keep detail readable in a screenshot, small enough to stay
+// well under a gist's per-file size once base64-encoded.
+const MAX_SCREENSHOT_DIMENSION = 1440
+
+function compressScreenshot(file: File): Promise<Screenshot> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(reader.error)
+    reader.onload = () => {
+      const image = new Image()
+      image.onerror = () => reject(new Error('image decode failed'))
+      image.onload = () => {
+        const scale = Math.min(1, MAX_SCREENSHOT_DIMENSION / Math.max(image.width, image.height))
+        const width = Math.round(image.width * scale)
+        const height = Math.round(image.height * scale)
+
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const context = canvas.getContext('2d')
+        if (!context) {
+          reject(new Error('canvas unavailable'))
+          return
+        }
+        context.drawImage(image, 0, 0, width, height)
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.72), width, height })
+      }
+      image.src = reader.result as string
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 // How often to poll while a wish's issue is still open — tight enough to feel
@@ -152,9 +189,44 @@ export function Wishes() {
     setWishes((current) => current.filter((wish) => wish.id !== id))
   }
 
+  async function addAttachments(id: string, files: FileList | null) {
+    if (!files) return
+    for (const file of Array.from(files)) {
+      try {
+        const screenshot = await compressScreenshot(file)
+        setWishes((current) =>
+          current.map((wish) =>
+            wish.id === id
+              ? {
+                  ...wish,
+                  attachments: [
+                    ...(wish.attachments ?? []),
+                    { ...screenshot, id: crypto.randomUUID() },
+                  ],
+                }
+              : wish,
+          ),
+        )
+      } catch {
+        // Not a decodable image — skip it rather than fail the whole batch.
+      }
+    }
+  }
+
+  function removeAttachment(wishId: string, attachmentId: string) {
+    setWishes((current) =>
+      current.map((wish) =>
+        wish.id === wishId
+          ? { ...wish, attachments: wish.attachments?.filter((att) => att.id !== attachmentId) }
+          : wish,
+      ),
+    )
+  }
+
   async function send(wish: Wish) {
     // Without a token there is nothing to authenticate with, so hand the
-    // request to GitHub's own form with everything filled in.
+    // request to GitHub's own form with everything filled in. Attachments
+    // stay behind — that form takes screenshots via drag-and-drop instead.
     if (!token) {
       window.open(prefillUrl(wish.title, wish.detail, model), '_blank', 'noopener')
       return
@@ -164,10 +236,16 @@ export function Wishes() {
     setErrors((current) => ({ ...current, [wish.id]: '' }))
 
     try {
-      const issue = await createIssue(token, wish.title, wish.detail, model, t.github)
+      const imageUrls = await uploadScreenshots(token, wish.attachments ?? [], t.github)
+      const detail = imageUrls.length
+        ? `${wish.detail}\n\n${imageUrls.map((url) => `![](${url})`).join('\n')}`
+        : wish.detail
+      const issue = await createIssue(token, wish.title, detail, model, t.github)
       const status = await getIssueStatus(token, issue.number, t.github).catch(() => undefined)
       setWishes((current) =>
-        current.map((item) => (item.id === wish.id ? { ...item, issue, status } : item)),
+        current.map((item) =>
+          item.id === wish.id ? { ...item, issue, status, attachments: undefined } : item,
+        ),
       )
     } catch (error) {
       setErrors((current) => ({
@@ -226,6 +304,37 @@ export function Wishes() {
                 disabled={Boolean(wish.issue)}
                 onChange={(detail) => updateDetail(wish.id, detail)}
               />
+
+              {token && !wish.issue && (
+                <div className="wish__attachments">
+                  {wish.attachments?.map((attachment) => (
+                    <div className="wish__attachment" key={attachment.id}>
+                      <img src={attachment.dataUrl} alt="" />
+                      <button
+                        className="wish__attachment-remove"
+                        type="button"
+                        onClick={() => removeAttachment(wish.id, attachment.id)}
+                        aria-label={t.wishes.removeScreenshot}
+                      >
+                        <X size={12} strokeWidth={1.4} aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="wish__attach">
+                    <ImagePlus size={14} strokeWidth={1.5} aria-hidden="true" />
+                    {t.wishes.attachScreenshot}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(event) => {
+                        addAttachments(wish.id, event.target.files)
+                        event.target.value = ''
+                      }}
+                    />
+                  </label>
+                </div>
+              )}
 
               <div className="wish__foot">
                 {wish.issue ? (
