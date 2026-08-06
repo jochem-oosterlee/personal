@@ -132,6 +132,94 @@ export async function getIssueStatus(
   return { state: data.state, reason: data.state_reason ?? null, comments: data.comments }
 }
 
+export type IssueComment = {
+  id: number
+  author: string
+  fromClaude: boolean
+  body: string
+  createdAt: string
+}
+
+/**
+ * The workflow posts as github-actions[bot], so anything not from you is
+ * Claude talking back — a question, or the summary of what it built.
+ */
+export async function getComments(
+  token: string,
+  issueNumber: number,
+  strings: GithubStrings,
+): Promise<IssueComment[]> {
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const response = await fetch(
+    `https://api.github.com/repos/${REPO}/issues/${issueNumber}/comments?per_page=100`,
+    { headers },
+  )
+  if (!response.ok) throw new Error(describe(response.status, strings))
+
+  type RawComment = {
+    id: number
+    body: string
+    created_at: string
+    user: { login: string; type: string }
+  }
+
+  const data: RawComment[] = await response.json()
+  return data.map((entry) => ({
+    id: entry.id,
+    author: entry.user.login,
+    fromClaude: entry.user.type === 'Bot',
+    body: entry.body,
+    createdAt: entry.created_at,
+  }))
+}
+
+/**
+ * Answering re-triggers the workflow, which reads the whole thread and picks
+ * up where it left off. Needs a token — commenting is not anonymous.
+ */
+export async function addComment(
+  token: string,
+  issueNumber: number,
+  body: string,
+  strings: GithubStrings,
+): Promise<IssueComment> {
+  let response: Response
+
+  try {
+    response = await fetch(
+      `https://api.github.com/repos/${REPO}/issues/${issueNumber}/comments`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ body }),
+      },
+    )
+  } catch {
+    throw new Error(strings.noConnection)
+  }
+
+  if (!response.ok) throw new Error(describe(response.status, strings))
+
+  const data = await response.json()
+  return {
+    id: data.id,
+    author: data.user.login,
+    fromClaude: data.user.type === 'Bot',
+    body: data.body,
+    createdAt: data.created_at,
+  }
+}
+
 /** Fallback when no token is set: GitHub's own form, pre-filled. */
 export function prefillUrl(title: string, detail: string, model: ModelId): string {
   const params = new URLSearchParams({

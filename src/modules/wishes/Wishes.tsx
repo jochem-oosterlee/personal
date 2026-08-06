@@ -2,8 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { ExternalLink, Plus, Send, X } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
-import { createIssue, getIssueStatus, prefillUrl, DEFAULT_MODEL } from '../../lib/github'
-import type { Issue, IssueStatus, ModelId } from '../../lib/github'
+import {
+  addComment,
+  createIssue,
+  getComments,
+  getIssueStatus,
+  prefillUrl,
+  DEFAULT_MODEL,
+} from '../../lib/github'
+import type { Issue, IssueComment, IssueStatus, ModelId } from '../../lib/github'
 import type { Translations } from '../../lib/translations'
 import './Wishes.css'
 
@@ -48,6 +55,11 @@ export function Wishes() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Threads live in component state, not in the wish: they are a view of the
+  // issue, and the tracking comments are far too long to keep in localStorage.
+  const [threads, setThreads] = useState<Record<number, IssueComment[]>>({})
+  const [openThreads, setOpenThreads] = useState<Record<number, boolean>>({})
+
   // Newest first, by creation — sorting on edit would yank a wish out from
   // under the cursor while you type in it.
   const sorted = [...wishes].sort((a, b) => b.createdAt - a.createdAt)
@@ -80,6 +92,27 @@ export function Wishes() {
           return status ? { ...wish, status } : wish
         }),
       )
+
+      // Only where there is something to fetch, so an untouched wish costs one
+      // request per cycle instead of two.
+      const withComments = pending.filter((_, index) => (statuses[index]?.comments ?? 0) > 0)
+      if (withComments.length === 0) return
+
+      const fetched = await Promise.all(
+        withComments.map((wish) =>
+          getComments(token, wish.issue!.number, t.github).catch(() => undefined),
+        ),
+      )
+      if (cancelled) return
+
+      setThreads((current) => {
+        const next = { ...current }
+        withComments.forEach((wish, index) => {
+          const comments = fetched[index]
+          if (comments) next[wish.issue!.number] = comments
+        })
+        return next
+      })
     }
 
     refresh()
@@ -236,9 +269,121 @@ export function Wishes() {
                   </span>
                 )}
               </div>
+
+              {wish.issue && (threads[wish.issue.number]?.length ?? 0) > 0 && (
+                <Thread
+                  comments={threads[wish.issue.number]}
+                  open={openThreads[wish.issue.number] ?? true}
+                  canReply={Boolean(token)}
+                  onToggle={() =>
+                    setOpenThreads((current) => ({
+                      ...current,
+                      [wish.issue!.number]: !(current[wish.issue!.number] ?? true),
+                    }))
+                  }
+                  onReply={async (text) => {
+                    const posted = await addComment(
+                      token,
+                      wish.issue!.number,
+                      text,
+                      t.github,
+                    )
+                    setThreads((current) => ({
+                      ...current,
+                      [wish.issue!.number]: [
+                        ...(current[wish.issue!.number] ?? []),
+                        posted,
+                      ],
+                    }))
+                  }}
+                />
+              )}
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  )
+}
+
+type ThreadProps = {
+  comments: IssueComment[]
+  open: boolean
+  canReply: boolean
+  onToggle: () => void
+  onReply: (text: string) => Promise<void>
+}
+
+function Thread({ comments, open, canReply, onToggle, onReply }: ThreadProps) {
+  const { t } = useLanguage()
+  const [draft, setDraft] = useState('')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    const text = draft.trim()
+    if (!text) return
+
+    setSending(true)
+    setError('')
+    try {
+      await onReply(text)
+      setDraft('')
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t.wishes.unknownError)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="thread">
+      <button className="thread__toggle" type="button" onClick={onToggle}>
+        {open ? t.wishes.hideThread : t.wishes.showThread(comments.length)}
+      </button>
+
+      {open && (
+        <>
+          {comments.map((comment) => (
+            <article
+              key={comment.id}
+              className={comment.fromClaude ? 'note-block note-block--claude' : 'note-block'}
+            >
+              <header className="note-block__who">
+                {comment.fromClaude ? t.wishes.replyFrom : comment.author}
+              </header>
+              <div className="note-block__body">{comment.body}</div>
+            </article>
+          ))}
+
+          {canReply && (
+            <form className="thread__reply" onSubmit={submit}>
+              <textarea
+                className="thread__input"
+                value={draft}
+                rows={2}
+                placeholder={t.wishes.replyPlaceholder}
+                aria-label={t.wishes.replyLabel}
+                onChange={(event) => setDraft(event.target.value)}
+              />
+              <button
+                className="thread__send"
+                type="submit"
+                disabled={sending || !draft.trim()}
+              >
+                <Send size={12} strokeWidth={1.4} aria-hidden="true" />
+                {sending ? t.wishes.replySending : t.wishes.replySend}
+              </button>
+              <p className="thread__hint">{t.wishes.replyHint}</p>
+              {error && (
+                <span className="wish__error" role="alert">
+                  {error}
+                </span>
+              )}
+            </form>
+          )}
+        </>
       )}
     </div>
   )

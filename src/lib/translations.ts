@@ -49,6 +49,15 @@ const nl = {
     createIssue: 'Maak issue aan',
     openOnGithub: 'Openen op GitHub',
     unknownError: 'Onbekende fout.',
+    replyFrom: 'Reactie van Claude',
+    replyPlaceholder: 'Antwoord…',
+    replyLabel: 'Antwoord op de reactie',
+    replySend: 'Antwoord versturen',
+    replySending: 'Versturen…',
+    replyHint: 'Je antwoord zet Claude weer aan het werk.',
+    showThread: (count: number) =>
+      count === 1 ? '1 reactie tonen' : `${count} reacties tonen`,
+    hideThread: 'Reacties verbergen',
   },
   github: {
     tokenInvalid: 'Token ongeldig of verlopen.',
@@ -140,6 +149,15 @@ const en: typeof nl = {
     createIssue: 'Create issue',
     openOnGithub: 'Open on GitHub',
     unknownError: 'Unknown error.',
+    replyFrom: 'Reply from Claude',
+    replyPlaceholder: 'Your answer…',
+    replyLabel: 'Reply to the comment',
+    replySend: 'Send reply',
+    replySending: 'Sending…',
+    replyHint: 'Your answer puts Claude back to work.',
+    showThread: (count: number) =>
+      count === 1 ? 'Show 1 comment' : `Show ${count} comments`,
+    hideThread: 'Hide comments',
   },
   github: {
     tokenInvalid: 'Token invalid or expired.',
