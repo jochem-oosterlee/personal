@@ -67,7 +67,14 @@ Drie dingen zijn eenmalig nodig:
    welke voorrang krijgt is niet gedocumenteerd.
 2. **Token in de app** (Instellingen → GitHub) — een fine-grained PAT met
    `Issues: read and write` op deze repo. Zonder token opent Wensen in plaats
-   daarvan de GitHub-pagina met titel en toelichting vooringevuld.
+   daarvan de GitHub-pagina met titel en toelichting vooringevuld. Wil je bij
+   een wens ook een screenshot kunnen meesturen, zet dan onder Account
+   permissions ook `Gists: read and write` aan — dat geldt niet per repo, dus
+   die permissie staat los van de rest van het token. Screenshots gaan als
+   secret gist mee (elk verpakt in een SVG, want de Gist-API accepteert alleen
+   tekstbestanden) en komen alleen mee bij het versturen mét token; zonder
+   token werkt slepen/plakken van een screenshot al vanzelf in het
+   GitHub-formulier dat dan opent.
 3. **Actions mag PR's aanmaken** — staat standaard uit; zonder dit pusht Claude
    wel een branch maar opent hij geen PR.
    `gh api repos/jochem-oosterlee/personal/actions/permissions/workflow -X PUT -f default_workflow_permissions=read -F can_approve_pull_request_reviews=true`

@@ -58,10 +58,13 @@ const nl = {
     showThread: (count: number) =>
       count === 1 ? '1 reactie tonen' : `${count} reacties tonen`,
     hideThread: 'Reacties verbergen',
+    attachScreenshot: 'Screenshot toevoegen',
+    removeScreenshot: 'Screenshot verwijderen',
   },
   github: {
     tokenInvalid: 'Token ongeldig of verlopen.',
     tokenMissingScope: 'Token mist het recht "Issues: write".',
+    gistMissingScope: 'Token mist het recht "Gists: write".',
     noAccess: (repo: string) => `Geen toegang tot ${repo} met dit token.`,
     contentRejected: 'GitHub weigerde de inhoud van de issue.',
     rateLimited: 'Te veel verzoeken — probeer het zo nog eens.',
@@ -84,7 +87,7 @@ const nl = {
     tokenLabel: 'GitHub-token',
     createToken: 'Token aanmaken',
     tokenHint:
-      'Kies "Only select repositories" → personal, en onder Permissions: Issues → Read and write.',
+      'Kies "Only select repositories" → personal, en onder Permissions: Issues → Read and write. Wil je ook screenshots kunnen meesturen, zet dan bij Account permissions ook Gists → Read and write.',
     model: 'Model voor wensen',
     modelNote:
       'Het model gaat mee in de issue; de workflow kiest het standaardmodel als het er niet in staat.',
@@ -158,10 +161,13 @@ const en: typeof nl = {
     showThread: (count: number) =>
       count === 1 ? 'Show 1 comment' : `Show ${count} comments`,
     hideThread: 'Hide comments',
+    attachScreenshot: 'Add screenshot',
+    removeScreenshot: 'Remove screenshot',
   },
   github: {
     tokenInvalid: 'Token invalid or expired.',
     tokenMissingScope: 'Token is missing the "Issues: write" permission.',
+    gistMissingScope: 'Token is missing the "Gists: write" permission.',
     noAccess: (repo: string) => `No access to ${repo} with this token.`,
     contentRejected: 'GitHub rejected the content of the issue.',
     rateLimited: 'Too many requests — try again shortly.',
@@ -184,7 +190,7 @@ const en: typeof nl = {
     tokenLabel: 'GitHub token',
     createToken: 'Create token',
     tokenHint:
-      'Choose "Only select repositories" → personal, and under Permissions: Issues → Read and write.',
+      'Choose "Only select repositories" → personal, and under Permissions: Issues → Read and write. To attach screenshots too, also set Account permissions → Gists → Read and write.',
     model: 'Model for wishes',
     modelNote:
       "The model is sent along with the issue; the workflow falls back to the default model if it isn't in its list.",
