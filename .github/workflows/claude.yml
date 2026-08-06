@@ -193,3 +193,7 @@ jobs:
       group: pages
       cancel-in-progress: false
     uses: ./.github/workflows/pages.yml
+    # Expliciet main: de commit die deze run startte is van vóór de merge die
+    # een paar stappen eerder plaatsvond, en zou de oude build publiceren.
+    with:
+      ref: main

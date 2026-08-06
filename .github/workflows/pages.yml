@@ -6,6 +6,15 @@ name: Pages
 
 on:
   workflow_call:
+    inputs:
+      ref:
+        description: >-
+          Git-ref om te bouwen. Leeg betekent de commit die de run startte —
+          goed voor een push, maar fout na een merge binnen dezelfde run:
+          die commit is dan nog van vóór de merge.
+        type: string
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -14,6 +23,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 22
