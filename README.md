@@ -52,8 +52,13 @@ auto-merge moet claude.yml de deploy zelf aanroepen.
 
 Drie dingen zijn eenmalig nodig:
 
-1. **Repo-secret `ANTHROPIC_API_KEY`** — anders faalt de workflow.
-   `gh secret set ANTHROPIC_API_KEY -R jochem-oosterlee/personal`
+1. **Repo-secret `CLAUDE_CODE_OAUTH_TOKEN`** — anders faalt de workflow. Draait
+   op het Claude-abonnement in plaats van op API-facturering.
+   `claude setup-token` en dan
+   `gh secret set CLAUDE_CODE_OAUTH_TOKEN -R jochem-oosterlee/personal`.
+   Terug naar de API kan met één regel in claude.yml; `ANTHROPIC_API_KEY` staat
+   er nog als terugval. Zet ze niet allebei aan — de action accepteert dat, maar
+   welke voorrang krijgt is niet gedocumenteerd.
 2. **Token in de app** (Instellingen → GitHub) — een fine-grained PAT met
    `Issues: read and write` op deze repo. Zonder token opent Wensen in plaats
    daarvan de GitHub-pagina met titel en toelichting vooringevuld.

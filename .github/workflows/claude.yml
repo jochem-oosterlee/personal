@@ -71,7 +71,12 @@ jobs:
 
       - uses: anthropics/claude-code-action@v1
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Draait op het Claude-abonnement in plaats van op API-facturering.
+          # Terug naar de API: vervang deze regel door
+          #   anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Beide tegelijk zetten kan wel, maar dan is niet te zien welke wint
+          # en betaal je mogelijk stil door op de API.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           track_progress: true
           claude_args: |
