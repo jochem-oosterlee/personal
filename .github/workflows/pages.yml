@@ -48,3 +48,8 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          # Standaard tien minuten. Pages haalt dat soms niet, waarna de job
+          # rood wordt terwijl de site wél is bijgewerkt — een rode run die
+          # eigenlijk slaagde is erger dan een trage.
+          timeout: 1800000
