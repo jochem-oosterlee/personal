@@ -177,6 +177,7 @@
   color: var(--text-faint);
   background: var(--bg);
   border: 1px solid var(--line);
+  border-radius: 0;
   cursor: pointer;
 }
 
