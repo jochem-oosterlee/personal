@@ -3,6 +3,10 @@ name: Claude bouwt de wens
 on:
   issues:
     types: [labeled]
+  # Antwoord op een vraag van Claude. Zonder deze trigger loopt een wens waar
+  # hij iets over wil weten voorgoed dood.
+  issue_comment:
+    types: [created]
   workflow_dispatch:
     inputs:
       issue:
@@ -19,10 +23,23 @@ jobs:
     # Alleen wensen van de eigenaar zelf, en alleen met het label uit de PWA.
     # Zonder deze guard kan iedere GitHub-gebruiker die een issue kan labelen
     # een Claude-run starten op jouw rekening.
+    #
+    # Bij een comment gelden drie extra voorwaarden. Geen bot, anders reageert
+    # Claude op zijn eigen comment en loopt het rond. Geen PR-comment, want
+    # GitHub stuurt die door hetzelfde event en de workflow post zelf comments
+    # op PR's. En de issue moet open staan, zodat een opmerking bij een afgeronde
+    # wens niet alsnog een run start.
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.label.name == 'enhancement' &&
-       github.event.issue.user.login == github.repository_owner)
+      (github.event_name == 'issues' &&
+       github.event.label.name == 'enhancement' &&
+       github.event.issue.user.login == github.repository_owner) ||
+      (github.event_name == 'issue_comment' &&
+       !github.event.issue.pull_request &&
+       github.event.issue.state == 'open' &&
+       github.event.comment.user.type != 'Bot' &&
+       github.event.comment.user.login == github.repository_owner &&
+       contains(github.event.issue.labels.*.name, 'enhancement'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -84,7 +101,14 @@ jobs:
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(gh:*),Bash(npm:*)"
           prompt: |
             Lees issue #${{ github.event.issue.number || inputs.issue }} met
-            `gh issue view` en implementeer wat er gevraagd wordt in deze repo.
+            `gh issue view --comments` en implementeer wat er gevraagd wordt in
+            deze repo.
+
+            Lees de hele draad, niet alleen de openingspost. Staat er al een
+            vraag van jou in met een antwoord eronder, ga dan verder op basis
+            van dat antwoord in plaats van opnieuw te beginnen. Werk dat je
+            eerder al pushte hoef je niet over te doen — kijk met
+            `git branch -r` of er al een branch voor deze issue is.
 
             Dit is een persoonlijke PWA: Vite + React + TypeScript, met een
             module-registry in src/App.tsx. Lees README.md voor de structuur en
@@ -109,7 +133,10 @@ jobs:
             wat de indiener zelf moet controleren.
 
             Is het verzoek onduidelijk of te groot voor één keer, push dan
-            niets en reageer op de issue met wat je nodig hebt.
+            niets en reageer op de issue met wat je nodig hebt. Stel dan één
+            concrete vraag met de opties die je ziet, geen open uitnodiging:
+            een antwoord op de issue start deze workflow opnieuw, dus je krijgt
+            hem terug.
 
       # De PR wordt hier gemaakt, niet door het model. De action heeft een
       # eigen systeemprompt die Claude opdraagt alleen een "Create a PR"-link

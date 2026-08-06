@@ -37,6 +37,12 @@ wél eerst naar wilt kijken: zet het label `review` op de issue. De workflow
 bouwt en opent dan wel een PR, maar mergt hem niet. Wil je het permanent, haal
 dan de stappen `Mergen` en `deploy` uit claude.yml.
 
+**Als Claude een vraag heeft** pusht hij niets en reageert hij op de issue. Een
+antwoord van jou op diezelfde issue start de workflow opnieuw, en hij leest de
+hele draad met `gh issue view --comments`. Die comment-trigger heeft eigen
+guards: geen bots (anders reageert hij op zichzelf), geen PR-comments (GitHub
+stuurt die door hetzelfde event) en alleen op open issues.
+
 **Model kiezen** doe je in Instellingen → Model voor wensen. De app schrijft
 `Model: <id>` onderaan de issue-body. De workflow leest die regel, maar geeft
 hem niet door: hij matcht tegen een vaste lijst in de stap `Model bepalen` en
