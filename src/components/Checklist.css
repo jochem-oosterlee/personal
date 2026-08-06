@@ -127,6 +127,69 @@
   text-decoration: line-through;
 }
 
+.row__due {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  min-height: var(--row-h);
+}
+
+.row__due-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 1.75rem;
+  padding: 0 0.375rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.row__due--empty .row__due-face {
+  color: var(--text-faint);
+}
+
+.row__due--overdue .row__due-face {
+  color: var(--danger);
+}
+
+.row--done .row__due-face {
+  color: var(--text-faint);
+}
+
+/* Invisible but full-size, so the native picker opens from the whole face. */
+.row__due-input {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  background: none;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.row__due-clear {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.25rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .row__due-clear:hover {
+    color: var(--danger);
+  }
+}
+
 .row__remove {
   display: grid;
   flex-shrink: 0;

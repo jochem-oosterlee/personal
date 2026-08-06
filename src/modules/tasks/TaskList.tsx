@@ -10,6 +10,7 @@ export function TaskList() {
       placeholder={t.tasks.placeholder}
       addLabel={t.tasks.addLabel}
       emptyText={t.tasks.emptyText}
+      deadlines
     />
   )
 }

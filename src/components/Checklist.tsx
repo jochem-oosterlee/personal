@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Check, Plus, X } from 'lucide-react'
+import { CalendarPlus, Check, Plus, X } from 'lucide-react'
 import { usePersistentState } from '../lib/storage'
 import { useLanguage } from '../lib/language'
 import './Checklist.css'
@@ -9,6 +9,8 @@ type ChecklistItem = {
   name: string
   done: boolean
   addedAt: number
+  /** Day-precise deadline as `YYYY-MM-DD`, absent when the item has none. */
+  dueAt?: string
 }
 
 type ChecklistProps = {
@@ -17,6 +19,38 @@ type ChecklistProps = {
   placeholder: string
   addLabel: string
   emptyText: string
+  /** Show a deadline control per item. */
+  deadlines?: boolean
+}
+
+/** Today in the same local `YYYY-MM-DD` shape a date input produces. */
+function todayKey() {
+  const now = new Date()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+function formatDue(dueAt: string, language: string, today: string) {
+  return new Date(`${dueAt}T00:00:00`).toLocaleDateString(language, {
+    day: 'numeric',
+    month: 'short',
+    year: dueAt.slice(0, 4) === today.slice(0, 4) ? undefined : 'numeric',
+  })
+}
+
+function dueClass(item: ChecklistItem, today: string) {
+  if (!item.dueAt) return 'row__due row__due--empty'
+  if (!item.done && item.dueAt < today) return 'row__due row__due--overdue'
+  return 'row__due'
+}
+
+// A deadline sorts before one that is absent; the strings compare as dates.
+function byDue(a: ChecklistItem, b: ChecklistItem) {
+  if (a.dueAt === b.dueAt) return 0
+  if (!a.dueAt) return 1
+  if (!b.dueAt) return -1
+  return a.dueAt < b.dueAt ? -1 : 1
 }
 
 export function Checklist({
@@ -24,17 +58,21 @@ export function Checklist({
   placeholder,
   addLabel,
   emptyText,
+  deadlines = false,
 }: ChecklistProps) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [items, setItems] = usePersistentState<ChecklistItem[]>(storageKey, [])
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Unchecked first, then checked — each group oldest to newest.
+  const today = todayKey()
+
+  // Unchecked first, then checked — each group by deadline, then oldest to newest.
   const sorted = useMemo(
     () =>
       [...items].sort(
-        (a, b) => Number(a.done) - Number(b.done) || a.addedAt - b.addedAt,
+        (a, b) =>
+          Number(a.done) - Number(b.done) || byDue(a, b) || a.addedAt - b.addedAt,
       ),
     [items],
   )
@@ -56,6 +94,14 @@ export function Checklist({
   function toggleItem(id: string) {
     setItems((current) =>
       current.map((item) => (item.id === id ? { ...item, done: !item.done } : item)),
+    )
+  }
+
+  function setDue(id: string, dueAt: string) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, dueAt: dueAt || undefined } : item,
+      ),
     )
   }
 
@@ -110,6 +156,35 @@ export function Checklist({
                   </span>
                   <span className="row__name">{item.name}</span>
                 </label>
+                {deadlines && (
+                  <div className={dueClass(item, today)}>
+                    {/* The date input covers the face, so a tap opens the picker. */}
+                    <span className="row__due-face">
+                      {item.dueAt ? (
+                        formatDue(item.dueAt, language, today)
+                      ) : (
+                        <CalendarPlus size={14} strokeWidth={1.4} aria-hidden="true" />
+                      )}
+                      <input
+                        className="row__due-input"
+                        type="date"
+                        value={item.dueAt ?? ''}
+                        onChange={(event) => setDue(item.id, event.target.value)}
+                        aria-label={t.checklist.due(item.name)}
+                      />
+                    </span>
+                    {item.dueAt && (
+                      <button
+                        className="row__due-clear"
+                        type="button"
+                        onClick={() => setDue(item.id, '')}
+                        aria-label={t.checklist.clearDue(item.name)}
+                      >
+                        <X size={11} strokeWidth={1.4} aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
+                )}
                 <button
                   className="row__remove"
                   type="button"
