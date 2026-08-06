@@ -195,6 +195,16 @@ jobs:
           gh pr merge ${{ steps.pr.outputs.number }} --squash --delete-branch
           echo "merged=true" >> "$GITHUB_OUTPUT"
 
+      # GitHub sluit een gekoppelde issue meestal zelf bij een merge, maar niet
+      # betrouwbaar: #11 bleef open terwijl koppeling, doelbranch en actor
+      # identiek waren aan #9, dat wel sloot. Zelf doen dus.
+      - name: Issue sluiten
+        if: steps.merge.outputs.merged == 'true'
+        run: |
+          if [ "$(gh issue view "$ISSUE" --json state --jq '.state')" = "OPEN" ]; then
+            gh issue close "$ISSUE" --reason completed
+          fi
+
       - name: Vasthouden voor review
         if: steps.pr.outputs.number != '' && steps.pr.outputs.review == 'true'
         run: |
