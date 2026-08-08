@@ -37,6 +37,14 @@ wél eerst naar wilt kijken: zet het label `review` op de issue. De workflow
 bouwt en opent dan wel een PR, maar mergt hem niet. Wil je het permanent, haal
 dan de stappen `Mergen` en `deploy` uit claude.yml.
 
+**Draait mijn telefoon de laatste versie?** Onderaan Instellingen staat de
+build (datum + commit) naast de laatste commit op `main`, opgehaald zonder
+token. Lopen die uit elkaar, dan verschijnen twee knoppen: *App vernieuwen*
+(service worker laten kijken en herladen) en *Deploy opnieuw starten*
+(`workflow_dispatch` op deploy.yml, vereist `Actions: write` op het token). Die
+tweede is er omdat een deploy kan stranden op een lege GitHub-wachtrij: `main`
+is dan bij, de site niet, en niets vertelt je dat.
+
 **Wie kan een run starten.** Alleen jij. De guards eisen dat de *auteur* van de
 issue (niet degene die labelt) de repo-eigenaar is, en hetzelfde voor comments;
 `workflow_dispatch` vereist schrijfrechten. Een buitenstaander zonder token valt

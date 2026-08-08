@@ -141,11 +141,34 @@
 }
 
 .settings__version {
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
   padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.settings__version-line {
+  margin: 0;
   font-size: 0.6875rem;
   letter-spacing: 0.06em;
   text-align: center;
   color: var(--text-faint);
-  border-top: 1px solid var(--line);
+}
+
+.settings__version-flag {
+  color: var(--accent);
+}
+
+.settings__version-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings__error {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--danger);
 }

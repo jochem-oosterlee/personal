@@ -68,6 +68,7 @@ const nl = {
     tokenInvalid: 'Token ongeldig of verlopen.',
     tokenMissingScope: 'Token mist het recht "Issues: write".',
     contentsMissingScope: 'Token mist het recht "Contents: write".',
+    actionsMissingScope: 'Token mist het recht "Actions: write".',
     noAccess: (repo: string) => `Geen toegang tot ${repo} met dit token.`,
     contentRejected: 'GitHub weigerde de inhoud van de issue.',
     rateLimited: 'Te veel verzoeken — probeer het zo nog eens.',
@@ -103,6 +104,16 @@ const nl = {
     cancel: 'Annuleren',
     wipeAll: 'Wis alle gegevens',
     version: 'Versie',
+    versionChecking: 'controleren…',
+    versionCurrent: 'actueel',
+    versionBehind: (sha: string) => `${sha} staat klaar`,
+    versionOffline: 'niet te controleren',
+    refreshApp: 'App vernieuwen',
+    redeploy: 'Deploy opnieuw starten',
+    redeploySending: 'Starten…',
+    redeployStarted: 'Deploy gestart — even geduld',
+    versionHint:
+      'Ververs eerst de app. Blijft het verschil staan, dan is de site zelf achter en helpt opnieuw deployen.',
   },
 }
 
@@ -174,6 +185,7 @@ const en: typeof nl = {
     tokenInvalid: 'Token invalid or expired.',
     tokenMissingScope: 'Token is missing the "Issues: write" permission.',
     contentsMissingScope: 'Token is missing the "Contents: write" permission.',
+    actionsMissingScope: 'Token is missing the "Actions: write" permission.',
     noAccess: (repo: string) => `No access to ${repo} with this token.`,
     contentRejected: 'GitHub rejected the content of the issue.',
     rateLimited: 'Too many requests — try again shortly.',
@@ -209,6 +221,16 @@ const en: typeof nl = {
     cancel: 'Cancel',
     wipeAll: 'Clear all data',
     version: 'Version',
+    versionChecking: 'checking…',
+    versionCurrent: 'up to date',
+    versionBehind: (sha: string) => `${sha} is waiting`,
+    versionOffline: 'could not check',
+    refreshApp: 'Refresh app',
+    redeploy: 'Re-run deploy',
+    redeploySending: 'Starting…',
+    redeployStarted: 'Deploy started — give it a minute',
+    versionHint:
+      'Refresh the app first. If the difference remains, the site itself is behind and re-running the deploy helps.',
   },
 }
 

@@ -1,7 +1,22 @@
-import { useState } from 'react'
-import { Download, ExternalLink, Monitor, Moon, Sun, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import {
+  Download,
+  ExternalLink,
+  Monitor,
+  Moon,
+  RefreshCw,
+  Rocket,
+  Sun,
+  Trash2,
+} from 'lucide-react'
 import { clearAll, exportAll, storageKeys, usePersistentState } from '../../lib/storage'
-import { DEFAULT_MODEL, MODELS, NEW_TOKEN_URL } from '../../lib/github'
+import {
+  DEFAULT_MODEL,
+  MODELS,
+  NEW_TOKEN_URL,
+  getLatestCommit,
+  triggerDeploy,
+} from '../../lib/github'
 import type { ModelId } from '../../lib/github'
 import type { ThemePreference } from '../../lib/theme'
 import { useLanguage } from '../../lib/language'
@@ -33,6 +48,56 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
   ]
 
   const activeModel = MODELS.find((entry) => entry.id === model) ?? MODELS[0]
+
+  // Wat dit toestel draait, tegenover wat er op main staat. Een deploy die
+  // strandt laat die twee uit elkaar lopen zonder dat de app er iets van merkt.
+  const [latest, setLatest] = useState<string | null>(null)
+  const [checkFailed, setCheckFailed] = useState(false)
+  const [deploying, setDeploying] = useState(false)
+  const [deployStarted, setDeployStarted] = useState(false)
+  const [deployError, setDeployError] = useState('')
+
+  const running = __BUILD_VERSION__.split(' ')[1] ?? ''
+  const behind = latest !== null && latest !== running
+
+  useEffect(() => {
+    let cancelled = false
+    getLatestCommit(t.github)
+      .then((sha) => {
+        if (!cancelled) setLatest(sha)
+      })
+      .catch(() => {
+        if (!cancelled) setCheckFailed(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [t])
+
+  async function refreshApp() {
+    // Vraag de service worker eerst om te kijken of er een nieuwe build is;
+    // zonder die stap herlaadt hij gewoon dezelfde gecachete versie.
+    try {
+      const registration = await navigator.serviceWorker?.getRegistration()
+      await registration?.update()
+    } catch {
+      // Geen service worker of update mislukt — herladen kan alsnog helpen.
+    }
+    location.reload()
+  }
+
+  async function redeploy() {
+    setDeploying(true)
+    setDeployError('')
+    try {
+      await triggerDeploy(token, t.github)
+      setDeployStarted(true)
+    } catch (error) {
+      setDeployError(error instanceof Error ? error.message : t.wishes.unknownError)
+    } finally {
+      setDeploying(false)
+    }
+  }
 
   function exportData() {
     const blob = new Blob([JSON.stringify(exportAll(), null, 2)], {
@@ -180,9 +245,52 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
         )}
       </section>
 
-      <p className="settings__version">
-        {t.settings.version} {__BUILD_VERSION__}
-      </p>
+      <section className="settings__version">
+        <p className="settings__version-line">
+          {t.settings.version} {__BUILD_VERSION__} —{' '}
+          <span className={behind ? 'settings__version-flag' : undefined}>
+            {checkFailed
+              ? t.settings.versionOffline
+              : latest === null
+                ? t.settings.versionChecking
+                : behind
+                  ? t.settings.versionBehind(latest)
+                  : t.settings.versionCurrent}
+          </span>
+        </p>
+
+        {behind && (
+          <div className="settings__version-actions">
+            <button className="settings__action" type="button" onClick={refreshApp}>
+              <RefreshCw size={14} strokeWidth={1.4} aria-hidden="true" />
+              {t.settings.refreshApp}
+            </button>
+
+            {token && (
+              <button
+                className="settings__action"
+                type="button"
+                onClick={redeploy}
+                disabled={deploying || deployStarted}
+              >
+                <Rocket size={14} strokeWidth={1.4} aria-hidden="true" />
+                {deployStarted
+                  ? t.settings.redeployStarted
+                  : deploying
+                    ? t.settings.redeploySending
+                    : t.settings.redeploy}
+              </button>
+            )}
+
+            <p className="settings__note">{t.settings.versionHint}</p>
+            {deployError && (
+              <p className="settings__error" role="alert">
+                {deployError}
+              </p>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   )
 }

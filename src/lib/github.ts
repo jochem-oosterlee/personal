@@ -26,6 +26,7 @@ export type GithubStrings = {
   tokenInvalid: string
   tokenMissingScope: string
   contentsMissingScope: string
+  actionsMissingScope: string
   noAccess: (repo: string) => string
   contentRejected: string
   rateLimited: string
@@ -216,6 +217,57 @@ export async function getIssueStatus(
 
   const data = await response.json()
   return { state: data.state, reason: data.state_reason ?? null, comments: data.comments }
+}
+
+/**
+ * Korte hash van de laatste commit op main. Bewust zonder token: dit is juist
+ * de check die moet werken als er verder iets mis is.
+ */
+export async function getLatestCommit(strings: GithubStrings): Promise<string> {
+  const response = await fetch(`https://api.github.com/repos/${REPO}/commits/main`, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+  })
+  if (!response.ok) throw new Error(describe(response.status, strings))
+
+  const data = await response.json()
+  return String(data.sha).slice(0, 7)
+}
+
+/**
+ * Start deploy.yml opnieuw. Nodig als een deploy strandde op een trage of
+ * lege GitHub-wachtrij: main is dan bijgewerkt maar de site niet.
+ * Vereist "Actions: read and write" op het token.
+ */
+export async function triggerDeploy(token: string, strings: GithubStrings): Promise<void> {
+  let response: Response
+
+  try {
+    response = await fetch(
+      `https://api.github.com/repos/${REPO}/actions/workflows/deploy.yml/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ref: 'main' }),
+      },
+    )
+  } catch {
+    throw new Error(strings.noConnection)
+  }
+
+  // Zonder het Actions-recht ziet het token de workflow niet eens staan, dus
+  // 404 betekent hier hetzelfde als 403.
+  if (response.status === 403 || response.status === 404) {
+    throw new Error(strings.actionsMissingScope)
+  }
+  if (!response.ok) throw new Error(describe(response.status, strings))
 }
 
 export type IssueComment = {
