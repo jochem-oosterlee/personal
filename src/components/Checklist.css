@@ -138,6 +138,9 @@
   position: relative;
   display: grid;
   place-items: center;
+  /* The date input's shadow content stays wider than this box; without a clip
+     it widens the scroll area and the whole list slides sideways. */
+  overflow: hidden;
   min-width: 1.75rem;
   padding: 0 0.375rem;
   font-size: 0.6875rem;
