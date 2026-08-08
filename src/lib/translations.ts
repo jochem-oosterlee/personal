@@ -22,7 +22,6 @@ const nl = {
   checklist: {
     remove: (name: string) => `${name} verwijderen`,
     due: (name: string) => `Deadline voor ${name}`,
-    clearDue: (name: string) => `Deadline van ${name} verwijderen`,
     doneOf: (done: number, total: number) => `${done} van ${total} afgevinkt`,
     clearDone: 'Wis afgevinkte',
   },
@@ -139,7 +138,6 @@ const en: typeof nl = {
   checklist: {
     remove: (name: string) => `Remove ${name}`,
     due: (name: string) => `Deadline for ${name}`,
-    clearDue: (name: string) => `Remove deadline from ${name}`,
     doneOf: (done: number, total: number) => `${done} of ${total} checked off`,
     clearDone: 'Clear checked off',
   },
