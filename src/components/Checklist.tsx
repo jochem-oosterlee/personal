@@ -173,16 +173,6 @@ export function Checklist({
                         aria-label={t.checklist.due(item.name)}
                       />
                     </span>
-                    {item.dueAt && (
-                      <button
-                        className="row__due-clear"
-                        type="button"
-                        onClick={() => setDue(item.id, '')}
-                        aria-label={t.checklist.clearDue(item.name)}
-                      >
-                        <X size={11} strokeWidth={1.4} aria-hidden="true" />
-                      </button>
-                    )}
                   </div>
                 )}
                 <button
