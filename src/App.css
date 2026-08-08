@@ -30,6 +30,8 @@
   flex: 1;
   min-height: 0; /* let the flex child shrink so it can scroll */
   padding: 0 var(--gutter) 1rem;
+  /* Everything here wraps, so sideways scroll is always a stray overflow. */
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
