@@ -200,6 +200,28 @@ app.delete('/api/wishes/:id', requireUser, async (req, res) => {
   }
 })
 
+/**
+ * Start de deploy handmatig. De trigger hangt aan een GitHub-webhook, en die
+ * aflevering is best effort: komt hij niet aan, dan staat main vooruit op wat
+ * er draait zonder dat iets dat meldt. Dit is de knop ernaast.
+ */
+app.post('/api/deploy', requireUser, async (_req, res) => {
+  try {
+    const { GoogleAuth } = await import('google-auth-library')
+    const auth = new GoogleAuth({ scopes: 'https://www.googleapis.com/auth/cloud-platform' })
+    const client = await auth.getClient()
+
+    await client.request({
+      url: `https://cloudbuild.googleapis.com/v1/projects/${PROJECT}/locations/${REGION}/triggers/personal-deploy:run`,
+      method: 'POST',
+      data: { source: { branchName: 'main' } },
+    })
+    res.sendStatus(202)
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
 // Gehashte bestandsnamen: onbeperkt cachebaar.
 app.use(
   '/assets',

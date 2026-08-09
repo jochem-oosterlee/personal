@@ -7,7 +7,7 @@
  * kloon van de repo, en bij groen gaat het rechtstreeks naar main.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Firestore, FieldValue } from '@google-cloud/firestore'
@@ -15,7 +15,13 @@ import { query } from '@anthropic-ai/claude-agent-sdk'
 
 const WISH_ID = process.env.WISH_ID
 const REPO = process.env.REPO ?? 'jochem-oosterlee/personal'
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN
+
+/**
+ * Deploy key in plaats van een persoonlijk token: die mag alleen pushen naar
+ * deze ene repo, hangt aan de repository en niet aan een persoon, en blijft
+ * dus werken als de eigenaar ooit weggaat.
+ */
+const DEPLOY_KEY = process.env.GITHUB_DEPLOY_KEY
 
 // Gelijk aan de lijst in de app; alles daarbuiten valt terug op de default.
 const MODELS = new Set(['claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5'])
@@ -24,9 +30,13 @@ const DEFAULT_MODEL = 'claude-opus-5'
 const db = new Firestore()
 const wishes = db.collection('wishes')
 
+/** Gevuld zodra de sleutel op schijf staat; git gebruikt hem via GIT_SSH_COMMAND. */
+let gitEnv = process.env
+
 function run(command, args, cwd) {
   return execFileSync(command, args, {
     cwd,
+    env: gitEnv,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     maxBuffer: 32 * 1024 * 1024,
@@ -94,7 +104,7 @@ indiener kan antwoorden en dan word je opnieuw gestart met die draad erbij.`
 
 async function main() {
   if (!WISH_ID) throw new Error('WISH_ID ontbreekt')
-  if (!GITHUB_TOKEN) throw new Error('GITHUB_TOKEN ontbreekt')
+  if (!DEPLOY_KEY) throw new Error('GITHUB_DEPLOY_KEY ontbreekt')
 
   const snapshot = await wishes.doc(WISH_ID).get()
   if (!snapshot.exists) throw new Error(`wens ${WISH_ID} bestaat niet`)
@@ -106,7 +116,16 @@ async function main() {
   const dir = path.join(work, 'repo')
 
   try {
-    run('git', ['clone', '--depth', '50', `https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git`, dir])
+    // Secret Manager levert de sleutel als env-var; ssh wil hem als bestand,
+    // alleen leesbaar voor de eigenaar, en met een afsluitende newline.
+    const keyFile = path.join(work, 'deploy_key')
+    writeFileSync(keyFile, DEPLOY_KEY.trim() + '\n', { mode: 0o600 })
+    gitEnv = {
+      ...process.env,
+      GIT_SSH_COMMAND: `ssh -i ${keyFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=${path.join(work, 'known_hosts')}`,
+    }
+
+    run('git', ['clone', '--depth', '50', `git@github.com:${REPO}.git`, dir])
     run('git', ['config', 'user.email', 'wensen@jochem-personal-pwa.iam.gserviceaccount.com'], dir)
     run('git', ['config', 'user.name', 'Wensen'], dir)
 

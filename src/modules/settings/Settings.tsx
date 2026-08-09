@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, Monitor, Moon, RefreshCw, Sun, Trash2 } from 'lucide-react'
+import { Download, Monitor, Moon, RefreshCw, Rocket, Sun, Trash2 } from 'lucide-react'
 import { clearAll, exportAll, storageKeys, usePersistentState } from '../../lib/storage'
 import { DEFAULT_MODEL, MODELS } from '../../lib/models'
 import type { ModelId } from '../../lib/models'
@@ -55,6 +55,26 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
       cancelled = true
     }
   }, [t])
+
+  const [deploying, setDeploying] = useState(false)
+  const [deployStarted, setDeployStarted] = useState(false)
+  const [deployError, setDeployError] = useState('')
+
+  // De deploy hangt aan een GitHub-webhook. Komt die niet aan, dan loopt main
+  // vooruit op wat er draait en meldt niets dat.
+  async function redeploy() {
+    setDeploying(true)
+    setDeployError('')
+    try {
+      const response = await fetch('/api/deploy', { method: 'POST' })
+      if (!response.ok) throw new Error(await response.text())
+      setDeployStarted(true)
+    } catch (error) {
+      setDeployError(error instanceof Error ? error.message : t.wishes.unknownError)
+    } finally {
+      setDeploying(false)
+    }
+  }
 
   async function refreshApp() {
     // Vraag de service worker eerst om te kijken of er een nieuwe build is;
@@ -209,6 +229,26 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
               <RefreshCw size={14} strokeWidth={1.4} aria-hidden="true" />
               {t.settings.refreshApp}
             </button>
+
+            <button
+              className="settings__action"
+              type="button"
+              onClick={redeploy}
+              disabled={deploying || deployStarted}
+            >
+              <Rocket size={14} strokeWidth={1.4} aria-hidden="true" />
+              {deployStarted
+                ? t.settings.redeployStarted
+                : deploying
+                  ? t.settings.redeploySending
+                  : t.settings.redeploy}
+            </button>
+
+            {deployError && (
+              <p className="settings__error" role="alert">
+                {deployError}
+              </p>
+            )}
 
 
             <p className="settings__note">{t.settings.versionHint}</p>
