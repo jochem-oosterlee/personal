@@ -1,89 +1,108 @@
-# Architectuur — huidige opzet en waar het heen gaat
+# Architectuur
 
-## Nu
+Persoonlijke PWA. Draait op Cloud Run achter IAP, met één toegelaten account.
+GitHub is uitsluitend git-host.
 
-Statische PWA op GitHub Pages. Alle gegevens staan in `localStorage` op het
-apparaat zelf; er is geen backend. Een wens wordt een GitHub-issue met het label
-`enhancement`, dat start een workflow waarin Claude het bouwt, `npm run build`
-en `npm run lint` draait, mergt en uitrolt.
-
-Details van die keten staan in [README.md](README.md).
-
-## Waar het heen gaat
-
-Alles behalve de code verhuist naar één GCP-project. GitHub blijft over als
-git-host, verder niets.
-
-| GitHub | GCP |
+| GitHub | GCP — project `jochem-personal-pwa` |
 |---|---|
-| de code | Cloud Run service — statische build + kleine API, achter IAP |
-| Cloud Build App geïnstalleerd | Firestore — wensen, draad, status |
-| | Cloud Run Job — de agent (Claude Agent SDK) |
-| | Cloud Build trigger — deploy bij push naar `main` |
-| | Secret Manager — push-credential, Claude-token |
+| de code | **Cloud Run `personal`** — statische build + API, achter IAP |
+| Cloud Build App | **Firestore** — `state` (lijstjes) en `wishes` |
+| | **Cloud Run Job `wish-agent`** — bouwt een wens |
+| | **Cloud Build-trigger** — push naar `main` → deploy |
+| | **Secret Manager** — `github-token`, `claude-oauth-token` |
 
-Wat verdwijnt: alle workflow-YAML, issues, labels, PR's, de guards op wie mag
-triggeren, en de losse `wish-assets`-branch voor screenshots.
+Geen GitHub Actions, geen issues, geen labels, geen pull requests.
+
+## De lus
+
+```
+wens in de app
+   -> POST /api/wishes            (Firestore: status queued)
+   -> API start de Cloud Run Job  (geen Eventarc ertussen)
+   -> agent kloont, werkt, build + lint
+        groen  -> squash naar main -> push
+                  -> Cloud Build-trigger -> nieuwe revisie
+        rood   -> branch blijft staan, status failed
+        vraag  -> niets gewijzigd, status needs-answer
+   -> jij antwoordt in de app -> POST /api/wishes/:id/reply -> opnieuw
+```
 
 ## Beslissingen, en waarom
 
-**IAP met één principal, geen domein-brede toegang.** De app is voor één
-persoon. Toegang via `roles/iap.httpsResourceAccessor` op dat ene account.
+**Eén Cloud Run service voor app én API.** De app zit al achter IAP; een
+tweede identiteitslaag met Firebase Auth zou een tweede login betekenen voor
+één gebruiker. De API praat met Firestore via het service-account. Scheelt ook
+de Firebase-SDK in de bundel, die groter is dan de hele app.
 
-**Geen Firebase Auth naast IAP.** De app zit al achter IAP; een tweede
-inlogstap voor één gebruiker is onzin. De API draait in dezelfde Cloud Run
-service en praat met Firestore via het service-account van die service. Scheelt
-ook de Firebase-SDK in de bundel, die groter is dan de hele app nu.
+**State als JSON-string per sleutel.** Gelijk aan wat `localStorage` opslaat,
+en het omzeilt Firestore's beperking op geneste arrays — een lijst met objecten
+die zelf lijsten bevatten zou anders stukgaan.
 
-**Het Claude-abonnement blijft.** `CLAUDE_CODE_OAUTH_TOKEN` is volgens de
+**`localStorage` blijft de bron waar de app uit leest.** Synchroon, en offline
+werkt alles door. De server is een kopie die bij openen wordt opgehaald. Per
+sleutel wint de laatste schrijver; dezelfde lijst tegelijk op twee toestellen
+bewerken verliest er een. Bewust niet opgelost.
+
+**Geen pull requests.** Die waren het mechanisme van `claude-code-action`.
+Draait de agent zelf, dan bestaat een PR dertig seconden en kijkt niemand
+ernaar. De diff lees je op `/compare/main...<branch>` — dezelfde weergave.
+
+**De poort zit in de job, niet in de prompt.** Dat het model meldt dat build en
+lint slagen is geen bewijs; de job draait ze zelf en mergt alleen bij groen.
+
+**Het Claude-abonnement, niet de API.** `CLAUDE_CODE_OAUTH_TOKEN` is volgens de
 documentatie bedoeld voor "CI pipelines and scripts", en de Agent SDK leest
 dezelfde credentials als de CLI. De beperking in de SDK-docs gaat over het
-*aanbieden* van claude.ai-rechten aan derden — niet over een eigen script met
-een eigen token. Zodra anderen de tool gaan gebruiken draaien hun runs op één
-seat, en dan verschuift dat.
+*aanbieden* van claude.ai-rechten aan derden. Zodra anderen deze tool gebruiken
+draaien hun runs op één seat en verschuift dat.
 
-**Geen pull requests.** Die waren het mechanisme van `claude-code-action`. Draait
-de agent zelf, dan bestaat een PR dertig seconden en kijkt niemand ernaar. De
-job pusht een branch; bij groen squasht hij naar `main`, bij rood of bij een
-review-vlag blijft de branch staan. De diff lees je op
-`/compare/main...<branch>` — dezelfde weergave als een PR.
+**Geen token meer op het toestel.** De app praat alleen met zijn eigen backend.
+GitHub-credentials staan serverzijde in Secret Manager, met IAM eromheen.
 
-**Geen GitHub Actions.** Cloud Build draait in hetzelfde project, met dezelfde
-IAM en audit-logs. Dat scheelt ook Workload Identity Federation: er hoeft niets
-van buiten GCP te deployen.
+## Vier valkuilen die dit gekost heeft
 
-## Twee problemen die hiermee verdwijnen
+Alle vier eerst nagemeten, niet aangenomen.
 
-**Deploys die niet startten.** GitHub vuurt geen workflows af op een push met
-`GITHUB_TOKEN`, waardoor `claude.yml` nu zelf `pages.yml` moet aanroepen — en
-een keer de commit van vóór de merge uitrolde. Cloud Build kent die
-anti-recursieregel niet: pushen naar `main` vuurt de webhook, en dat is het
-enige pad.
+**Een verlopen IAP-sessie maakt de app stil.** Een fetch loopt op de
+cross-origin redirect naar `accounts.google.com` tegen CORS aan en gooit —
+niet te onderscheiden van offline. De cache raakt níet vervuild, maar de app
+opent uit cache, werkt niet en toont geen loginscherm. `lib/session.ts` sondeert
+met `redirect: 'manual'`; alleen een `opaqueredirect` betekent verlopen sessie,
+en dan volgt een navigatie naar `/__auth` — een pad dat de service worker met
+rust laat en dus echt langs IAP komt.
 
-**Runners die er niet waren.** Een deploy-job stond 6 augustus een kwartier op
-een runner te wachten en werd toen geannuleerd, zonder log. Dat kan op Cloud Run
-niet gebeuren.
+**nginx achter Cloud Run maakte relatieve redirects absoluut** met `http` en
+poort 8080, waarna er in de browser niets gebeurde. Opgelost met
+`absolute_redirect off`, en inmiddels irrelevant omdat de server Node is.
 
-## Volgorde
+**Een merge met `GITHUB_TOKEN` startte geen workflow.** Daardoor rolde de oude
+deploy soms de commit van vóór de merge uit: alles groen, app onveranderd.
+Cloud Build kent die anti-recursieregel niet.
 
-Elke stap is los bruikbaar; na elke stap werkt de app.
+**"Wis alle gegevens" wiste alleen lokaal**, waarna de eerstvolgende
+synchronisatie alles terugzette. En de herlaad erna brak de DELETE af.
 
-1. **Hosting** — Cloud Run + IAP. Zelfde app, achter je Workspace-account.
-2. **API + Firestore** — wensen en de vraag/antwoord-draad. Lijstjes kunnen mee
-   (synchronisatie tussen apparaten) of in `localStorage` blijven.
-3. **Runner** — Cloud Run Job met de Agent SDK, getriggerd vanuit Firestore.
-4. **Opruimen** — workflows, issues en labels weg.
+## Eenmalige inrichting
 
-## Open punten
+- Project in de organisatie, gekoppeld aan billing
+- API's: Cloud Run, Cloud Build, Artifact Registry, IAP, Firestore,
+  Secret Manager, Cloud Resource Manager
+- IAP op de service, `roles/iap.httpsResourceAccessor` op één principal
+- Cloud Build-verbinding met GitHub, repository gekoppeld, trigger op `main`
+  met een expliciet `--service-account` (nieuwe projecten eisen dat, en de
+  foutmelding zegt dat niet)
+- Service-account rollen: `run.admin`, `artifactregistry.writer`,
+  `logging.logWriter`, `iam.serviceAccountUser`, `datastore.user`,
+  `secretmanager.secretAccessor`
+- `roles/secretmanager.admin` voor de Cloud Build-agent; daar bewaart hij het
+  GitHub-token van de verbinding
 
-**Mag er een project aangemaakt worden in de organisatie?** Zo niet, dan moet
-iemand het aanmaken of hangt de service onder een bestaand project.
+## Secrets
 
-**IAP en de service worker.** IAP werkt met cookies. Loopt de sessie af, dan
-krijgt een fetch geen bestand maar een loginredirect terug. Belandt die HTML in
-de cache van de service worker, dan is de app stuk op een manier die lastig te
-herleiden is. Dit testen met een kale deploy *vóór* de echte verhuizing.
+`github-token` is een fine-grained PAT met `Contents: read and write` op deze
+repo — de agent pusht ermee. `claude-oauth-token` komt uit
+`claude setup-token`. Nieuwe waarde toevoegen:
 
-**Offline.** Nu triviaal: `localStorage` is synchroon en werkt zonder netwerk.
-Gaan de lijstjes naar Firestore, dan is dat een echte afweging en geen
-detail.
+```
+gcloud secrets versions add github-token --data-file=- --project=jochem-personal-pwa
+```
