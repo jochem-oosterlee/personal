@@ -3,6 +3,10 @@
 # De service houdt zijn bestaande instellingen (IAP aan, geen anonieme
 # toegang); die staan hier bewust niet, zodat een deploy ze niet stilletjes
 # kan overschrijven.
+#
+# Het image-pad staat voluit in elke stap. In een eigen substitutie zetten
+# werkt niet: de waarde daarvan wordt niet nog eens uitgevouwen, waardoor
+# $PROJECT_ID letterlijk in de tag belandt.
 steps:
   - id: build
     name: gcr.io/cloud-builders/docker
@@ -11,12 +15,14 @@ steps:
       - --build-arg
       - COMMIT_SHA=$SHORT_SHA
       - -t
-      - $_IMAGE
+      - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
       - .
 
   - id: push
     name: gcr.io/cloud-builders/docker
-    args: [push, $_IMAGE]
+    args:
+      - push
+      - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
 
   - id: deploy
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
@@ -25,12 +31,9 @@ steps:
       - run
       - deploy
       - personal
-      - --image=$_IMAGE
+      - --image=europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
       - --region=europe-west4
       - --quiet
-
-substitutions:
-  _IMAGE: europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
 
 options:
   logging: CLOUD_LOGGING_ONLY
