@@ -3,11 +3,25 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Served from https://jochem-oosterlee.github.io/personal/ — the trailing
-// slash matters for the service worker scope.
-const base = '/personal/'
+// Twee hosts tegelijk: GitHub Pages serveert onder /personal/, Cloud Run onder
+// de root. Uit een env-var zodat één codebase beide bedient en Pages blijft
+// werken zolang Cloud Run nog niet bewezen is. De trailing slash is nodig voor
+// de scope van de service worker.
+const base = process.env.APP_BASE ?? '/personal/'
 
-const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
+// In een container is er geen git-repository, dus geeft de build het hash mee
+// als env-var. Lokaal blijft git de bron, en faalt allebei dan draait de build
+// door in plaats van te stoppen op een versieregel.
+function shortCommit() {
+  if (process.env.COMMIT_SHA) return process.env.COMMIT_SHA.slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch {
+    return 'onbekend'
+  }
+}
+
+const commitHash = shortCommit()
 const buildDate = new Date().toISOString().slice(0, 10)
 
 // https://vite.dev/config/
@@ -46,6 +60,10 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
         navigateFallback: `${base}index.html`,
+        // /__auth en /__session moeten écht het netwerk op: dat is de enige
+        // route langs IAP. Vangt de worker ze af, dan kom je bij een verlopen
+        // sessie nooit bij het loginscherm.
+        navigateFallbackDenylist: [/^\/__/],
         cleanupOutdatedCaches: true,
       },
       devOptions: { enabled: true, navigateFallback: 'index.html' },
