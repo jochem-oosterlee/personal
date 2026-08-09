@@ -78,6 +78,29 @@ app.put('/api/state/:key', requireUser, async (req, res) => {
   }
 })
 
+app.delete('/api/state/:key', requireUser, async (req, res) => {
+  try {
+    await db.collection(COLLECTION).doc(req.params.key).delete()
+    res.sendStatus(204)
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+// Zonder dit zou "Wis alle gegevens" alleen lokaal wissen en de volgende
+// synchronisatie alles terugzetten.
+app.delete('/api/state', requireUser, async (_req, res) => {
+  try {
+    const snapshot = await db.collection(COLLECTION).get()
+    const batch = db.batch()
+    for (const doc of snapshot.docs) batch.delete(doc.ref)
+    await batch.commit()
+    res.sendStatus(204)
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
 // Gehashte bestandsnamen: onbeperkt cachebaar.
 app.use(
   '/assets',

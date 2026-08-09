@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { watchSession } from './lib/session'
+import { startSync } from './lib/storage'
 import './index.css'
 import App from './App.tsx'
 
@@ -13,6 +14,10 @@ registerSW({ immediate: true })
 // werkt er niets meer en verschijnt er geen loginscherm; dit stuurt je alsnog
 // naar de login. Buiten IAP doet het niets.
 watchSession()
+
+// Haalt de staat van de server en schrijft wijzigingen terug. Zonder API —
+// GitHub Pages, dev-server — schakelt dit zichzelf uit.
+startSync()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

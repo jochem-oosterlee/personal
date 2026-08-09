@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
+import { pull, push, wipe } from './sync'
 
 const PREFIX = 'personal:'
 
@@ -31,8 +32,14 @@ export function exportAll(): Record<string, unknown> {
   return data
 }
 
-export function clearAll(): void {
+/**
+ * Async omdat de serverkant mee moet: een herlaad direct hierna zou een
+ * lopende DELETE afbreken, en dan komt bij de volgende synchronisatie alles
+ * terug wat je net wiste.
+ */
+export async function clearAll(): Promise<void> {
   for (const full of storageKeys()) localStorage.removeItem(full)
+  await wipe()
 }
 
 /**
@@ -68,6 +75,9 @@ export function usePersistentState<T>(
     for (const notify of subscribers.get(key) ?? []) {
       if (notify !== (setValue as Dispatch<unknown>)) notify(value)
     }
+
+    // Achter de API: schrijf de wijziging terug. Zonder API doet dit niets.
+    void push(key, JSON.stringify(value))
   }, [key, value])
 
   useEffect(() => {
@@ -81,4 +91,31 @@ export function usePersistentState<T>(
   }, [key])
 
   return [value, setValue]
+}
+
+/**
+ * Haalt de serverstaat binnen en zet hem in localStorage, waarna elke hook op
+ * die sleutel bijwerkt. Bij het openen en bij terugkeer naar de voorgrond, dus
+ * een lijst die je op je laptop aanpaste staat op je telefoon zodra je hem
+ * openslaat.
+ */
+export function startSync(): () => void {
+  function apply(key: string, raw: string) {
+    try {
+      if (localStorage.getItem(PREFIX + key) === raw) return
+      localStorage.setItem(PREFIX + key, raw)
+    } catch {
+      // Opslag geblokkeerd: dan alleen de hooks bijwerken.
+    }
+    const parsed = JSON.parse(raw)
+    for (const notify of subscribers.get(key) ?? []) notify(parsed)
+  }
+
+  function refresh() {
+    if (document.visibilityState === 'visible') void pull(apply)
+  }
+
+  refresh()
+  document.addEventListener('visibilitychange', refresh)
+  return () => document.removeEventListener('visibilitychange', refresh)
 }

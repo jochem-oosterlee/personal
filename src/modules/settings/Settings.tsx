@@ -112,8 +112,10 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
     URL.revokeObjectURL(url)
   }
 
-  function wipe() {
-    clearAll()
+  async function wipe() {
+    // Wachten: de serverkant moet weg zijn vóór de herlaad, anders breekt die
+    // de DELETE af en synchroniseert alles gewoon weer terug.
+    await clearAll()
     // Every module holds its own state; a reload is the honest way to reset
     // all of them at once.
     location.reload()
