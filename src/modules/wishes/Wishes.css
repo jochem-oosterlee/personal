@@ -282,9 +282,16 @@
   border: 1px solid var(--line);
 }
 
-.wish__status--progress {
+.wish__status--running,
+.wish__status--queued {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+.wish__status--needs-answer {
+  color: var(--text);
+  border-color: var(--line-strong);
+  font-weight: 600;
 }
 
 .wish__status--done {
@@ -292,7 +299,7 @@
   border-color: var(--line-strong);
 }
 
-.wish__status--rejected {
+.wish__status--failed {
   color: var(--danger);
   border-color: var(--danger);
 }
@@ -418,4 +425,33 @@
   font-size: 0.6875rem;
   line-height: 1.4;
   color: var(--danger);
+}
+
+.wish__detail-text {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.wish__commit {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+/* Bouwfouten zijn lang en niet om te lezen maar om te herkennen; eigen
+   scrollgebied zodat een mislukte wens de lijst niet uit elkaar trekt. */
+.wish__failure {
+  max-height: 10rem;
+  margin: 0.5rem 0 0;
+  overflow: auto;
+  padding: 0.5rem;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--danger);
+  border: 1px solid var(--line);
 }

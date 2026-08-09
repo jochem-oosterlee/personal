@@ -1,23 +1,9 @@
 import { useEffect, useState } from 'react'
-import {
-  Download,
-  ExternalLink,
-  Monitor,
-  Moon,
-  RefreshCw,
-  Rocket,
-  Sun,
-  Trash2,
-} from 'lucide-react'
+import { Download, Monitor, Moon, RefreshCw, Sun, Trash2 } from 'lucide-react'
 import { clearAll, exportAll, storageKeys, usePersistentState } from '../../lib/storage'
-import {
-  DEFAULT_MODEL,
-  MODELS,
-  NEW_TOKEN_URL,
-  getLatestCommit,
-  triggerDeploy,
-} from '../../lib/github'
-import type { ModelId } from '../../lib/github'
+import { DEFAULT_MODEL, MODELS } from '../../lib/models'
+import type { ModelId } from '../../lib/models'
+import { latestCommit } from '../../lib/version'
 import type { ThemePreference } from '../../lib/theme'
 import { useLanguage } from '../../lib/language'
 import type { LanguagePreference } from '../../lib/language'
@@ -32,7 +18,6 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
   const { preference: languagePreference, setPreference: setLanguagePreference, language, t } =
     useLanguage()
   const [confirming, setConfirming] = useState(false)
-  const [token, setToken] = usePersistentState('settings.githubToken', '')
   const [model, setModel] = usePersistentState<ModelId>('settings.model', DEFAULT_MODEL)
 
   const THEMES: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
@@ -53,16 +38,13 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
   // strandt laat die twee uit elkaar lopen zonder dat de app er iets van merkt.
   const [latest, setLatest] = useState<string | null>(null)
   const [checkFailed, setCheckFailed] = useState(false)
-  const [deploying, setDeploying] = useState(false)
-  const [deployStarted, setDeployStarted] = useState(false)
-  const [deployError, setDeployError] = useState('')
 
   const running = __BUILD_VERSION__.split(' ')[1] ?? ''
   const behind = latest !== null && latest !== running
 
   useEffect(() => {
     let cancelled = false
-    getLatestCommit(t.github)
+    latestCommit()
       .then((sha) => {
         if (!cancelled) setLatest(sha)
       })
@@ -86,18 +68,6 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
     location.reload()
   }
 
-  async function redeploy() {
-    setDeploying(true)
-    setDeployError('')
-    try {
-      await triggerDeploy(token, t.github)
-      setDeployStarted(true)
-    } catch (error) {
-      setDeployError(error instanceof Error ? error.message : t.wishes.unknownError)
-    } finally {
-      setDeploying(false)
-    }
-  }
 
   function exportData() {
     const blob = new Blob([JSON.stringify(exportAll(), null, 2)], {
@@ -156,34 +126,6 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
             </button>
           ))}
         </div>
-      </section>
-
-      <section className="settings__group">
-        <h2 className="settings__heading micro">{t.settings.github}</h2>
-        <p className="settings__note">{t.settings.githubNote}</p>
-
-        <input
-          className="settings__input"
-          type="password"
-          value={token}
-          onChange={(event) => setToken(event.target.value.trim())}
-          placeholder={t.settings.tokenPlaceholder}
-          aria-label={t.settings.tokenLabel}
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-        />
-
-        <a
-          className="settings__action"
-          href={NEW_TOKEN_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <ExternalLink size={14} strokeWidth={1.4} aria-hidden="true" />
-          {t.settings.createToken}
-        </a>
-        <p className="settings__note">{t.settings.tokenHint}</p>
       </section>
 
       <section className="settings__group">
@@ -268,28 +210,8 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
               {t.settings.refreshApp}
             </button>
 
-            {token && (
-              <button
-                className="settings__action"
-                type="button"
-                onClick={redeploy}
-                disabled={deploying || deployStarted}
-              >
-                <Rocket size={14} strokeWidth={1.4} aria-hidden="true" />
-                {deployStarted
-                  ? t.settings.redeployStarted
-                  : deploying
-                    ? t.settings.redeploySending
-                    : t.settings.redeploy}
-              </button>
-            )}
 
             <p className="settings__note">{t.settings.versionHint}</p>
-            {deployError && (
-              <p className="settings__error" role="alert">
-                {deployError}
-              </p>
-            )}
           </div>
         )}
       </section>

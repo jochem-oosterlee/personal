@@ -1,1 +1,1 @@
-{"name":"personal-server","private":true,"type":"module","dependencies":{"@google-cloud/firestore":"^8.7.1","express":"^5.2.1"}}
+{"name":"personal-server","private":true,"type":"module","dependencies":{"@google-cloud/firestore":"^8.7.1","express":"^5.2.1","google-auth-library":"^11.0.0"}}

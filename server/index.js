@@ -101,6 +101,105 @@ app.delete('/api/state', requireUser, async (_req, res) => {
   }
 })
 
+// --- Wensen -----------------------------------------------------------------
+
+const wishes = db.collection('wishes')
+const MODELS = new Set(['claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5'])
+
+const PROJECT = process.env.GOOGLE_CLOUD_PROJECT ?? 'jochem-personal-pwa'
+const REGION = process.env.JOB_REGION ?? 'europe-west4'
+const JOB = process.env.JOB_NAME ?? 'wish-agent'
+
+/**
+ * Start de Cloud Run Job voor deze wens. Geen Eventarc ertussen: de API heeft
+ * al een identiteit en weet precies wanneer er werk is, dus een extra
+ * doorgeefluik zou alleen een plek zijn waar het stil kan misgaan.
+ */
+async function startAgent(id) {
+  const { GoogleAuth } = await import('google-auth-library')
+  const auth = new GoogleAuth({ scopes: 'https://www.googleapis.com/auth/cloud-platform' })
+  const client = await auth.getClient()
+
+  await client.request({
+    url: `https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/jobs/${JOB}:run`,
+    method: 'POST',
+    data: {
+      overrides: {
+        containerOverrides: [{ env: [{ name: 'WISH_ID', value: id }] }],
+      },
+    },
+  })
+}
+
+app.get('/api/wishes', requireUser, async (_req, res) => {
+  try {
+    const snapshot = await wishes.orderBy('createdAt', 'desc').limit(100).get()
+    res.set('Cache-Control', 'no-store')
+    res.json(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+app.post('/api/wishes', requireUser, async (req, res) => {
+  const { title, detail = '', model } = req.body ?? {}
+  if (typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ error: 'titel ontbreekt' })
+  }
+
+  try {
+    const doc = await wishes.add({
+      title: title.trim(),
+      detail: typeof detail === 'string' ? detail : '',
+      model: MODELS.has(model) ? model : 'claude-opus-5',
+      status: 'queued',
+      messages: [],
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+    await startAgent(doc.id)
+    res.status(201).json({ id: doc.id })
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+/** Antwoord op een vraag van Claude; zet de agent opnieuw aan het werk. */
+app.post('/api/wishes/:id/reply', requireUser, async (req, res) => {
+  const { text } = req.body ?? {}
+  if (typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'tekst ontbreekt' })
+  }
+
+  try {
+    await wishes.doc(req.params.id).set(
+      {
+        status: 'queued',
+        messages: FieldValue.arrayUnion({
+          role: 'user',
+          text: text.trim(),
+          at: new Date().toISOString(),
+        }),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    )
+    await startAgent(req.params.id)
+    res.sendStatus(204)
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+app.delete('/api/wishes/:id', requireUser, async (req, res) => {
+  try {
+    await wishes.doc(req.params.id).delete()
+    res.sendStatus(204)
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
 // Gehashte bestandsnamen: onbeperkt cachebaar.
 app.use(
   '/assets',

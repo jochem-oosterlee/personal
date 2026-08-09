@@ -1,14 +1,15 @@
-# Push naar main -> image bouwen -> uitrollen naar Cloud Run.
+# Push naar main -> app-image en agent-image bouwen -> app uitrollen en de
+# job bijwerken. Beide images in één build, zodat ze niet uit elkaar lopen.
 #
-# De service houdt zijn bestaande instellingen (IAP aan, geen anonieme
-# toegang); die staan hier bewust niet, zodat een deploy ze niet stilletjes
-# kan overschrijven.
+# De service- en job-instellingen (IAP, secrets, service-account) staan hier
+# bewust niet: die zijn eenmalig gezet en een deploy mag ze niet stilletjes
+# overschrijven.
 #
 # Het image-pad staat voluit in elke stap. In een eigen substitutie zetten
 # werkt niet: de waarde daarvan wordt niet nog eens uitgevouwen, waardoor
 # $PROJECT_ID letterlijk in de tag belandt.
 steps:
-  - id: build
+  - id: build-app
     name: gcr.io/cloud-builders/docker
     args:
       - build
@@ -18,13 +19,29 @@ steps:
       - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
       - .
 
-  - id: push
+  - id: build-agent
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - agent/Dockerfile
+      - -t
+      - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
+      - .
+
+  - id: push-app
     name: gcr.io/cloud-builders/docker
     args:
       - push
       - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
 
-  - id: deploy
+  - id: push-agent
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
+
+  - id: deploy-app
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: gcloud
     args:
@@ -35,5 +52,18 @@ steps:
       - --region=europe-west4
       - --quiet
 
+  - id: update-agent
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - update
+      - wish-agent
+      - --image=europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
+      - --region=europe-west4
+      - --quiet
+
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
