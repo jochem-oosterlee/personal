@@ -27,7 +27,7 @@ const nl = {
   },
   notes: {
     add: 'Nieuwe notitie',
-    empty: 'Nog geen notities.',
+    empty: 'Nog niets opgeschreven.',
     placeholder: 'Typ je notitie…',
     label: 'Notitie',
     remove: 'Notitie verwijderen',
@@ -146,7 +146,7 @@ const en: typeof nl = {
   },
   notes: {
     add: 'New note',
-    empty: 'No notes yet.',
+    empty: 'Nothing written down yet.',
     placeholder: 'Type your note…',
     label: 'Note',
     remove: 'Remove note',
