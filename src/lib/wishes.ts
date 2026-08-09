@@ -7,7 +7,13 @@
  * zit achter IAP.
  */
 
-export type WishStatus = 'queued' | 'running' | 'needs-answer' | 'done' | 'failed'
+export type WishStatus =
+  | 'draft'
+  | 'queued'
+  | 'running'
+  | 'needs-answer'
+  | 'done'
+  | 'failed'
 
 export type WishMessage = {
   role: 'claude' | 'user'
@@ -55,6 +61,22 @@ export async function createWish(
   })
   const { id } = await response.json()
   return id
+}
+
+/** Bijwerken kan zolang de wens een concept is; daarna weigert de server het. */
+export async function updateWish(
+  id: string,
+  fields: { title?: string; detail?: string; model?: string },
+): Promise<void> {
+  await call(`/api/wishes/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(fields),
+  })
+}
+
+/** Pas hier vertrekt de agent. */
+export async function submitWish(id: string): Promise<void> {
+  await call(`/api/wishes/${id}/submit`, { method: 'POST' })
 }
 
 /** Antwoord op een vraag; zet de agent opnieuw aan het werk. */

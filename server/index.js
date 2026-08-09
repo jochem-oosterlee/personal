@@ -115,12 +115,16 @@ const JOB = process.env.JOB_NAME ?? 'wish-agent'
  * al een identiteit en weet precies wanneer er werk is, dus een extra
  * doorgeefluik zou alleen een plek zijn waar het stil kan misgaan.
  */
-async function startAgent(id) {
+async function googleClient() {
   const { GoogleAuth } = await import('google-auth-library')
   const auth = new GoogleAuth({ scopes: 'https://www.googleapis.com/auth/cloud-platform' })
-  const client = await auth.getClient()
+  return auth.getClient()
+}
 
-  await client.request({
+/** Geeft de naam van de executie terug, zodat we hem later kunnen afbreken. */
+async function startAgent(id) {
+  const client = await googleClient()
+  const { data } = await client.request({
     url: `https://run.googleapis.com/v2/projects/${PROJECT}/locations/${REGION}/jobs/${JOB}:run`,
     method: 'POST',
     data: {
@@ -129,6 +133,26 @@ async function startAgent(id) {
       },
     },
   })
+  // De naam zit in de metadata van de long-running operation.
+  return data?.metadata?.name ?? null
+}
+
+/**
+ * Breekt een lopende run af. Zonder dit blijft de agent doorwerken aan een
+ * wens die je net verwijderd hebt — en pusht hij mogelijk nog naar main.
+ */
+async function cancelAgent(execution) {
+  if (!execution) return
+  try {
+    const client = await googleClient()
+    await client.request({
+      url: `https://run.googleapis.com/v2/${execution}:cancel`,
+      method: 'POST',
+      data: {},
+    })
+  } catch {
+    // Al klaar of al afgebroken: dan is er niets meer te stoppen.
+  }
 }
 
 app.get('/api/wishes', requireUser, async (_req, res) => {
@@ -141,6 +165,11 @@ app.get('/api/wishes', requireUser, async (_req, res) => {
   }
 })
 
+/**
+ * Een nieuwe wens is een concept: hij start niets. Zo kun je hem afmaken,
+ * een toelichting toevoegen en pas versturen als je klaar bent — in plaats
+ * van dat de agent al vertrekt terwijl je nog typt.
+ */
 app.post('/api/wishes', requireUser, async (req, res) => {
   const { title, detail = '', model } = req.body ?? {}
   if (typeof title !== 'string' || !title.trim()) {
@@ -152,13 +181,55 @@ app.post('/api/wishes', requireUser, async (req, res) => {
       title: title.trim(),
       detail: typeof detail === 'string' ? detail : '',
       model: MODELS.has(model) ? model : 'claude-opus-5',
-      status: 'queued',
+      status: 'draft',
       messages: [],
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     })
-    await startAgent(doc.id)
     res.status(201).json({ id: doc.id })
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+/** Bijwerken kan alleen zolang het een concept is. */
+app.patch('/api/wishes/:id', requireUser, async (req, res) => {
+  const { title, detail, model } = req.body ?? {}
+  const ref = wishes.doc(req.params.id)
+
+  try {
+    const snapshot = await ref.get()
+    if (!snapshot.exists) return res.status(404).json({ error: 'wens bestaat niet' })
+    if (snapshot.data().status !== 'draft') {
+      return res.status(409).json({ error: 'wens is al verstuurd' })
+    }
+
+    const patch = { updatedAt: FieldValue.serverTimestamp() }
+    if (typeof title === 'string' && title.trim()) patch.title = title.trim()
+    if (typeof detail === 'string') patch.detail = detail
+    if (MODELS.has(model)) patch.model = model
+
+    await ref.update(patch)
+    res.sendStatus(204)
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+app.post('/api/wishes/:id/submit', requireUser, async (req, res) => {
+  const ref = wishes.doc(req.params.id)
+
+  try {
+    const snapshot = await ref.get()
+    if (!snapshot.exists) return res.status(404).json({ error: 'wens bestaat niet' })
+    if (snapshot.data().status !== 'draft') {
+      return res.status(409).json({ error: 'wens is al verstuurd' })
+    }
+
+    await ref.update({ status: 'queued', updatedAt: FieldValue.serverTimestamp() })
+    const execution = await startAgent(req.params.id)
+    await ref.update({ execution: execution ?? FieldValue.delete() })
+    res.sendStatus(204)
   } catch (error) {
     res.status(500).json({ error: String(error) })
   }
@@ -172,28 +243,36 @@ app.post('/api/wishes/:id/reply', requireUser, async (req, res) => {
   }
 
   try {
-    await wishes.doc(req.params.id).set(
-      {
-        status: 'queued',
-        messages: FieldValue.arrayUnion({
-          role: 'user',
-          text: text.trim(),
-          at: new Date().toISOString(),
-        }),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    )
-    await startAgent(req.params.id)
+    // update() en niet set(merge): dat laatste zou een verwijderde wens
+    // opnieuw aanmaken.
+    await wishes.doc(req.params.id).update({
+      status: 'queued',
+      messages: FieldValue.arrayUnion({
+        role: 'user',
+        text: text.trim(),
+        at: new Date().toISOString(),
+      }),
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+    const execution = await startAgent(req.params.id)
+    await wishes.doc(req.params.id).update({ execution: execution ?? FieldValue.delete() })
     res.sendStatus(204)
   } catch (error) {
     res.status(500).json({ error: String(error) })
   }
 })
 
+/**
+ * Verwijderen breekt een lopende run af. Zonder dat werkt de agent door aan
+ * iets wat jij hebt weggegooid en kan hij het alsnog naar main pushen.
+ */
 app.delete('/api/wishes/:id', requireUser, async (req, res) => {
+  const ref = wishes.doc(req.params.id)
+
   try {
-    await wishes.doc(req.params.id).delete()
+    const snapshot = await ref.get()
+    if (snapshot.exists) await cancelAgent(snapshot.data().execution)
+    await ref.delete()
     res.sendStatus(204)
   } catch (error) {
     res.status(500).json({ error: String(error) })

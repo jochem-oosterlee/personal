@@ -4,7 +4,14 @@ import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import { DEFAULT_MODEL } from '../../lib/models'
 import type { ModelId } from '../../lib/models'
-import { createWish, listWishes, removeWish, replyToWish } from '../../lib/wishes'
+import {
+  createWish,
+  listWishes,
+  removeWish,
+  replyToWish,
+  submitWish,
+  updateWish,
+} from '../../lib/wishes'
 import type { Wish, WishStatus } from '../../lib/wishes'
 import type { Translations } from '../../lib/translations'
 import './Wishes.css'
@@ -13,8 +20,15 @@ import './Wishes.css'
 // onnodig te belasten. Er zit geen limiet meer op zoals bij de GitHub-API.
 const POLL_INTERVAL_MS = 5_000
 
+/** Statussen waarbij er echt een job draait die je zou onderbreken. */
+function isRunning(status: WishStatus): boolean {
+  return status === 'queued' || status === 'running'
+}
+
 function statusLabel(status: WishStatus, t: Translations): string {
   switch (status) {
+    case 'draft':
+      return t.wishes.statusDraft
     case 'running':
       return t.wishes.statusProgress
     case 'needs-answer':
@@ -33,7 +47,6 @@ export function Wishes() {
   const [model] = usePersistentState<ModelId>('settings.model', DEFAULT_MODEL)
   const [wishes, setWishes] = useState<Wish[]>([])
   const [draft, setDraft] = useState('')
-  const [detail, setDetail] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -63,9 +76,10 @@ export function Wishes() {
     setSending(true)
     setError('')
     try {
-      await createWish(title, detail.trim(), model)
+      // Dit maakt een concept aan en start niets. Versturen is een aparte
+      // handeling op de kaart hieronder.
+      await createWish(title, '', model)
       setDraft('')
-      setDetail('')
       inputRef.current?.focus()
       await refresh()
     } catch (caught) {
@@ -121,18 +135,17 @@ export function Wishes() {
           {wishes.map((wish) => (
             <li key={wish.id} className="wish">
               <div className="wish__head">
-                <span className="wish__title">{wish.title}</span>
-                <button
-                  className="wish__remove"
-                  type="button"
-                  onClick={() => remove(wish.id)}
-                  aria-label={t.wishes.remove(wish.title)}
-                >
-                  <X size={14} strokeWidth={1.4} aria-hidden="true" />
-                </button>
+                {wish.status !== 'draft' && (
+                  <span className="wish__title">{wish.title}</span>
+                )}
+                <RemoveButton wish={wish} onRemove={() => remove(wish.id)} />
               </div>
 
-              {wish.detail && <p className="wish__detail-text">{wish.detail}</p>}
+              {wish.status === 'draft' ? (
+                <Draft wish={wish} onChanged={refresh} />
+              ) : (
+                wish.detail && <p className="wish__detail-text">{wish.detail}</p>
+              )}
 
               <div className="wish__foot">
                 <span className={`wish__status wish__status--${wish.status}`}>
@@ -151,6 +164,118 @@ export function Wishes() {
         </ul>
       )}
     </div>
+  )
+}
+
+/**
+ * Een concept: hier maak je de wens af. Zolang je hier zit draait er niets, dus
+ * je kunt rustig typen, bijschaven en pas versturen als het klopt.
+ */
+function Draft({ wish, onChanged }: { wish: Wish; onChanged: () => Promise<void> }) {
+  const { t } = useLanguage()
+  const [title, setTitle] = useState(wish.title)
+  const [detail, setDetail] = useState(wish.detail ?? '')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+
+  // Bewaren gebeurt bij verlaten van een veld: opslaan bij elke toetsaanslag
+  // zou de server bestoken, en het polling-interval zou je tekst terugdraaien.
+  async function save() {
+    if (title.trim() === wish.title && detail === (wish.detail ?? '')) return
+    try {
+      await updateWish(wish.id, { title: title.trim() || wish.title, detail })
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t.wishes.unknownError)
+    }
+  }
+
+  async function send() {
+    setSending(true)
+    setError('')
+    try {
+      await updateWish(wish.id, { title: title.trim() || wish.title, detail })
+      await submitWish(wish.id)
+      await onChanged()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t.wishes.unknownError)
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="draft">
+      <input
+        className="draft__title"
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        onBlur={save}
+        aria-label={t.wishes.inputLabel}
+        autoComplete="off"
+      />
+      <textarea
+        className="draft__detail"
+        value={detail}
+        rows={3}
+        placeholder={t.wishes.detailPlaceholder}
+        aria-label={t.wishes.detailLabel}
+        onChange={(event) => setDetail(event.target.value)}
+        onBlur={save}
+      />
+      <button
+        className="draft__send"
+        type="button"
+        onClick={send}
+        disabled={sending || !title.trim()}
+      >
+        <Send size={12} strokeWidth={1.4} aria-hidden="true" />
+        {sending ? t.wishes.sending : t.wishes.submit}
+      </button>
+      <p className="draft__hint">{t.wishes.draftHint}</p>
+      {error && (
+        <span className="wish__error" role="alert">
+          {error}
+        </span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Weggooien tijdens een run breekt die run af. Dat is ingrijpend genoeg om
+ * eerst te vragen — en zonder waarschuwing lijkt het kruisje hetzelfde te doen
+ * als bij een afgeronde wens.
+ */
+function RemoveButton({ wish, onRemove }: { wish: Wish; onRemove: () => void }) {
+  const { t } = useLanguage()
+  const [asking, setAsking] = useState(false)
+
+  if (asking) {
+    return (
+      <span className="wish__confirm">
+        <span className="wish__confirm-text">{t.wishes.stopConfirm}</span>
+        <button className="wish__confirm-yes" type="button" onClick={onRemove}>
+          {t.wishes.stopYes}
+        </button>
+        <button
+          className="wish__confirm-no"
+          type="button"
+          onClick={() => setAsking(false)}
+        >
+          {t.wishes.stopNo}
+        </button>
+      </span>
+    )
+  }
+
+  return (
+    <button
+      className="wish__remove"
+      type="button"
+      onClick={() => (isRunning(wish.status) ? setAsking(true) : onRemove())}
+      aria-label={t.wishes.remove(wish.title)}
+    >
+      <X size={14} strokeWidth={1.4} aria-hidden="true" />
+    </button>
   )
 }
 

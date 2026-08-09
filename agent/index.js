@@ -53,25 +53,39 @@ function tryRun(command, args, cwd) {
   }
 }
 
+/**
+ * update() in plaats van set(merge): dat laatste maakt het document opnieuw
+ * aan als het weg is. Verwijder je een wens terwijl de agent draait, dan
+ * verscheen er zo een spookdocument zonder titel en zonder createdAt —
+ * onzichtbaar in de app omdat de lijst op createdAt sorteert, en dus ook niet
+ * meer te verwijderen. Is de wens weg, dan is er niets meer te melden.
+ */
 async function update(fields) {
-  await wishes.doc(WISH_ID).set(
-    { ...fields, updatedAt: FieldValue.serverTimestamp() },
-    { merge: true },
-  )
+  try {
+    await wishes.doc(WISH_ID).update({
+      ...fields,
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+    return true
+  } catch (error) {
+    if (error?.code === 5) return false // NOT_FOUND
+    throw error
+  }
 }
 
 async function say(text) {
-  await wishes.doc(WISH_ID).set(
-    {
-      messages: FieldValue.arrayUnion({
-        role: 'claude',
-        text,
-        at: new Date().toISOString(),
-      }),
-      updatedAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true },
-  )
+  return update({
+    messages: FieldValue.arrayUnion({
+      role: 'claude',
+      text,
+      at: new Date().toISOString(),
+    }),
+  })
+}
+
+/** Stop zodra de wens verdwenen is; verder werken heeft geen zin meer. */
+async function stillThere() {
+  return (await wishes.doc(WISH_ID).get()).exists
 }
 
 function buildPrompt(wish) {
@@ -107,7 +121,11 @@ async function main() {
   if (!DEPLOY_KEY) throw new Error('GITHUB_DEPLOY_KEY ontbreekt')
 
   const snapshot = await wishes.doc(WISH_ID).get()
-  if (!snapshot.exists) throw new Error(`wens ${WISH_ID} bestaat niet`)
+  if (!snapshot.exists) {
+    // Verwijderd voordat wij begonnen. Geen fout: er is niets meer te doen.
+    console.log(`wens ${WISH_ID} bestaat niet meer`)
+    return
+  }
   const wish = snapshot.data()
 
   await update({ status: 'running', error: FieldValue.delete() })
@@ -154,6 +172,14 @@ async function main() {
           .join('\n')
         if (text.trim()) answer = text
       }
+    }
+
+    // Het afbreken van een executie is niet ogenblikkelijk, en Claude kan al
+    // klaar zijn voordat het signaal aankomt. Zonder deze controle belandt het
+    // werk voor een weggegooide wens alsnog op main.
+    if (!(await stillThere())) {
+      console.log(`wens ${WISH_ID} is verwijderd tijdens de run; niets gepusht`)
+      return
     }
 
     if (answer.trim()) await say(answer.trim())
