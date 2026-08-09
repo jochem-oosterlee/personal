@@ -201,7 +201,11 @@ async function main() {
     const lint = build.ok ? tryRun('npm', ['run', 'lint'], dir) : build
 
     if (!lint.ok) {
-      run('git', ['push', 'origin', branch], dir)
+      // Force: bij een nieuwe poging op dezelfde wens bestaat deze tak al op
+      // origin, met historie uit een verse kloon die nergens op aansluit.
+      // Zonder force weigert de push en krijg jij een git-fout te zien in
+      // plaats van de bouwfout waar het echt om gaat.
+      run('git', ['push', '--force', 'origin', branch], dir)
       await update({
         status: 'failed',
         branch,
