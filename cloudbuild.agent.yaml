@@ -1,0 +1,36 @@
+# Alleen het agent-image. Draait uitsluitend als er iets onder agent/ wijzigt,
+# want dat image is bij een gewone app-wijziging identiek en kostte zo een
+# halve minuut per deploy voor niets.
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - agent/Dockerfile
+      - -t
+      - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
+      - .
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
+
+  # Alleen het image; de secrets en het geheugen blijven zoals ze eenmalig
+  # gezet zijn.
+  - id: update-job
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - update
+      - wish-agent
+      - --image=europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
+      - --region=europe-west4
+      - --quiet
+
+options:
+  logging: CLOUD_LOGGING_ONLY

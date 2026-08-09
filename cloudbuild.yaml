@@ -1,15 +1,11 @@
-# Push naar main -> app-image en agent-image bouwen -> app uitrollen en de
-# job bijwerken. Beide images in één build, zodat ze niet uit elkaar lopen.
-#
-# De service- en job-instellingen (IAP, secrets, service-account) staan hier
-# bewust niet: die zijn eenmalig gezet en een deploy mag ze niet stilletjes
-# overschrijven.
+# App bouwen en uitrollen. Wijzigt er alleen iets onder agent/, dan slaat de
+# trigger deze build over — zie cloudbuild.agent.yaml.
 #
 # Het image-pad staat voluit in elke stap. In een eigen substitutie zetten
 # werkt niet: de waarde daarvan wordt niet nog eens uitgevouwen, waardoor
 # $PROJECT_ID letterlijk in de tag belandt.
 steps:
-  - id: build-app
+  - id: build
     name: gcr.io/cloud-builders/docker
     args:
       - build
@@ -19,29 +15,15 @@ steps:
       - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
       - .
 
-  - id: build-agent
-    name: gcr.io/cloud-builders/docker
-    args:
-      - build
-      - -f
-      - agent/Dockerfile
-      - -t
-      - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
-      - .
-
-  - id: push-app
+  - id: push
     name: gcr.io/cloud-builders/docker
     args:
       - push
       - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
 
-  - id: push-agent
-    name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
-
-  - id: deploy-app
+  # De service-instellingen (IAP, geen anonieme toegang) staan hier bewust
+  # niet: die zijn eenmalig gezet en een deploy mag ze niet overschrijven.
+  - id: deploy
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: gcloud
     args:
@@ -49,18 +31,6 @@ steps:
       - deploy
       - personal
       - --image=europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/personal:$SHORT_SHA
-      - --region=europe-west4
-      - --quiet
-
-  - id: update-agent
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    entrypoint: gcloud
-    args:
-      - run
-      - jobs
-      - update
-      - wish-agent
-      - --image=europe-west4-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/wish-agent:$SHORT_SHA
       - --region=europe-west4
       - --quiet
 
