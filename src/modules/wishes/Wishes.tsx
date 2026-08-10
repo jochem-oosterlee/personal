@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ImagePlus, Plus, Send, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, ImagePlus, Plus, Send, X } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import { DEFAULT_MODEL } from '../../lib/models'
@@ -54,6 +54,10 @@ export function Wishes() {
   const [draft, setDraft] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  // Ingeklapt is de rusttoestand: een wens met toelichting en een draad vult
+  // anders het hele scherm en dan is de lijst niet meer te overzien. Wat je
+  // openzet blijft open, ook als de volgende poll de wensen vervangt.
+  const [expanded, setExpanded] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
   const refresh = useCallback(async () => {
@@ -92,6 +96,12 @@ export function Wishes() {
     } finally {
       setSending(false)
     }
+  }
+
+  function toggle(id: string) {
+    setExpanded((current) =>
+      current.includes(id) ? current.filter((open) => open !== id) : [...current, id],
+    )
   }
 
   async function remove(id: string) {
@@ -137,50 +147,83 @@ export function Wishes() {
         <p className="wishes__empty">{t.wishes.empty}</p>
       ) : (
         <ul className="wishes__list">
-          {wishes.map((wish) => (
-            <li key={wish.id} className="wish">
-              <div className="wish__head">
-                {wish.status !== 'draft' && (
-                  <span className="wish__title">{wish.title}</span>
-                )}
-                <RemoveButton wish={wish} onRemove={() => remove(wish.id)} />
-              </div>
+          {wishes.map((wish) => {
+            // Een concept is een formulier waar je in typt; dat inklappen zou
+            // je eigen tekst wegstoppen.
+            const isDraft = wish.status === 'draft'
+            const open = isDraft || expanded.includes(wish.id)
 
-              {wish.status === 'draft' ? (
-                <Draft wish={wish} onChanged={refresh} />
-              ) : (
-                <>
-                  {wish.detail && <p className="wish__detail-text">{wish.detail}</p>}
-                  {(wish.attachments ?? []).length > 0 && (
-                    <div className="wish__attachments">
-                      {wish.attachments!.map((attachment) => (
-                        <span key={attachment.key} className="wish__attachment">
-                          <img
-                            src={attachmentUrl(wish.id, attachment.key)}
-                            alt={attachment.name}
-                          />
-                        </span>
-                      ))}
-                    </div>
+            return (
+              <li key={wish.id} className="wish">
+                <div className="wish__head">
+                  {!isDraft && (
+                    <button
+                      className="wish__toggle"
+                      type="button"
+                      onClick={() => toggle(wish.id)}
+                      aria-expanded={open}
+                    >
+                      {open ? (
+                        <ChevronDown
+                          className="wish__chevron"
+                          size={14}
+                          strokeWidth={1.4}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <ChevronRight
+                          className="wish__chevron"
+                          size={14}
+                          strokeWidth={1.4}
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="wish__title">{wish.title}</span>
+                    </button>
                   )}
-                </>
-              )}
+                  <RemoveButton wish={wish} onRemove={() => remove(wish.id)} />
+                </div>
 
-              <div className="wish__foot">
-                <span className={`wish__status wish__status--${wish.status}`}>
-                  {statusLabel(wish.status, t)}
-                </span>
-                <Progress wish={wish} />
-                {wish.commit && <span className="wish__commit">{wish.commit}</span>}
-              </div>
+                {isDraft ? (
+                  <Draft wish={wish} onChanged={refresh} />
+                ) : (
+                  open && (
+                    <>
+                      {wish.detail && <p className="wish__detail-text">{wish.detail}</p>}
+                      {(wish.attachments ?? []).length > 0 && (
+                        <div className="wish__attachments">
+                          {wish.attachments!.map((attachment) => (
+                            <span key={attachment.key} className="wish__attachment">
+                              <img
+                                src={attachmentUrl(wish.id, attachment.key)}
+                                alt={attachment.name}
+                              />
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )
+                )}
 
-              {wish.error && (
-                <pre className="wish__failure">{wish.error.slice(-1200)}</pre>
-              )}
+                {/* De status blijft staan: ingeklapt wil je nog steeds zien
+                    waar een wens is, en de teller loopt gewoon door. */}
+                <div className="wish__foot">
+                  <span className={`wish__status wish__status--${wish.status}`}>
+                    {statusLabel(wish.status, t)}
+                  </span>
+                  <Progress wish={wish} />
+                  {wish.commit && <span className="wish__commit">{wish.commit}</span>}
+                </div>
 
-              <Thread wish={wish} onReplied={refresh} />
-            </li>
-          ))}
+                {open && wish.error && (
+                  <pre className="wish__failure">{wish.error.slice(-1200)}</pre>
+                )}
+
+                {open && <Thread wish={wish} onReplied={refresh} />}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>
