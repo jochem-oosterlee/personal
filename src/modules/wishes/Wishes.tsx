@@ -47,6 +47,9 @@ function statusLabel(status: WishStatus, t: Translations): string {
   }
 }
 
+/** De schermafdruk die schermvullend open staat, met de wens waar hij bij hoort. */
+type Viewing = { wishId: string; attachment: Attachment }
+
 export function Wishes() {
   const { t } = useLanguage()
   const [model] = usePersistentState<ModelId>('settings.model', DEFAULT_MODEL)
@@ -58,6 +61,12 @@ export function Wishes() {
   // anders het hele scherm en dan is de lijst niet meer te overzien. Wat je
   // openzet blijft open, ook als de volgende poll de wensen vervangt.
   const [expanded, setExpanded] = useState<string[]>([])
+  // De schermvullende schermafdruk hoort bij de lijst, niet bij de wens waar je
+  // hem aantikte. Stond hij in de wens zelf — en bij een verstuurde wens staat
+  // die inhoud alleen te lezen zolang hij openstaat — dan nam elk dichtklappen
+  // de afbeelding meteen weer mee, en zag je hem dus niet.
+  const [viewing, setViewing] = useState<Viewing | null>(null)
+  const closeViewer = useCallback(() => setViewing(null), [])
   const inputRef = useRef<HTMLInputElement>(null)
 
   const refresh = useCallback(async () => {
@@ -185,7 +194,11 @@ export function Wishes() {
                 </div>
 
                 {isDraft ? (
-                  <Draft wish={wish} onChanged={refresh} />
+                  <Draft
+                    wish={wish}
+                    onChanged={refresh}
+                    onView={(attachment) => setViewing({ wishId: wish.id, attachment })}
+                  />
                 ) : (
                   open && (
                     <>
@@ -194,7 +207,11 @@ export function Wishes() {
                         <div className="wish__attachments">
                           {wish.attachments!.map((attachment) => (
                             <span key={attachment.key} className="wish__attachment">
-                              <Screenshot wishId={wish.id} attachment={attachment} />
+                              <Screenshot
+                                wishId={wish.id}
+                                attachment={attachment}
+                                onOpen={() => setViewing({ wishId: wish.id, attachment })}
+                              />
                             </span>
                           ))}
                         </div>
@@ -223,6 +240,14 @@ export function Wishes() {
           })}
         </ul>
       )}
+
+      {viewing && (
+        <Viewer
+          wishId={viewing.wishId}
+          attachment={viewing.attachment}
+          onClose={closeViewer}
+        />
+      )}
     </div>
   )
 }
@@ -231,7 +256,15 @@ export function Wishes() {
  * Een concept: hier maak je de wens af. Zolang je hier zit draait er niets, dus
  * je kunt rustig typen, bijschaven en pas versturen als het klopt.
  */
-function Draft({ wish, onChanged }: { wish: Wish; onChanged: () => Promise<void> }) {
+function Draft({
+  wish,
+  onChanged,
+  onView,
+}: {
+  wish: Wish
+  onChanged: () => Promise<void>
+  onView: (attachment: Attachment) => void
+}) {
   const { t } = useLanguage()
   const [title, setTitle] = useState(wish.title)
   const [detail, setDetail] = useState(wish.detail ?? '')
@@ -318,7 +351,11 @@ function Draft({ wish, onChanged }: { wish: Wish; onChanged: () => Promise<void>
       <div className="wish__attachments">
         {attachments.map((attachment) => (
           <span key={attachment.key} className="wish__attachment">
-            <Screenshot wishId={wish.id} attachment={attachment} />
+            <Screenshot
+              wishId={wish.id}
+              attachment={attachment}
+              onOpen={() => onView(attachment)}
+            />
             <button
               className="wish__attachment-remove"
               type="button"
@@ -358,54 +395,78 @@ function Draft({ wish, onChanged }: { wish: Wish; onChanged: () => Promise<void>
 
 /**
  * Een miniatuur van 3,5 rem is genoeg om te zien dát er een schermafdruk bij
- * zit, niet om te lezen wat erop staat. Een druk erop zet hem schermvullend;
- * Escape of een druk ernaast klapt hem weer dicht.
+ * zit, niet om te lezen wat erop staat. Een druk erop vraagt de lijst om hem
+ * schermvullend te zetten.
  */
-function Screenshot({ wishId, attachment }: { wishId: string; attachment: Attachment }) {
+function Screenshot({
+  wishId,
+  attachment,
+  onOpen,
+}: {
+  wishId: string
+  attachment: Attachment
+  onOpen: () => void
+}) {
   const { t } = useLanguage()
-  const [open, setOpen] = useState(false)
-  const url = attachmentUrl(wishId, attachment.key)
+
+  return (
+    <button
+      className="wish__attachment-open"
+      type="button"
+      onClick={onOpen}
+      aria-label={t.wishes.openScreenshot(attachment.name)}
+    >
+      <img src={attachmentUrl(wishId, attachment.key)} alt={attachment.name} />
+    </button>
+  )
+}
+
+/**
+ * De schermafdruk schermvullend. Escape of een druk ernaast klapt hem weer
+ * dicht; hij hangt aan de lijst, dus wat er met de wens eronder gebeurt —
+ * dichtklappen, een poll die de lijst vervangt — raakt hem niet.
+ */
+function Viewer({
+  wishId,
+  attachment,
+  onClose,
+}: {
+  wishId: string
+  attachment: Attachment
+  onClose: () => void
+}) {
+  const { t } = useLanguage()
 
   useEffect(() => {
-    if (!open) return
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open])
+  }, [onClose])
 
   return (
-    <>
+    <div
+      className="viewer"
+      role="dialog"
+      aria-modal="true"
+      aria-label={attachment.name}
+      onClick={onClose}
+    >
       <button
-        className="wish__attachment-open"
+        className="viewer__close"
         type="button"
-        onClick={() => setOpen(true)}
-        aria-label={t.wishes.openScreenshot(attachment.name)}
+        onClick={onClose}
+        aria-label={t.wishes.closeScreenshot}
       >
-        <img src={url} alt={attachment.name} />
+        <X size={15} strokeWidth={1.4} aria-hidden="true" />
       </button>
-
-      {open && (
-        <div
-          className="viewer"
-          role="dialog"
-          aria-modal="true"
-          aria-label={attachment.name}
-          onClick={() => setOpen(false)}
-        >
-          <button
-            className="viewer__close"
-            type="button"
-            onClick={() => setOpen(false)}
-            aria-label={t.wishes.closeScreenshot}
-          >
-            <X size={15} strokeWidth={1.4} aria-hidden="true" />
-          </button>
-          <img className="viewer__image" src={url} alt={attachment.name} />
-        </div>
-      )}
-    </>
+      <img
+        className="viewer__image"
+        src={attachmentUrl(wishId, attachment.key)}
+        alt={attachment.name}
+      />
+    </div>
   )
 }
 
