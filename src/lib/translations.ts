@@ -38,7 +38,8 @@ const nl = {
     failed: 'Claude kon de tekst niet lezen. Probeer het zo nog eens.',
   },
   notes: {
-    add: 'Nieuwe notitie',
+    inputLabel: 'Nieuwe notitie',
+    addLabel: 'Notitie toevoegen',
     empty: 'Nog niets opgeschreven.',
     placeholder: 'Typ je notitie…',
     label: 'Notitie',
@@ -188,7 +189,8 @@ const en: typeof nl = {
     failed: 'Claude could not read the text. Try again in a moment.',
   },
   notes: {
-    add: 'New note',
+    inputLabel: 'New note',
+    addLabel: 'Add note',
     empty: 'Nothing written down yet.',
     placeholder: 'Type your note…',
     label: 'Note',

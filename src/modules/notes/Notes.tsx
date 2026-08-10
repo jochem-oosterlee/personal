@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
@@ -13,17 +13,24 @@ type Note = {
 export function Notes() {
   const { t } = useLanguage()
   const [notes, setNotes] = usePersistentState<Note[]>('notes.items', [])
-  // Set when a note is created, so the fresh textarea can take focus.
-  const focusId = useRef<string | null>(null)
+  const [draft, setDraft] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Newest first, by creation — sorting on edit would yank a note out from
   // under the cursor while you type in it.
   const sorted = [...notes].sort((a, b) => b.createdAt - a.createdAt)
 
-  function addNote() {
-    const id = crypto.randomUUID()
-    focusId.current = id
-    setNotes((current) => [...current, { id, text: '', createdAt: Date.now() }])
+  function addNote(event: React.FormEvent) {
+    event.preventDefault()
+    const text = draft.trim()
+    if (!text) return
+
+    setNotes((current) => [
+      ...current,
+      { id: crypto.randomUUID(), text, createdAt: Date.now() },
+    ])
+    setDraft('')
+    inputRef.current?.focus()
   }
 
   function updateNote(id: string, text: string) {
@@ -38,12 +45,27 @@ export function Notes() {
 
   return (
     <div className="notes">
-      <div className="notes__bar sticky-top">
-        <button className="notes__add" type="button" onClick={addNote}>
-          <Plus size={15} strokeWidth={1.5} aria-hidden="true" />
-          {t.notes.add}
+      <form className="notes__add sticky-top" onSubmit={addNote}>
+        <input
+          ref={inputRef}
+          className="notes__input"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={t.notes.placeholder}
+          aria-label={t.notes.inputLabel}
+          enterKeyHint="done"
+          autoComplete="off"
+          autoCapitalize="sentences"
+        />
+        <button
+          className="notes__submit"
+          type="submit"
+          disabled={!draft.trim()}
+          aria-label={t.notes.addLabel}
+        >
+          <Plus size={17} strokeWidth={1.5} aria-hidden="true" />
         </button>
-      </div>
+      </form>
 
       {notes.length === 0 ? (
         <p className="notes__empty">{t.notes.empty}</p>
@@ -53,7 +75,6 @@ export function Notes() {
             <li key={note.id} className="note">
               <NoteEditor
                 text={note.text}
-                autoFocus={focusId.current === note.id}
                 onChange={(text) => updateNote(note.id, text)}
               />
               <button
@@ -74,11 +95,10 @@ export function Notes() {
 
 type NoteEditorProps = {
   text: string
-  autoFocus: boolean
   onChange: (text: string) => void
 }
 
-function NoteEditor({ text, autoFocus, onChange }: NoteEditorProps) {
+function NoteEditor({ text, onChange }: NoteEditorProps) {
   const { t } = useLanguage()
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -89,10 +109,6 @@ function NoteEditor({ text, autoFocus, onChange }: NoteEditorProps) {
     element.style.height = 'auto'
     element.style.height = `${element.scrollHeight}px`
   }, [text])
-
-  useEffect(() => {
-    if (autoFocus) ref.current?.focus()
-  }, [autoFocus])
 
   return (
     <textarea
