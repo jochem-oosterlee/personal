@@ -1,12 +1,12 @@
 [
   {
-    "name": "bewaar-recente",
+    "name": "bewaar-nieuwste",
     "action": { "type": "Keep" },
-    "mostRecentVersions": { "keepCount": 10 }
+    "mostRecentVersions": { "keepCount": 1 }
   },
   {
-    "name": "verwijder-oude",
+    "name": "verwijder-de-rest",
     "action": { "type": "Delete" },
-    "condition": { "tagState": "ANY", "olderThan": "3d" }
+    "condition": { "tagState": "ANY" }
   }
 ]
