@@ -11,6 +11,7 @@ export function TaskList() {
       addLabel={t.tasks.addLabel}
       emptyText={t.tasks.emptyText}
       deadlines
+      extract
     />
   )
 }

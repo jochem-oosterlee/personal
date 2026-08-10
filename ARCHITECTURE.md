@@ -68,6 +68,16 @@ dezelfde credentials als de CLI. De beperking in de SDK-docs gaat over het
 *aanbieden* van claude.ai-rechten aan derden. Zodra anderen deze tool gebruiken
 draaien hun runs op één seat en verschuift dat.
 
+**Actiepunten uit tekst op dezelfde sleutel.** Het plakvak bij Taken laat
+Claude actiepunten uit een geplakt stuk tekst halen, via `POST
+/api/extract-tasks`. Dat loopt op `claude-oauth-token` — hetzelfde abonnement
+als de wensen-job, dus geen tweede credential en geen kosten per aanroep. De
+service leest het secret bij de eerste aanroep via de Secret Manager API in
+plaats van als gemounte env-var: de service-instellingen staan bewust niet in
+`cloudbuild.yaml`, dus een deploy kan er geen secret aan hangen. Een OAuth-token
+op de Messages API is niet gedocumenteerd en kan stilvallen; dan geeft het
+plakvak een melding en werkt de rest van Taken door.
+
 **Geen token meer op het toestel.** De app praat alleen met zijn eigen backend.
 GitHub-credentials staan serverzijde in Secret Manager, met IAM eromheen.
 

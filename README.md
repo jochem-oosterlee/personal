@@ -51,11 +51,13 @@ gcloud builds triggers run personal-deploy --region=europe-west4 --branch=main
 src/
 ├─ App.tsx                      module-registry + tabbalk
 ├─ components/Checklist.tsx     gedeeld door Boodschappen en Taken
+├─ components/Extract.tsx       plakvak bij Taken: tekst in, actiepunten uit
 ├─ lib/
 │  ├─ storage.ts                usePersistentState + synchronisatie
 │  ├─ sync.ts                   praat met /api/state
 │  ├─ session.ts                herkent een verlopen IAP-sessie
 │  ├─ wishes.ts                 praat met /api/wishes
+│  ├─ tasks.ts                  praat met /api/extract-tasks
 │  ├─ models.ts                 keuze van het model
 │  ├─ version.ts                draait dit toestel de laatste build?
 │  └─ theme.ts                  licht/donker/systeem

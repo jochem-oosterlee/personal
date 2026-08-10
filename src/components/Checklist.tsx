@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'react'
 import { CalendarPlus, Check, Plus, X } from 'lucide-react'
 import { usePersistentState } from '../lib/storage'
 import { useLanguage } from '../lib/language'
+import { Extract } from './Extract'
+import type { ExtractedTask } from '../lib/tasks'
 import './Checklist.css'
 
 type ChecklistItem = {
@@ -21,6 +23,8 @@ type ChecklistProps = {
   emptyText: string
   /** Show a deadline control per item. */
   deadlines?: boolean
+  /** Show the paste box that turns pasted text into task suggestions. */
+  extract?: boolean
 }
 
 /** Today in the same local `YYYY-MM-DD` shape a date input produces. */
@@ -59,6 +63,7 @@ export function Checklist({
   addLabel,
   emptyText,
   deadlines = false,
+  extract = false,
 }: ChecklistProps) {
   const { t, language } = useLanguage()
   const [items, setItems] = usePersistentState<ChecklistItem[]>(storageKey, [])
@@ -89,6 +94,22 @@ export function Checklist({
     ])
     setDraft('')
     inputRef.current?.focus()
+  }
+
+  /** Wat uit het plakvak komt, wordt hier een gewone taak als alle andere. */
+  function addExtracted(tasks: ExtractedTask[]) {
+    const at = Date.now()
+    setItems((current) => [
+      ...current,
+      ...tasks.map((task, index) => ({
+        id: crypto.randomUUID(),
+        name: task.name,
+        done: false,
+        // Oplopend, zodat ze in de volgorde van de tekst blijven staan.
+        addedAt: at + index,
+        dueAt: task.dueAt,
+      })),
+    ])
   }
 
   function toggleItem(id: string) {
@@ -136,6 +157,8 @@ export function Checklist({
           <Plus size={17} strokeWidth={1.5} aria-hidden="true" />
         </button>
       </form>
+
+      {extract && <Extract onAdd={addExtracted} />}
 
       {items.length === 0 ? (
         <p className="checklist__empty">{emptyText}</p>

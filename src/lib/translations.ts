@@ -25,6 +25,18 @@ const nl = {
     doneOf: (done: number, total: number) => `${done} van ${total} afgevinkt`,
     clearDone: 'Wis afgevinkte',
   },
+  extract: {
+    open: 'Tekst plakken',
+    title: 'Actiepunten uit tekst',
+    close: 'Plakvak sluiten',
+    placeholder: 'Plak hier een mail, notulen of een appje…',
+    find: 'Actiepunten zoeken',
+    busy: 'Claude leest mee…',
+    add: (count: number) =>
+      count === 1 ? '1 taak toevoegen' : `${count} taken toevoegen`,
+    nothing: 'Hier staan geen actiepunten in.',
+    failed: 'Claude kon de tekst niet lezen. Probeer het zo nog eens.',
+  },
   notes: {
     add: 'Nieuwe notitie',
     empty: 'Nog niets opgeschreven.',
@@ -160,6 +172,17 @@ const en: typeof nl = {
     due: (name: string) => `Deadline for ${name}`,
     doneOf: (done: number, total: number) => `${done} of ${total} checked off`,
     clearDone: 'Clear checked off',
+  },
+  extract: {
+    open: 'Paste text',
+    title: 'Action items from text',
+    close: 'Close paste box',
+    placeholder: 'Paste an email, minutes or a message…',
+    find: 'Find action items',
+    busy: 'Claude is reading…',
+    add: (count: number) => (count === 1 ? 'Add 1 task' : `Add ${count} tasks`),
+    nothing: 'No action items in this text.',
+    failed: 'Claude could not read the text. Try again in a moment.',
   },
   notes: {
     add: 'New note',

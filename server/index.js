@@ -421,6 +421,161 @@ app.post('/api/deploy', requireUser, async (_req, res) => {
   }
 })
 
+// --- Actiepunten uit tekst --------------------------------------------------
+
+/**
+ * Haalt de actiepunten uit een geplakt stuk tekst. Dit draait op het
+ * Claude-abonnement: `claude-oauth-token` staat al in Secret Manager voor de
+ * wensen-job, en wordt hier bij de eerste aanroep opgehaald in plaats van als
+ * env-var gemount. De service-instellingen staan bewust niet in
+ * cloudbuild.yaml, dus een deploy kan er geen secret aan koppelen; het
+ * service-account heeft wel `secretmanager.secretAccessor`.
+ */
+const CLAUDE_SECRET = process.env.CLAUDE_SECRET ?? 'claude-oauth-token'
+const EXTRACT_MODEL = 'claude-haiku-4-5'
+
+// Ruim boven een lange e-mail; de app hanteert dezelfde grens.
+const MAX_EXTRACT_CHARS = 20000
+
+/** Gevuld na de eerste aanroep; leeggegooid zodra Anthropic hem weigert. */
+let claudeToken = null
+
+async function fetchClaudeToken() {
+  if (claudeToken) return claudeToken
+
+  const client = await googleClient()
+  const { data } = await client.request({
+    url: `https://secretmanager.googleapis.com/v1/projects/${PROJECT}/secrets/${CLAUDE_SECRET}/versions/latest:access`,
+  })
+
+  const value = Buffer.from(data?.payload?.data ?? '', 'base64').toString('utf8').trim()
+  if (!value) throw new Error(`${CLAUDE_SECRET} is leeg`)
+  claudeToken = value
+  return value
+}
+
+/**
+ * Een tool met een schema in plaats van "geef JSON terug": dan komt er geen
+ * uitleg of code-fence omheen die we eruit moeten pulken.
+ */
+const EXTRACT_TOOL = {
+  name: 'actiepunten',
+  description: 'Geeft de actiepunten uit de tekst terug.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      taken: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            naam: {
+              type: 'string',
+              description: 'Het actiepunt als korte taak, in de taal van de tekst.',
+            },
+            deadline: {
+              type: 'string',
+              description: 'Datum als YYYY-MM-DD. Weglaten als de tekst geen moment noemt.',
+            },
+          },
+          required: ['naam'],
+        },
+      },
+    },
+    required: ['taken'],
+  },
+}
+
+/**
+ * `claude setup-token` levert een OAuth-token: het abonnement, niet de API.
+ * De Messages API accepteert dat alleen met deze beta-header én met de
+ * Claude Code-identiteit als eerste systeemblok — zo praat de CLI zelf. Dat is
+ * niet gedocumenteerd en kan dus stilvallen; vandaar dat een fout hier een
+ * nette melding wordt en de rest van Taken gewoon doorwerkt.
+ */
+const EXTRACT_SYSTEM = [
+  { type: 'text', text: "You are Claude Code, Anthropic's official CLI for Claude." },
+  {
+    type: 'text',
+    text: `Je haalt actiepunten uit een tekst die iemand plakt: een e-mail, notulen, een appje.
+
+- Alleen wat de lezer zelf moet doen. Achtergrond, meningen en wat al af is laat je weg.
+- Eén korte, concrete taak per actiepunt, in de taal van de tekst.
+- Noemt de tekst een moment ("voor vrijdag", "eind van de maand"), reken dat om naar een datum met vandaag als ijkpunt. Anders geen deadline.
+- Verzin niets en vat de tekst niet samen. Staan er geen actiepunten in, geef dan een lege lijst.`,
+  },
+]
+
+/** Alleen wat de lijst kan tonen: een naam, en een datum in het formaat van het datumveld. */
+function cleanTasks(list) {
+  if (!Array.isArray(list)) return []
+
+  return list
+    .map((task) => ({
+      name: typeof task?.naam === 'string' ? task.naam.trim().slice(0, 200) : '',
+      dueAt: /^\d{4}-\d{2}-\d{2}$/.test(task?.deadline) ? task.deadline : undefined,
+    }))
+    .filter((task) => task.name)
+    .slice(0, 50)
+}
+
+app.post('/api/extract-tasks', requireUser, async (req, res) => {
+  const { text, today } = req.body ?? {}
+
+  if (typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'tekst ontbreekt' })
+  }
+  if (text.length > MAX_EXTRACT_CHARS) {
+    return res.status(413).json({ error: 'tekst te lang' })
+  }
+
+  // De datum komt van het toestel: de server draait in UTC en zou rond
+  // middernacht een dag mis kunnen zitten.
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : new Date().toISOString().slice(0, 10)
+
+  try {
+    const token = await fetchClaudeToken()
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'oauth-2025-04-20',
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        model: EXTRACT_MODEL,
+        max_tokens: 2048,
+        system: EXTRACT_SYSTEM,
+        tools: [EXTRACT_TOOL],
+        tool_choice: { type: 'tool', name: EXTRACT_TOOL.name },
+        messages: [
+          { role: 'user', content: `Vandaag is ${day}.\n\n<tekst>\n${text}\n</tekst>` },
+        ],
+      }),
+    })
+
+    if (!response.ok) {
+      // Een gedraaide sleutel geneest zo bij de volgende poging.
+      claudeToken = null
+      const body = await response.text().catch(() => '')
+      console.error(`extractie mislukt (${response.status}): ${body.slice(0, 500)}`)
+      return res.status(502).json({ error: `Claude antwoordde met ${response.status}` })
+    }
+
+    const data = await response.json()
+    const block = (data.content ?? []).find((part) => part.type === 'tool_use')
+
+    res.set('Cache-Control', 'no-store')
+    res.json({ tasks: cleanTasks(block?.input?.taken) })
+  } catch (error) {
+    claudeToken = null
+    console.error(error)
+    res.status(502).json({ error: String(error) })
+  }
+})
+
 // Gehashte bestandsnamen: onbeperkt cachebaar.
 app.use(
   '/assets',
