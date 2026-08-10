@@ -4,6 +4,7 @@ import { clearAll, exportAll, storageKeys, usePersistentState } from '../../lib/
 import { DEFAULT_MODEL, MODELS } from '../../lib/models'
 import type { ModelId } from '../../lib/models'
 import { latestCommit } from '../../lib/version'
+import { applyUpdate } from '../../lib/update'
 import type { ThemePreference } from '../../lib/theme'
 import { useLanguage } from '../../lib/language'
 import type { LanguagePreference } from '../../lib/language'
@@ -76,16 +77,13 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
     }
   }
 
+  // Het ophalen en installeren duurt even; zonder deze staat is de knop een
+  // dode klik en druk je nog een keer.
+  const [refreshing, setRefreshing] = useState(false)
+
   async function refreshApp() {
-    // Vraag de service worker eerst om te kijken of er een nieuwe build is;
-    // zonder die stap herlaadt hij gewoon dezelfde gecachete versie.
-    try {
-      const registration = await navigator.serviceWorker?.getRegistration()
-      await registration?.update()
-    } catch {
-      // Geen service worker of update mislukt — herladen kan alsnog helpen.
-    }
-    location.reload()
+    setRefreshing(true)
+    await applyUpdate()
   }
 
 
@@ -225,9 +223,14 @@ export function Settings({ theme, onThemeChange }: SettingsProps) {
 
         {behind && (
           <div className="settings__version-actions">
-            <button className="settings__action" type="button" onClick={refreshApp}>
+            <button
+              className="settings__action"
+              type="button"
+              onClick={refreshApp}
+              disabled={refreshing}
+            >
               <RefreshCw size={14} strokeWidth={1.4} aria-hidden="true" />
-              {t.settings.refreshApp}
+              {refreshing ? t.settings.refreshing : t.settings.refreshApp}
             </button>
 
             <button

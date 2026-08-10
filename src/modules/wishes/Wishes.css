@@ -554,6 +554,14 @@
   overflow-wrap: anywhere;
 }
 
+/* Tabulaire cijfers, anders wiebelt de teller elke seconde. */
+.wish__step {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
 .wish__commit {
   font-size: 0.6875rem;
   letter-spacing: 0.04em;

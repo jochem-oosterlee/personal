@@ -7,6 +7,7 @@ GitHub is uitsluitend git-host.
 |---|---|
 | de code | **Cloud Run `personal`** — statische build + API, achter IAP |
 | Cloud Build App | **Firestore** — `state` (lijstjes) en `wishes` |
+| | **Cloud Storage** — screenshots bij een wens, bucket dicht |
 | | **Cloud Run Job `wish-agent`** — bouwt een wens |
 | | **Cloud Build-trigger** — push naar `main` → deploy |
 | | **Secret Manager** — `github-token`, `claude-oauth-token` |
@@ -17,7 +18,9 @@ Geen GitHub Actions, geen issues, geen labels, geen pull requests.
 
 ```
 wens in de app
-   -> POST /api/wishes            (Firestore: status queued)
+   -> POST /api/wishes            (Firestore: status draft — start niets)
+   -> bijschaven, screenshots erbij
+   -> POST /api/wishes/:id/submit (status queued)
    -> API start de Cloud Run Job  (geen Eventarc ertussen)
    -> agent kloont, werkt, build + lint
         groen  -> squash naar main -> push
@@ -25,6 +28,8 @@ wens in de app
         rood   -> branch blijft staan, status failed
         vraag  -> niets gewijzigd, status needs-answer
    -> jij antwoordt in de app -> POST /api/wishes/:id/reply -> opnieuw
+
+verwijderen tijdens een run -> executions:cancel -> daarna pas weg
 ```
 
 ## Beslissingen, en waarom
@@ -37,6 +42,13 @@ de Firebase-SDK in de bundel, die groter is dan de hele app.
 **State als JSON-string per sleutel.** Gelijk aan wat `localStorage` opslaat,
 en het omzeilt Firestore's beperking op geneste arrays — een lijst met objecten
 die zelf lijsten bevatten zou anders stukgaan.
+
+**Screenshots in Cloud Storage, niet in Firestore.** Een document mag maximaal
+1 MiB zijn; twee schermafdrukken passen daar al niet in. De bucket heeft public
+access prevention, dus de app haalt ze op via de eigen API en daarmee langs
+IAP. De agent downloadt ze naar `.wens-bijlagen/` in de kloon en houdt die map
+buiten git via `.git/info/exclude` — dat bestand gaat nooit mee de commit in,
+in tegenstelling tot `.gitignore`.
 
 **`localStorage` blijft de bron waar de app uit leest.** Synchroon, en offline
 werkt alles door. De server is een kopie die bij openen wordt opgehaald. Per

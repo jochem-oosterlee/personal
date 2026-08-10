@@ -7,10 +7,11 @@
  * kloon van de repo, en bij groen gaat het rechtstreeks naar main.
  */
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { Firestore, FieldValue } from '@google-cloud/firestore'
+import { Storage } from '@google-cloud/storage'
 import { query } from '@anthropic-ai/claude-agent-sdk'
 
 const WISH_ID = process.env.WISH_ID
@@ -29,6 +30,46 @@ const DEFAULT_MODEL = 'claude-opus-5'
 
 const db = new Firestore()
 const wishes = db.collection('wishes')
+
+const BUCKET = process.env.ATTACHMENTS_BUCKET ?? 'jochem-personal-pwa-attachments'
+const bucket = new Storage().bucket(BUCKET)
+
+/** Binnen de kloon, zodat Read erbij kan; zie fetchAttachments. */
+const ATTACHMENT_DIR = '.wens-bijlagen'
+
+/**
+ * Haalt de screenshots naar schijf en geeft de paden terug. Claude leest ze met
+ * Read, en dat werkt op bestanden — uit de bucket lezen kan hij niet.
+ *
+ * Ze staan binnen de kloon omdat de agent daar zijn werkmap heeft, en worden
+ * via .git/info/exclude buiten git gehouden: dat bestand is per kloon en gaat
+ * dus nooit mee de commit in, in tegenstelling tot .gitignore.
+ */
+async function fetchAttachments(wish, repo) {
+  const list = wish.attachments ?? []
+  if (list.length === 0) return []
+
+  const into = path.join(repo, ATTACHMENT_DIR)
+  mkdirSync(into, { recursive: true })
+  writeFileSync(path.join(repo, '.git', 'info', 'exclude'), `\n${ATTACHMENT_DIR}/\n`, {
+    flag: 'a',
+  })
+
+  const paths = []
+
+  for (const attachment of list) {
+    const target = path.join(into, attachment.key)
+    try {
+      await bucket.file(`wishes/${WISH_ID}/${attachment.key}`).download({ destination: target })
+      paths.push({ path: target, name: attachment.name })
+    } catch (error) {
+      // Eén onleesbare bijlage mag de hele wens niet laten mislukken.
+      console.error(`bijlage ${attachment.key} niet opgehaald: ${error}`)
+    }
+  }
+
+  return paths
+}
 
 /** Gevuld zodra de sleutel op schijf staat; git gebruikt hem via GIT_SSH_COMMAND. */
 let gitEnv = process.env
@@ -88,15 +129,34 @@ async function stillThere() {
   return (await wishes.doc(WISH_ID).get()).exists
 }
 
-function buildPrompt(wish) {
+/**
+ * Meldt in welke stap we zitten. "Wordt gebouwd" dekte alles van clonen tot
+ * pushen, dus je zag minutenlang hetzelfde en kon niet weten of er nog iets
+ * gebeurde. De duur van de stappen eromheen is voorspelbaar; alleen van Claude
+ * valt niets te beloven, en juist daarom helpt het om te zien dát hij bezig is.
+ */
+async function step(name) {
+  return update({ step: name, stepAt: new Date().toISOString() })
+}
+
+function buildPrompt(wish, attachments) {
   const thread = (wish.messages ?? [])
     .map((m) => `${m.role === 'user' ? 'Indiener' : 'Jij'}: ${m.text}`)
     .join('\n\n')
+
+  // Alleen het pad noemen is niet genoeg: zonder opdracht om te kijken slaat
+  // Claude de afbeelding soms over en raadt hij naar wat erop staat.
+  const images = attachments.length
+    ? `\nDe indiener heeft ${attachments.length === 1 ? 'een screenshot' : `${attachments.length} screenshots`} meegestuurd. Bekijk ${attachments.length === 1 ? 'die' : 'die'} eerst met Read voordat je iets wijzigt:\n${attachments
+        .map((a) => `- ${a.path} (${a.name})`)
+        .join('\n')}`
+    : ''
 
   return `Implementeer deze wens in de repository waarin je staat.
 
 Titel: ${wish.title}
 ${wish.detail ? `\nToelichting:\n${wish.detail}` : ''}
+${images}
 ${thread ? `\nEerdere uitwisseling:\n${thread}` : ''}
 
 Dit is een persoonlijke PWA: Vite + React + TypeScript, met een module-registry
@@ -128,7 +188,7 @@ async function main() {
   }
   const wish = snapshot.data()
 
-  await update({ status: 'running', error: FieldValue.delete() })
+  await update({ status: 'running', step: 'clone', stepAt: new Date().toISOString(), error: FieldValue.delete() })
 
   const work = mkdtempSync(path.join(tmpdir(), 'wish-'))
   const dir = path.join(work, 'repo')
@@ -153,8 +213,12 @@ async function main() {
     const model = MODELS.has(wish.model) ? wish.model : DEFAULT_MODEL
     let answer = ''
 
+    const attachments = await fetchAttachments(wish, dir)
+
+    await step('claude')
+
     for await (const message of query({
-      prompt: buildPrompt(wish),
+      prompt: buildPrompt(wish, attachments),
       options: {
         model,
         cwd: dir,
@@ -187,7 +251,7 @@ async function main() {
     const changed = run('git', ['status', '--porcelain'], dir).trim()
     if (!changed) {
       // Niets gewijzigd betekent bijna altijd: Claude heeft een vraag gesteld.
-      await update({ status: 'needs-answer' })
+      await update({ status: 'needs-answer', step: FieldValue.delete() })
       return
     }
 
@@ -196,8 +260,11 @@ async function main() {
 
     // De poort staat hier, niet in de prompt: dat het model zegt dat het
     // slaagt is geen bewijs.
+    await step('install')
     const install = tryRun('npm', ['ci'], dir)
+    if (install.ok) await step('build')
     const build = install.ok ? tryRun('npm', ['run', 'build'], dir) : install
+    if (build.ok) await step('lint')
     const lint = build.ok ? tryRun('npm', ['run', 'lint'], dir) : build
 
     if (!lint.ok) {
@@ -209,18 +276,25 @@ async function main() {
       await update({
         status: 'failed',
         branch,
+        step: FieldValue.delete(),
         error: lint.output.slice(-4000),
       })
       return
     }
 
+    await step('push')
     run('git', ['checkout', 'main'], dir)
     run('git', ['merge', '--squash', branch], dir)
     run('git', ['commit', '-m', `${wish.title}\n\nWens ${WISH_ID}`], dir)
     run('git', ['push', 'origin', 'main'], dir)
 
     const commit = run('git', ['rev-parse', '--short', 'HEAD'], dir).trim()
-    await update({ status: 'done', commit, branch: FieldValue.delete() })
+    await update({
+      status: 'done',
+      commit,
+      branch: FieldValue.delete(),
+      step: FieldValue.delete(),
+    })
   } finally {
     rmSync(work, { recursive: true, force: true })
   }
@@ -229,7 +303,11 @@ async function main() {
 main().catch(async (error) => {
   console.error(error)
   try {
-    await update({ status: 'failed', error: String(error).slice(0, 4000) })
+    await update({
+      status: 'failed',
+      step: FieldValue.delete(),
+      error: String(error).slice(0, 4000),
+    })
   } catch {
     // Firestore onbereikbaar: de job faalt sowieso, het log heeft het al.
   }

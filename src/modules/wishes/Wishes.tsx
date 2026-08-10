@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Plus, Send, X } from 'lucide-react'
+import { ImagePlus, Plus, Send, X } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import { DEFAULT_MODEL } from '../../lib/models'
 import type { ModelId } from '../../lib/models'
 import {
+  STEPS,
+  addAttachment,
+  attachmentUrl,
   createWish,
   listWishes,
+  removeAttachment,
   removeWish,
   replyToWish,
   submitWish,
   updateWish,
 } from '../../lib/wishes'
-import type { Wish, WishStatus } from '../../lib/wishes'
+import type { Attachment, Wish, WishStatus } from '../../lib/wishes'
+import { prepareImage } from '../../lib/images'
 import type { Translations } from '../../lib/translations'
 import './Wishes.css'
 
@@ -144,13 +149,28 @@ export function Wishes() {
               {wish.status === 'draft' ? (
                 <Draft wish={wish} onChanged={refresh} />
               ) : (
-                wish.detail && <p className="wish__detail-text">{wish.detail}</p>
+                <>
+                  {wish.detail && <p className="wish__detail-text">{wish.detail}</p>}
+                  {(wish.attachments ?? []).length > 0 && (
+                    <div className="wish__attachments">
+                      {wish.attachments!.map((attachment) => (
+                        <span key={attachment.key} className="wish__attachment">
+                          <img
+                            src={attachmentUrl(wish.id, attachment.key)}
+                            alt={attachment.name}
+                          />
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="wish__foot">
                 <span className={`wish__status wish__status--${wish.status}`}>
                   {statusLabel(wish.status, t)}
                 </span>
+                <Progress wish={wish} />
                 {wish.commit && <span className="wish__commit">{wish.commit}</span>}
               </div>
 
@@ -177,6 +197,40 @@ function Draft({ wish, onChanged }: { wish: Wish; onChanged: () => Promise<void>
   const [detail, setDetail] = useState(wish.detail ?? '')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  // Lokaal bijgehouden zodat een miniatuur meteen verschijnt, zonder te
+  // wachten op de volgende poll.
+  const [attachments, setAttachments] = useState<Attachment[]>(wish.attachments ?? [])
+  const [attaching, setAttaching] = useState(false)
+
+  async function attach(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? [])
+    // Leegmaken, anders vuurt onChange niet als je hetzelfde bestand nog eens
+    // kiest.
+    event.target.value = ''
+    if (files.length === 0) return
+
+    setAttaching(true)
+    setError('')
+    try {
+      for (const file of files) {
+        const added = await addAttachment(wish.id, await prepareImage(file))
+        setAttachments((current) => [...current, added])
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t.wishes.attachFailed)
+    } finally {
+      setAttaching(false)
+    }
+  }
+
+  async function detach(key: string) {
+    setAttachments((current) => current.filter((a) => a.key !== key))
+    try {
+      await removeAttachment(wish.id, key)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : t.wishes.unknownError)
+    }
+  }
 
   // Bewaren gebeurt bij verlaten van een veld: opslaan bij elke toetsaanslag
   // zou de server bestoken, en het polling-interval zou je tekst terugdraaien.
@@ -221,11 +275,33 @@ function Draft({ wish, onChanged }: { wish: Wish; onChanged: () => Promise<void>
         onChange={(event) => setDetail(event.target.value)}
         onBlur={save}
       />
+      <div className="wish__attachments">
+        {attachments.map((attachment) => (
+          <span key={attachment.key} className="wish__attachment">
+            <img src={attachmentUrl(wish.id, attachment.key)} alt={attachment.name} />
+            <button
+              className="wish__attachment-remove"
+              type="button"
+              onClick={() => detach(attachment.key)}
+              aria-label={t.wishes.removeScreenshot}
+            >
+              <X size={11} strokeWidth={1.4} aria-hidden="true" />
+            </button>
+          </span>
+        ))}
+
+        <label className="wish__attach">
+          <ImagePlus size={13} strokeWidth={1.4} aria-hidden="true" />
+          {attaching ? t.wishes.attaching : t.wishes.attachScreenshot}
+          <input type="file" accept="image/*" multiple onChange={attach} />
+        </label>
+      </div>
+
       <button
         className="draft__send"
         type="button"
         onClick={send}
-        disabled={sending || !title.trim()}
+        disabled={sending || attaching || !title.trim()}
       >
         <Send size={12} strokeWidth={1.4} aria-hidden="true" />
         {sending ? t.wishes.sending : t.wishes.submit}
@@ -276,6 +352,40 @@ function RemoveButton({ wish, onRemove }: { wish: Wish; onRemove: () => void }) 
     >
       <X size={14} strokeWidth={1.4} aria-hidden="true" />
     </button>
+  )
+}
+
+/**
+ * Waar de agent nu is, met de tijd die deze stap al kost.
+ *
+ * "Wordt gebouwd" stond er van clonen tot pushen, dus minutenlang hetzelfde
+ * zonder dat je kon zien of er nog iets gebeurde. De stappen om Claude heen
+ * duren voorspelbaar kort; loopt er een op, dan is dat een signaal. Bij Claude
+ * zelf valt geen duur te beloven, en daar is de teller het enige eerlijke
+ * antwoord: je ziet dát hij bezig is, niet hoe lang het nog duurt.
+ */
+function Progress({ wish }: { wish: Wish }) {
+  const { t } = useLanguage()
+  const [now, setNow] = useState(() => Date.now())
+
+  const index = wish.step ? STEPS.indexOf(wish.step) : -1
+
+  useEffect(() => {
+    if (index < 0) return
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [index])
+
+  if (index < 0) return null
+
+  const started = wish.stepAt ? Date.parse(wish.stepAt) : NaN
+  const seconds = Number.isNaN(started) ? null : Math.max(0, Math.round((now - started) / 1000))
+
+  return (
+    <span className="wish__step">
+      {t.wishes.stepOf(index + 1, STEPS.length)} · {t.wishes.step[wish.step!]}
+      {seconds !== null && ` · ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`}
+    </span>
   )
 }
 

@@ -1,7 +1,9 @@
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import express from 'express'
 import { Firestore, FieldValue } from '@google-cloud/firestore'
+import { Storage } from '@google-cloud/storage'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const STATIC = path.join(here, 'public')
@@ -235,6 +237,119 @@ app.post('/api/wishes/:id/submit', requireUser, async (req, res) => {
   }
 })
 
+// --- Bijlagen ---------------------------------------------------------------
+
+/**
+ * Screenshots gaan naar Cloud Storage, niet naar Firestore: een document mag
+ * maximaal 1 MiB zijn en daar passen twee schermafdrukken al niet in. De bucket
+ * staat dicht (public access prevention), dus de app haalt ze via deze API op
+ * en daarmee langs IAP.
+ */
+const BUCKET = process.env.ATTACHMENTS_BUCKET ?? 'jochem-personal-pwa-attachments'
+const bucket = new Storage().bucket(BUCKET)
+
+const IMAGE_TYPES = new Map([
+  ['image/png', 'png'],
+  ['image/jpeg', 'jpg'],
+  ['image/webp', 'webp'],
+])
+
+// Ruim boven wat de app na verkleinen oplevert, ruim onder de JSON-limiet.
+const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024
+
+/** Alleen wat wij zelf uitgeven; houdt ../ buiten het objectpad. */
+function validKey(key) {
+  return /^[0-9a-f-]{36}\.(png|jpg|webp)$/.test(key)
+}
+
+function objectPath(wishId, key) {
+  return `wishes/${wishId}/${key}`
+}
+
+app.post('/api/wishes/:id/attachments', requireUser, async (req, res) => {
+  const { name, type, data } = req.body ?? {}
+  const extension = IMAGE_TYPES.get(type)
+
+  if (!extension) return res.status(400).json({ error: 'alleen png, jpeg of webp' })
+  if (typeof data !== 'string' || !data) {
+    return res.status(400).json({ error: 'data ontbreekt' })
+  }
+
+  const bytes = Buffer.from(data, 'base64')
+  if (bytes.length === 0) return res.status(400).json({ error: 'lege afbeelding' })
+  if (bytes.length > MAX_ATTACHMENT_BYTES) {
+    return res.status(413).json({ error: 'afbeelding te groot' })
+  }
+
+  const ref = wishes.doc(req.params.id)
+
+  try {
+    const snapshot = await ref.get()
+    if (!snapshot.exists) return res.status(404).json({ error: 'wens bestaat niet' })
+    // Na versturen zou een nieuwe bijlage de agent niet meer bereiken; hij
+    // heeft zijn kopie dan al.
+    if (snapshot.data().status !== 'draft') {
+      return res.status(409).json({ error: 'wens is al verstuurd' })
+    }
+
+    const key = `${randomUUID()}.${extension}`
+    await bucket.file(objectPath(req.params.id, key)).save(bytes, { contentType: type })
+
+    const attachment = {
+      key,
+      name: typeof name === 'string' ? name.slice(0, 120) : 'screenshot',
+      type,
+      size: bytes.length,
+    }
+    await ref.update({
+      attachments: FieldValue.arrayUnion(attachment),
+      updatedAt: FieldValue.serverTimestamp(),
+    })
+    res.status(201).json(attachment)
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
+app.get('/api/wishes/:id/attachments/:key', requireUser, async (req, res) => {
+  const { id, key } = req.params
+  if (!validKey(key)) return res.status(400).end()
+
+  try {
+    const file = bucket.file(objectPath(id, key))
+    const [metadata] = await file.getMetadata()
+    res.set('Content-Type', metadata.contentType ?? 'application/octet-stream')
+    // De inhoud van een sleutel verandert nooit; hergebruik scheelt bij elke
+    // poll van de wensenlijst een download.
+    res.set('Cache-Control', 'private, max-age=86400')
+    file.createReadStream().on('error', () => res.sendStatus(404)).pipe(res)
+  } catch {
+    res.sendStatus(404)
+  }
+})
+
+app.delete('/api/wishes/:id/attachments/:key', requireUser, async (req, res) => {
+  const { id, key } = req.params
+  if (!validKey(key)) return res.status(400).end()
+
+  const ref = wishes.doc(id)
+
+  try {
+    const snapshot = await ref.get()
+    if (!snapshot.exists) return res.status(404).json({ error: 'wens bestaat niet' })
+    if (snapshot.data().status !== 'draft') {
+      return res.status(409).json({ error: 'wens is al verstuurd' })
+    }
+
+    const remaining = (snapshot.data().attachments ?? []).filter((a) => a.key !== key)
+    await ref.update({ attachments: remaining, updatedAt: FieldValue.serverTimestamp() })
+    await bucket.file(objectPath(id, key)).delete({ ignoreNotFound: true })
+    res.sendStatus(204)
+  } catch (error) {
+    res.status(500).json({ error: String(error) })
+  }
+})
+
 /** Antwoord op een vraag van Claude; zet de agent opnieuw aan het werk. */
 app.post('/api/wishes/:id/reply', requireUser, async (req, res) => {
   const { text } = req.body ?? {}
@@ -273,6 +388,11 @@ app.delete('/api/wishes/:id', requireUser, async (req, res) => {
     const snapshot = await ref.get()
     if (snapshot.exists) await cancelAgent(snapshot.data().execution)
     await ref.delete()
+    // Anders blijven de screenshots betalend achter in de bucket, zonder dat
+    // er nog iets naar verwijst.
+    await bucket
+      .deleteFiles({ prefix: `wishes/${req.params.id}/`, force: true })
+      .catch(() => {})
     res.sendStatus(204)
   } catch (error) {
     res.status(500).json({ error: String(error) })

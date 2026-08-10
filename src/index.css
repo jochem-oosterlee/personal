@@ -52,8 +52,23 @@
   box-sizing: border-box;
 }
 
+/*
+ * Een sluitende hoogteketen tot aan .app. Zonder dit had alleen .app een
+ * hoogte (100dvh) en mocht de body eromheen groeien; werd dvh net te groot
+ * berekend — wat op een geïnstalleerde app direct na een herlaad gebeurt —
+ * dan zakte de tabbalk onder de rand en was hij weg tot je de app opnieuw
+ * opende. Met 100% erven we de echte viewport, en overflow:hidden zorgt dat
+ * er hoe dan ook niets buiten beeld geduwd kan worden.
+ */
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
+  overflow: hidden;
   background: var(--bg);
   /* Stop the whole page from rubber-banding when installed on iOS. */
   overscroll-behavior-y: none;
@@ -93,10 +108,18 @@ button {
 /* From tablet up the app reads as a framed sheet instead of a full-bleed
    column stranded in the middle of a wide screen. */
 @media (min-width: 48rem) {
+  /* Hier is de pagina zelf weer de scroller, dus de vaste hoogte moet los. */
+  html,
+  body,
+  #root {
+    height: auto;
+  }
+
   body {
     display: flex;
     justify-content: center;
     min-height: 100dvh;
+    overflow: visible;
     padding: clamp(1rem, 4vh, 2.5rem) 1rem;
     background: var(--bg-deep);
   }

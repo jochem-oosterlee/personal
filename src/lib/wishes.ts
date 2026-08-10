@@ -21,13 +21,30 @@ export type WishMessage = {
   at: string
 }
 
+/** In volgorde; alleen 'claude' heeft geen voorspelbare duur. */
+export const STEPS = ['clone', 'claude', 'install', 'build', 'lint', 'push'] as const
+
+export type WishStep = (typeof STEPS)[number]
+
+export type Attachment = {
+  key: string
+  name: string
+  type: string
+  size: number
+}
+
 export type Wish = {
   id: string
   title: string
   detail: string
+  attachments?: Attachment[]
   model: string
   status: WishStatus
   messages?: WishMessage[]
+  /** Waar de agent nu is. Alleen gevuld zolang hij draait. */
+  step?: WishStep
+  /** ISO-tijd waarop die stap begon, voor de verstreken tijd. */
+  stepAt?: string
   commit?: string
   branch?: string
   error?: string
@@ -85,6 +102,26 @@ export async function replyToWish(id: string, text: string): Promise<void> {
     method: 'POST',
     body: JSON.stringify({ text }),
   })
+}
+
+/** De bucket staat dicht, dus de afbeelding komt via de eigen API en dus langs IAP. */
+export function attachmentUrl(wishId: string, key: string): string {
+  return `/api/wishes/${wishId}/attachments/${key}`
+}
+
+export async function addAttachment(
+  wishId: string,
+  image: { data: string; type: string; name: string },
+): Promise<Attachment> {
+  const response = await call(`/api/wishes/${wishId}/attachments`, {
+    method: 'POST',
+    body: JSON.stringify(image),
+  })
+  return response.json()
+}
+
+export async function removeAttachment(wishId: string, key: string): Promise<void> {
+  await call(`/api/wishes/${wishId}/attachments/${key}`, { method: 'DELETE' })
 }
 
 export async function removeWish(id: string): Promise<void> {

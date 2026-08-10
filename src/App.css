@@ -8,7 +8,9 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100dvh;
+  /* 100% van een sluitende keten (zie index.css), niet 100dvh: dat laatste
+     werd na een herlaad soms te groot berekend en duwde de tabbalk weg. */
+  height: 100%;
   max-width: 34rem;
   margin: 0 auto;
   overflow: hidden;
