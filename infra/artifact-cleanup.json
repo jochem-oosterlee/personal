@@ -1,0 +1,12 @@
+[
+  {
+    "name": "bewaar-recente",
+    "action": { "type": "Keep" },
+    "mostRecentVersions": { "keepCount": 10 }
+  },
+  {
+    "name": "verwijder-oude",
+    "action": { "type": "Delete" },
+    "condition": { "tagState": "ANY", "olderThan": "3d" }
+  }
+]

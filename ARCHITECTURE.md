@@ -43,6 +43,13 @@ de Firebase-SDK in de bundel, die groter is dan de hele app.
 en het omzeilt Firestore's beperking op geneste arrays — een lijst met objecten
 die zelf lijsten bevatten zou anders stukgaan.
 
+**Opruimen gebeurt vanzelf, niet met de hand.** Elke wens levert een deploy op
+en dus een image en een revisie; in twee dagen liep Artifact Registry naar
+1,9 GiB. `infra/artifact-cleanup.json` houdt de tien nieuwste versies per image
+en gooit de rest na drie dagen weg. Rollbacks blijven zo mogelijk, en elk image
+is hoe dan ook opnieuw te bouwen uit de commit waar het bij hoort. Cloud Run
+kent geen automatisch opruimen voor revisies; die moeten periodiek met de hand.
+
 **Screenshots in Cloud Storage, niet in Firestore.** Een document mag maximaal
 1 MiB zijn; twee schermafdrukken passen daar al niet in. De bucket heeft public
 access prevention, dus de app haalt ze op via de eigen API en daarmee langs
