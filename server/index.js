@@ -26,6 +26,23 @@ app.use(express.json({ limit: '12mb' }))
 // langs IAP. Express zet Location relatief, dus geen absolute-URL-probleem.
 app.get('/__auth', (_req, res) => res.redirect(302, '/'))
 
+/**
+ * Welke build serveert deze server?
+ *
+ * Zonder dit kon de app alleen zichzelf met GitHub vergelijken, en die twee
+ * lopen na een push zo'n drie minuten uiteen: de commit staat er, maar de
+ * deploy draait nog. In dat venster meldde de app "nieuwe versie staat klaar"
+ * en deed vernieuwen niets — er wás nog niets nieuws. Hiermee kan de app zien
+ * welke van de twee achterloopt.
+ */
+app.get('/api/version', (_req, res) => {
+  const sha = process.env.COMMIT_SHA ?? ''
+  res.set('Cache-Control', 'no-store')
+  // Alleen inkorten als het ook echt een hash is; de fallback uit de Dockerfile
+  // is een woord en werd anders tot 'onbeken' afgeknipt.
+  res.json({ commit: /^[0-9a-f]{7,40}$/.test(sha) ? sha.slice(0, 7) : 'onbekend' })
+})
+
 // Sonde: geldig -> 204. Verlopen -> IAP onderschept en stuurt een 302, wat de
 // app met redirect:'manual' als opaqueredirect terugkrijgt.
 app.get('/__session', (_req, res) => {

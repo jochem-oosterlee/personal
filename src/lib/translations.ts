@@ -139,14 +139,15 @@ const nl = {
     versionChecking: 'controleren…',
     versionCurrent: 'actueel',
     versionBehind: (sha: string) => `${sha} staat klaar`,
+    versionDeploying: (sha: string) => `${sha} wordt uitgerold`,
     versionOffline: 'niet te controleren',
     refreshApp: 'App vernieuwen',
     refreshing: 'Nieuwe versie ophalen…',
     redeploy: 'Deploy opnieuw starten',
     redeploySending: 'Starten…',
     redeployStarted: 'Deploy gestart — even geduld',
-    versionHint:
-      'Ververs eerst de app. Blijft het verschil staan, dan is de site zelf achter en helpt opnieuw deployen.',
+    deployingHint:
+      'De commit staat op GitHub, maar de server serveert hem nog niet. Dat duurt ongeveer drie minuten; vernieuwen helpt pas daarna. Blijft het hangen, dan is de deploy niet gestart.',
   },
 }
 
@@ -288,14 +289,15 @@ const en: typeof nl = {
     versionChecking: 'checking…',
     versionCurrent: 'up to date',
     versionBehind: (sha: string) => `${sha} is waiting`,
+    versionDeploying: (sha: string) => `${sha} is rolling out`,
     versionOffline: 'could not check',
     refreshApp: 'Refresh app',
     refreshing: 'Fetching new version…',
     redeploy: 'Re-run deploy',
     redeploySending: 'Starting…',
     redeployStarted: 'Deploy started — give it a minute',
-    versionHint:
-      'Refresh the app first. If the difference remains, the site itself is behind and re-running the deploy helps.',
+    deployingHint:
+      "The commit is on GitHub, but the server isn't serving it yet. That takes about three minutes; refreshing only helps after that. If it stays stuck, the deploy never started.",
   },
 }
 
