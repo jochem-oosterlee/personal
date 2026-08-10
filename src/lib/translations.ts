@@ -92,6 +92,8 @@ const nl = {
     attachScreenshot: 'Screenshot toevoegen',
     attaching: 'Toevoegen…',
     removeScreenshot: 'Screenshot verwijderen',
+    openScreenshot: (name: string) => `${name} openen`,
+    closeScreenshot: 'Screenshot sluiten',
     attachFailed: 'Deze afbeelding kon niet worden toegevoegd.',
   },
   github: {
@@ -239,6 +241,8 @@ const en: typeof nl = {
     attachScreenshot: 'Add screenshot',
     attaching: 'Adding…',
     removeScreenshot: 'Remove screenshot',
+    openScreenshot: (name: string) => `Open ${name}`,
+    closeScreenshot: 'Close screenshot',
     attachFailed: 'That image could not be added.',
   },
   github: {

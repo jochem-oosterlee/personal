@@ -194,10 +194,7 @@ export function Wishes() {
                         <div className="wish__attachments">
                           {wish.attachments!.map((attachment) => (
                             <span key={attachment.key} className="wish__attachment">
-                              <img
-                                src={attachmentUrl(wish.id, attachment.key)}
-                                alt={attachment.name}
-                              />
+                              <Screenshot wishId={wish.id} attachment={attachment} />
                             </span>
                           ))}
                         </div>
@@ -321,7 +318,7 @@ function Draft({ wish, onChanged }: { wish: Wish; onChanged: () => Promise<void>
       <div className="wish__attachments">
         {attachments.map((attachment) => (
           <span key={attachment.key} className="wish__attachment">
-            <img src={attachmentUrl(wish.id, attachment.key)} alt={attachment.name} />
+            <Screenshot wishId={wish.id} attachment={attachment} />
             <button
               className="wish__attachment-remove"
               type="button"
@@ -356,6 +353,59 @@ function Draft({ wish, onChanged }: { wish: Wish; onChanged: () => Promise<void>
         </span>
       )}
     </div>
+  )
+}
+
+/**
+ * Een miniatuur van 3,5 rem is genoeg om te zien dát er een schermafdruk bij
+ * zit, niet om te lezen wat erop staat. Een druk erop zet hem schermvullend;
+ * Escape of een druk ernaast klapt hem weer dicht.
+ */
+function Screenshot({ wishId, attachment }: { wishId: string; attachment: Attachment }) {
+  const { t } = useLanguage()
+  const [open, setOpen] = useState(false)
+  const url = attachmentUrl(wishId, attachment.key)
+
+  useEffect(() => {
+    if (!open) return
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
+  return (
+    <>
+      <button
+        className="wish__attachment-open"
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={t.wishes.openScreenshot(attachment.name)}
+      >
+        <img src={url} alt={attachment.name} />
+      </button>
+
+      {open && (
+        <div
+          className="viewer"
+          role="dialog"
+          aria-modal="true"
+          aria-label={attachment.name}
+          onClick={() => setOpen(false)}
+        >
+          <button
+            className="viewer__close"
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label={t.wishes.closeScreenshot}
+          >
+            <X size={15} strokeWidth={1.4} aria-hidden="true" />
+          </button>
+          <img className="viewer__image" src={url} alt={attachment.name} />
+        </div>
+      )}
+    </>
   )
 }
 
