@@ -545,8 +545,9 @@
   color: var(--accent);
 }
 
-/* GitHub-comments zijn markdown en kunnen lang zijn; laat ze binnen een eigen
-   scrollgebied in plaats van de hele wens uit te rekken. */
+/* Een antwoord kan lang zijn; laat het binnen een eigen scrollgebied in plaats
+   van de hele wens uit te rekken. Claude schrijft markdown en die gaat door
+   .markdown; wat jij intikt blijft platte tekst, vandaar pre-wrap. */
 .note-block__body {
   max-height: 14rem;
   overflow-y: auto;

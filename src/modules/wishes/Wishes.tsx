@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, ImagePlus, Plus, Send, X } from 'lucide-react'
+import { Markdown } from '../../components/Markdown'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import { DEFAULT_MODEL } from '../../lib/models'
@@ -584,7 +585,11 @@ function Thread({ wish, onReplied }: { wish: Wish; onReplied: () => Promise<void
           <header className="note-block__who">
             {message.role === 'claude' ? t.wishes.replyFrom : t.wishes.replyYou}
           </header>
-          <div className="note-block__body">{message.text}</div>
+          {/* Wat Claude terugschrijft is markdown; wat jij intikt is precies wat
+              je intikte, dus dat blijft staan zoals het staat. */}
+          <div className="note-block__body">
+            {message.role === 'claude' ? <Markdown text={message.text} /> : message.text}
+          </div>
         </article>
       ))}
 

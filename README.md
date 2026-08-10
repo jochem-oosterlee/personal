@@ -52,6 +52,7 @@ src/
 ├─ App.tsx                      module-registry + tabbalk
 ├─ components/Checklist.tsx     gedeeld door Boodschappen en Taken
 ├─ components/Extract.tsx       plakvak bij Taken: tekst in, actiepunten uit
+├─ components/Markdown.tsx      kleine markdown-weergave voor Claude's antwoorden
 ├─ lib/
 │  ├─ storage.ts                usePersistentState + synchronisatie
 │  ├─ sync.ts                   praat met /api/state

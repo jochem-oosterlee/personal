@@ -1,0 +1,87 @@
+/* Opmaak erft de tekstgrootte en kleur van waar het staat; alleen de structuur
+   komt hier vandaan. De regelafstand van de omgeving blijft gelden, dus een
+   antwoord blijft even compact als de rest van de wens. */
+.markdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  white-space: normal; /* de bron is hard afgebroken; laat de browser breken */
+}
+
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown p {
+  margin: 0;
+}
+
+/* Koppen zijn niet groter maar zwaarder en donkerder: schaalsprongen passen
+   niet in een blok van 0,75 rem, kleurverschil leest hier beter. */
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 0.25rem 0 0;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: inherit;
+  color: var(--text);
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.markdown li::marker {
+  color: var(--text-faint);
+}
+
+.markdown strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.markdown em {
+  font-style: italic;
+}
+
+.markdown a {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+/* Code houdt zijn eigen regeleinden; breken mag, want horizontaal scrollen in
+   een blok dat zelf al verticaal scrollt is niet te doen op een telefoon. */
+.markdown pre {
+  margin: 0;
+  padding: 0.375rem 0.5rem;
+  font: inherit;
+  font-size: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.markdown code {
+  font: inherit;
+  font-size: inherit;
+  color: var(--text);
+}
+
+/* In lopende tekst een hairline eromheen, zodat je ziet waar het fragment
+   begint en eindigt zonder een vlak te tekenen. */
+.markdown :not(pre) > code {
+  padding: 0 0.1875rem;
+  border: 1px solid var(--line);
+}
+
+.markdown hr {
+  width: 100%;
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--line);
+}
