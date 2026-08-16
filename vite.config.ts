@@ -34,6 +34,15 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Zonder dit is de app achter IAP niet installeerbaar. De browser haalt
+      // het manifest namelijk op met credentials mode 'omit' — anders dan elke
+      // andere subresource, en ook langs de service worker heen. Zonder cookie
+      // stuurt IAP een redirect naar accounts.google.com, de fetch strandt op
+      // een andere origin, en Chrome concludeert dat er geen manifest is. De
+      // app werkt dan gewoon, maar "Installeren" verschijnt nergens. Dit zet
+      // crossorigin="use-credentials" op de <link rel="manifest">, waarmee de
+      // IAP-cookie wél meegaat.
+      useCredentials: true,
       // De iconen rollen tijdens de build uit public/favicon.svg, via de
       // bestaande pwa-assets.config.ts. Zo kan er geen versie van het icoon
       // achterblijven: één bron, en tabblad én beginscherm veranderen in
