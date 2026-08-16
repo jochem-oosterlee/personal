@@ -34,7 +34,20 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
+      // Favicon, PWA- en apple-touch-iconen rollen bij elke build uit
+      // public/favicon.svg, met de instellingen uit pwa-assets.config.ts. Zo
+      // hoeven de gegenereerde PNG's niet in de repo, en kan een nieuw icoon
+      // niet half doorgevoerd raken. De generator schrijft ze in closeBundle,
+      // dus vóór de service worker zijn precache-lijst opmaakt.
+      //
+      // De iconlinks en de theme-color staan met de hand in index.html — die
+      // laatste past een script vóór de eerste paint aan voor donker, en een
+      // tweede meta-tag zou die keuze onbetrouwbaar maken.
+      pwaAssets: {
+        config: true,
+        includeHtmlHeadLinks: false,
+        injectThemeColor: false,
+      },
       manifest: {
         name: 'Personal',
         short_name: 'Personal',
@@ -58,7 +71,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
+        // ico staat erbij omdat favicon.ico niet meer via includeAssets uit
+        // public/ komt maar naast de PNG's in dist wordt gegenereerd.
+        globPatterns: ['**/*.{js,css,html,ico,svg,png,woff2,webmanifest}'],
         navigateFallback: `${base}index.html`,
         // /__auth en /__session moeten écht het netwerk op: dat is de enige
         // route langs IAP. Vangt de worker ze af, dan kom je bij een verlopen

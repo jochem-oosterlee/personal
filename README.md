@@ -103,8 +103,9 @@ Iconen komen uit `lucide-react` met een dunne `strokeWidth`.
 
 ## Icons
 
-Gegenereerd uit [public/favicon.svg](public/favicon.svg):
-
-```bash
-npx pwa-assets-generator --preset minimal-2023 public/favicon.svg
-```
+Het icoon is `scroll-text` uit lucide, in dezelfde kleuren en lijndikte als de
+iconen in de app. Bron is [public/favicon.svg](public/favicon.svg); favicon,
+PWA- en apple-touch-iconen worden daar bij elke build uit gegenereerd door
+`vite-plugin-pwa` (`pwaAssets`), met de instellingen uit
+[pwa-assets.config.ts](pwa-assets.config.ts). Alleen de SVG staat dus in de
+repo — de SVG aanpassen is genoeg, een los commando is er niet meer.

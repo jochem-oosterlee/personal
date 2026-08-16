@@ -1,9 +1,19 @@
+<!-- scroll-text uit lucide, hetzelfde tekenwerk als de iconen in de app:
+     24-eenheden raster, stroke-width 1.5, in --bg en --accent van het lichte
+     thema. Alle andere formaten worden hier bij de build uit gegenereerd. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <rect width="512" height="512" fill="#f6f1e7" />
-  <g fill="none" stroke="#9a5b32" stroke-width="22">
-    <rect x="112" y="132" width="40" height="40" />
-    <rect x="112" y="236" width="40" height="40" />
-    <rect x="112" y="340" width="40" height="40" />
-    <path d="M190 152h210M190 256h210M190 360h150" />
+  <g
+    transform="translate(76 76) scale(15)"
+    fill="none"
+    stroke="#9a5b32"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M15 12h-5" />
+    <path d="M15 8h-5" />
+    <path d="M19 17V5a2 2 0 0 0-2-2H4" />
+    <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" />
   </g>
 </svg>
