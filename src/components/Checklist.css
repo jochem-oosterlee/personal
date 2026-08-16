@@ -3,7 +3,14 @@
   flex-direction: column;
 }
 
-/* Spacing comes from .sticky-top so the bar stays opaque while scrolling. */
+/* Spacing comes from .sticky-top so the bar stays opaque while scrolling.
+   Anything a module passes as `tabs` sticks along with the add field. */
+.checklist__top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .checklist__add {
   display: flex;
 }

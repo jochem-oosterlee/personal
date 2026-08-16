@@ -38,7 +38,7 @@ export default defineConfig({
       manifest: {
         name: 'Personal',
         short_name: 'Personal',
-        description: 'Persoonlijke app — boodschappenlijstje en meer',
+        description: 'Persoonlijke app — takenlijstje en meer',
         lang: 'nl',
         start_url: base,
         scope: base,

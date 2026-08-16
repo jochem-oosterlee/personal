@@ -2,22 +2,19 @@ export type Language = 'nl' | 'en'
 
 const nl = {
   nav: {
-    shopping: 'Boodschappen',
     tasks: 'Taken',
     notes: 'Notities',
     wishes: 'Wensen',
     settings: 'Instellingen',
     aria: 'Onderdelen',
   },
-  shopping: {
-    placeholder: 'Wat heb je nodig?',
-    addLabel: 'Boodschap toevoegen',
-    emptyText: 'Je lijstje is leeg.',
-  },
   tasks: {
     placeholder: 'Wat moet er gebeuren?',
     addLabel: 'Taak toevoegen',
     emptyText: 'Geen openstaande taken.',
+    scopeAria: 'Soort taken',
+    personal: 'Persoonlijk',
+    work: 'Werk',
   },
   checklist: {
     remove: (name: string) => `${name} verwijderen`,
@@ -154,22 +151,19 @@ const nl = {
 
 const en: typeof nl = {
   nav: {
-    shopping: 'Groceries',
     tasks: 'Tasks',
     notes: 'Notes',
     wishes: 'Wishes',
     settings: 'Settings',
     aria: 'Sections',
   },
-  shopping: {
-    placeholder: 'What do you need?',
-    addLabel: 'Add item',
-    emptyText: 'Your list is empty.',
-  },
   tasks: {
     placeholder: 'What needs to be done?',
     addLabel: 'Add task',
     emptyText: 'No open tasks.',
+    scopeAria: 'Kind of tasks',
+    personal: 'Personal',
+    work: 'Work',
   },
   checklist: {
     remove: (name: string) => `Remove ${name}`,

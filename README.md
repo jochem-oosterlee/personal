@@ -1,6 +1,6 @@
 # Personal
 
-Persoonlijke PWA. Eerste onderdeel: een boodschappenlijstje.
+Persoonlijke PWA. Eerste onderdeel: een takenlijstje.
 
 Live: https://personal-690141536321.europe-west4.run.app — achter IAP, één
 toegelaten account.
@@ -50,7 +50,7 @@ gcloud builds triggers run personal-deploy --region=europe-west4 --branch=main
 ```
 src/
 ├─ App.tsx                      module-registry + tabbalk
-├─ components/Checklist.tsx     gedeeld door Boodschappen en Taken
+├─ components/Checklist.tsx     de lijst met afvinkbare regels bij Taken
 ├─ components/Extract.tsx       plakvak bij Taken: tekst in, actiepunten uit
 ├─ components/Markdown.tsx      kleine markdown-weergave voor Claude's antwoorden
 ├─ lib/
@@ -63,8 +63,7 @@ src/
 │  ├─ version.ts                draait dit toestel de laatste build?
 │  └─ theme.ts                  licht/donker/systeem
 └─ modules/
-   ├─ shopping/                 Boodschappen
-   ├─ tasks/                    Taken
+   ├─ tasks/                    Taken — schakelt tussen persoonlijk en werk
    ├─ notes/                    Notities
    ├─ wishes/                   Wensen
    └─ settings/                 Instellingen

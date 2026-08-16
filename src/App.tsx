@@ -1,10 +1,9 @@
 import { useState, type ComponentType, type ReactNode } from 'react'
-import { Lightbulb, ListTodo, Settings2, ShoppingCart, StickyNote } from 'lucide-react'
+import { Lightbulb, ListTodo, Settings2, StickyNote } from 'lucide-react'
 import { useTheme } from './lib/theme'
 import type { ThemePreference } from './lib/theme'
 import { LanguageProvider, useLanguage } from './lib/language'
 import type { Translations } from './lib/translations'
-import { ShoppingList } from './modules/shopping/ShoppingList'
 import { TaskList } from './modules/tasks/TaskList'
 import { Notes } from './modules/notes/Notes'
 import { Wishes } from './modules/wishes/Wishes'
@@ -25,7 +24,6 @@ type Module = {
 
 /** Add a module here and it shows up in the tab bar. */
 const MODULES: Module[] = [
-  { id: 'shopping', title: (t) => t.nav.shopping, Icon: ShoppingCart, render: () => <ShoppingList /> },
   { id: 'tasks', title: (t) => t.nav.tasks, Icon: ListTodo, render: () => <TaskList /> },
   { id: 'notes', title: (t) => t.nav.notes, Icon: StickyNote, render: () => <Notes /> },
   { id: 'wishes', title: (t) => t.nav.wishes, Icon: Lightbulb, render: () => <Wishes /> },
