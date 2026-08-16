@@ -34,7 +34,18 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
+      // De iconen rollen tijdens de build uit public/favicon.svg, via de
+      // bestaande pwa-assets.config.ts. Zo kan er geen versie van het icoon
+      // achterblijven: één bron, en tabblad én beginscherm veranderen in
+      // dezelfde deploy. Twee injecties staan uit omdat index.html de
+      // iconlinks en de theme-color al met de hand zet — een tweede
+      // <meta name="theme-color"> zou het script vóór de eerste paint op de
+      // verkeerde tag laten uitkomen.
+      pwaAssets: {
+        config: true,
+        includeHtmlHeadLinks: false,
+        injectThemeColor: false,
+      },
       manifest: {
         name: 'Personal',
         short_name: 'Personal',
@@ -58,7 +69,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,webmanifest}'],
         navigateFallback: `${base}index.html`,
         // /__auth en /__session moeten écht het netwerk op: dat is de enige
         // route langs IAP. Vangt de worker ze af, dan kom je bij een verlopen

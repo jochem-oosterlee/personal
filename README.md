@@ -103,8 +103,9 @@ Iconen komen uit `lucide-react` met een dunne `strokeWidth`.
 
 ## Icons
 
-Gegenereerd uit [public/favicon.svg](public/favicon.svg):
-
-```bash
-npx pwa-assets-generator --preset minimal-2023 public/favicon.svg
-```
+[public/favicon.svg](public/favicon.svg) is de enige bron — het is
+`scroll-text` uit lucide. Alle andere formaten (favicon.ico, de pwa-PNG's, het
+maskable icoon en apple-touch) worden tijdens `npm run build` gegenereerd door
+`vite-plugin-pwa`, volgens [pwa-assets.config.ts](pwa-assets.config.ts). Ze
+horen dus niet in de repository: wie het icoon wil wijzigen, past alleen de SVG
+aan.
