@@ -64,6 +64,33 @@
   }
 }
 
+/* Zelfde vak als de +, maar ingetogen: het plakvak is de tweede keuze. */
+.checklist__extract {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: var(--control-h);
+  height: var(--control-h);
+  margin-left: -1px; /* share the hairline with the add button */
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.checklist__extract--open {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (hover: hover) {
+  .checklist__extract:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
 .checklist__empty {
   margin: clamp(1.5rem, 6vh, 3rem) 0 0;
   font-size: 0.8125rem;

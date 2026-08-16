@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ClipboardList, X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { extractTasks, MAX_TEXT } from '../lib/tasks'
 import type { ExtractedTask } from '../lib/tasks'
 import { useLanguage } from '../lib/language'
@@ -10,6 +10,8 @@ type Suggestion = ExtractedTask & { id: string; picked: boolean }
 type ExtractProps = {
   /** Zet de aangevinkte voorstellen als taken in de lijst. */
   onAdd: (tasks: ExtractedTask[]) => void
+  /** Klapt het plakvak dicht; de knop ernaartoe staat bij het invoerveld. */
+  onClose: () => void
 }
 
 /** Kort en zonder jaartal: een voorstel staat maar even op het scherm. */
@@ -23,24 +25,15 @@ function formatDue(dueAt: string, language: string) {
 /**
  * Plakvak dat Claude actiepunten uit lopende tekst laat halen. Wat eruit komt
  * is een voorstel: pas als je het aanvinkt en toevoegt staat het in de lijst.
- * Dichtgeklapt is het één regel, zodat een taak intypen het eerste blijft wat
- * je ziet.
+ * Staat alleen op het scherm als het openstaat — het icoon bij het invoerveld
+ * klapt het open, zodat een taak intypen het eerste blijft wat je ziet.
  */
-export function Extract({ onAdd }: ExtractProps) {
+export function Extract({ onAdd, onClose }: ExtractProps) {
   const { t, language } = useLanguage()
-  const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null)
-
-  function close() {
-    setOpen(false)
-    setText('')
-    setBusy(false)
-    setError(null)
-    setSuggestions(null)
-  }
 
   async function find() {
     setBusy(true)
@@ -75,16 +68,7 @@ export function Extract({ onAdd }: ExtractProps) {
     const picked = (suggestions ?? []).filter((item) => item.picked)
     if (picked.length === 0) return
     onAdd(picked.map(({ name, dueAt }) => ({ name, dueAt })))
-    close()
-  }
-
-  if (!open) {
-    return (
-      <button className="extract__open" type="button" onClick={() => setOpen(true)}>
-        <ClipboardList size={13} strokeWidth={1.4} aria-hidden="true" />
-        {t.extract.open}
-      </button>
-    )
+    onClose()
   }
 
   const pickedCount = (suggestions ?? []).filter((item) => item.picked).length
@@ -96,7 +80,7 @@ export function Extract({ onAdd }: ExtractProps) {
         <button
           className="extract__close"
           type="button"
-          onClick={close}
+          onClick={onClose}
           aria-label={t.extract.close}
         >
           <X size={14} strokeWidth={1.4} aria-hidden="true" />

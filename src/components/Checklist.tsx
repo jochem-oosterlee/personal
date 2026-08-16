@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
-import { CalendarPlus, Check, Plus, X } from 'lucide-react'
+import { CalendarPlus, Check, ClipboardList, Plus, X } from 'lucide-react'
 import { usePersistentState } from '../lib/storage'
 import { useLanguage } from '../lib/language'
 import { Extract } from './Extract'
@@ -23,7 +23,7 @@ type ChecklistProps = {
   emptyText: string
   /** Show a deadline control per item. */
   deadlines?: boolean
-  /** Show the paste box that turns pasted text into task suggestions. */
+  /** Show the icon next to the add button that opens the paste box. */
   extract?: boolean
   /** Rendered above the add field, inside the same sticky block. */
   tabs?: ReactNode
@@ -71,6 +71,7 @@ export function Checklist({
   const { t, language } = useLanguage()
   const [items, setItems] = usePersistentState<ChecklistItem[]>(storageKey, [])
   const [draft, setDraft] = useState('')
+  const [extractOpen, setExtractOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const today = todayKey()
@@ -161,10 +162,27 @@ export function Checklist({
           >
             <Plus size={17} strokeWidth={1.5} aria-hidden="true" />
           </button>
+          {extract && (
+            <button
+              className={
+                extractOpen
+                  ? 'checklist__extract checklist__extract--open'
+                  : 'checklist__extract'
+              }
+              type="button"
+              aria-expanded={extractOpen}
+              aria-label={extractOpen ? t.extract.close : t.extract.open}
+              onClick={() => setExtractOpen((current) => !current)}
+            >
+              <ClipboardList size={16} strokeWidth={1.5} aria-hidden="true" />
+            </button>
+          )}
         </form>
       </div>
 
-      {extract && <Extract onAdd={addExtracted} />}
+      {extract && extractOpen && (
+        <Extract onAdd={addExtracted} onClose={() => setExtractOpen(false)} />
+      )}
 
       {items.length === 0 ? (
         <p className="checklist__empty">{emptyText}</p>
