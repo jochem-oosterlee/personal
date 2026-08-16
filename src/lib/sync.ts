@@ -29,9 +29,14 @@ export function syncDisabled(): boolean {
   return !enabled
 }
 
-/** Haalt de serverstaat op en geeft elke sleutel door aan de app. */
-export async function pull(apply: Applier): Promise<void> {
-  if (!enabled) return
+/**
+ * Haalt de serverstaat op en geeft elke sleutel door aan de app. Geeft terug of
+ * de lokale staat nu de beste is die er te krijgen is: gelukt, of er is hier
+ * helemaal geen API. Bij `false` stond de server er even niet en is wat lokaal
+ * ligt mogelijk verouderd.
+ */
+export async function pull(apply: Applier): Promise<boolean> {
+  if (!enabled) return true
 
   let state: Record<string, string>
   try {
@@ -39,13 +44,13 @@ export async function pull(apply: Applier): Promise<void> {
     // 404 betekent: geen API onder deze host. Niet blijven proberen.
     if (response.status === 404) {
       enabled = false
-      return
+      return true
     }
-    if (!response.ok) return
+    if (!response.ok) return false
     state = await response.json()
   } catch {
     // Offline of geen netwerk: laat de lokale staat met rust.
-    return
+    return false
   }
 
   for (const [key, raw] of Object.entries(state)) {
@@ -53,6 +58,8 @@ export async function pull(apply: Applier): Promise<void> {
     settled.set(key, raw)
     apply(key, raw)
   }
+
+  return true
 }
 
 /**

@@ -8,7 +8,10 @@ type ScopeId = 'personal' | 'work'
 
 type Scope = {
   id: ScopeId
-  /** Persoonlijk houdt de oude sleutel, zodat bestaande taken blijven staan. */
+  /**
+   * Persoonlijk houdt de oude sleutel. Wat daaronder stond bleek werk en is
+   * eenmalig naar Werk verhuisd — zie lib/migrations.ts.
+   */
   storageKey: string
   label: (t: Translations) => string
 }

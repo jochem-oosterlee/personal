@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import { watchSession } from './lib/session'
+import { runMigrations } from './lib/migrations'
 import { startSync } from './lib/storage'
 import './index.css'
 import App from './App.tsx'
@@ -16,8 +17,9 @@ registerSW({ immediate: true })
 watchSession()
 
 // Haalt de staat van de server en schrijft wijzigingen terug. Zonder API —
-// GitHub Pages, dev-server — schakelt dit zichzelf uit.
-startSync()
+// GitHub Pages, dev-server — schakelt dit zichzelf uit. De verhuizingen
+// draaien pas als die eerste ophaalpoging klaar is.
+startSync(runMigrations)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

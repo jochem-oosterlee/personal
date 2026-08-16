@@ -55,6 +55,7 @@ src/
 ├─ components/Markdown.tsx      kleine markdown-weergave voor Claude's antwoorden
 ├─ lib/
 │  ├─ storage.ts                usePersistentState + synchronisatie
+│  ├─ migrations.ts             eenmalige verhuizingen van opgeslagen gegevens
 │  ├─ sync.ts                   praat met /api/state
 │  ├─ session.ts                herkent een verlopen IAP-sessie
 │  ├─ wishes.ts                 praat met /api/wishes
