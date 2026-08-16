@@ -61,6 +61,7 @@ src/
 │  ├─ wishes.ts                 praat met /api/wishes
 │  ├─ tasks.ts                  praat met /api/extract-tasks
 │  ├─ models.ts                 keuze van het model
+│  ├─ autogrow.ts               tekstvelden die meegroeien met hun inhoud
 │  ├─ version.ts                draait dit toestel de laatste build?
 │  └─ theme.ts                  licht/donker/systeem
 └─ modules/

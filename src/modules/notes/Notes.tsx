@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
+import { useAutoGrow } from '../../lib/autogrow'
 import { useLanguage } from '../../lib/language'
 import './Notes.css'
 
@@ -14,14 +15,15 @@ export function Notes() {
   const { t } = useLanguage()
   const [notes, setNotes] = usePersistentState<Note[]>('notes.items', [])
   const [draft, setDraft] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useAutoGrow(inputRef, draft)
 
   // Newest first, by creation — sorting on edit would yank a note out from
   // under the cursor while you type in it.
   const sorted = [...notes].sort((a, b) => b.createdAt - a.createdAt)
 
-  function addNote(event: React.FormEvent) {
-    event.preventDefault()
+  function addNote() {
     const text = draft.trim()
     if (!text) return
 
@@ -31,6 +33,19 @@ export function Notes() {
     ])
     setDraft('')
     inputRef.current?.focus()
+  }
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault()
+    addNote()
+  }
+
+  // Het veld is een textarea om te kunnen meegroeien, maar gedraagt zich als
+  // een invoerregel: enter voegt toe, shift+enter maakt wel een nieuwe regel.
+  function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== 'Enter' || event.shiftKey) return
+    event.preventDefault()
+    addNote()
   }
 
   function updateNote(id: string, text: string) {
@@ -45,12 +60,14 @@ export function Notes() {
 
   return (
     <div className="notes">
-      <form className="notes__add sticky-top" onSubmit={addNote}>
-        <input
+      <form className="notes__add sticky-top" onSubmit={submit}>
+        <textarea
           ref={inputRef}
           className="notes__input"
           value={draft}
+          rows={1}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={onKeyDown}
           placeholder={t.notes.placeholder}
           aria-label={t.notes.inputLabel}
           enterKeyHint="done"
@@ -103,12 +120,7 @@ function NoteEditor({ text, onChange }: NoteEditorProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
 
   // Grow with the content instead of showing an inner scrollbar.
-  useEffect(() => {
-    const element = ref.current
-    if (!element) return
-    element.style.height = 'auto'
-    element.style.height = `${element.scrollHeight}px`
-  }, [text])
+  useAutoGrow(ref, text)
 
   return (
     <textarea

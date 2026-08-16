@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight, ImagePlus, Plus, Send, X } from 'lucide-react'
 import { Markdown } from '../../components/Markdown'
 import { usePersistentState } from '../../lib/storage'
+import { useAutoGrow } from '../../lib/autogrow'
 import { useLanguage } from '../../lib/language'
 import { DEFAULT_MODEL } from '../../lib/models'
 import type { ModelId } from '../../lib/models'
@@ -68,7 +69,9 @@ export function Wishes() {
   // de afbeelding meteen weer mee, en zag je hem dus niet.
   const [viewing, setViewing] = useState<Viewing | null>(null)
   const closeViewer = useCallback(() => setViewing(null), [])
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useAutoGrow(inputRef, draft)
 
   const refresh = useCallback(async () => {
     try {
@@ -87,10 +90,22 @@ export function Wishes() {
     return () => clearInterval(interval)
   }, [refresh])
 
-  async function submit(event: React.FormEvent) {
+  function submit(event: React.FormEvent) {
     event.preventDefault()
+    void add()
+  }
+
+  // Het veld is een textarea om te kunnen meegroeien, maar gedraagt zich als
+  // een invoerregel: enter voegt toe, shift+enter maakt wel een nieuwe regel.
+  function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== 'Enter' || event.shiftKey) return
+    event.preventDefault()
+    void add()
+  }
+
+  async function add() {
     const title = draft.trim()
-    if (!title) return
+    if (!title || sending) return
 
     setSending(true)
     setError('')
@@ -126,11 +141,13 @@ export function Wishes() {
   return (
     <div className="wishes">
       <form className="wishes__add sticky-top" onSubmit={submit}>
-        <input
+        <textarea
           ref={inputRef}
           className="wishes__input"
           value={draft}
+          rows={1}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={onKeyDown}
           placeholder={t.wishes.placeholder}
           aria-label={t.wishes.inputLabel}
           enterKeyHint="done"

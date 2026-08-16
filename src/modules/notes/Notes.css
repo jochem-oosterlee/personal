@@ -3,22 +3,32 @@
   flex-direction: column;
 }
 
-/* Spacing comes from .sticky-top so the bar stays opaque while scrolling. */
+/* Spacing comes from .sticky-top so the bar stays opaque while scrolling. De
+   knop houdt zijn eigen hoogte en blijft bij de eerste regel staan als het veld
+   meegroeit. */
 .notes__add {
   display: flex;
+  align-items: flex-start;
 }
 
+/* Groeit mee met de tekst: useAutoGrow zet de hoogte, hier staan de bodem en
+   het plafond. Vijf keer de gewone veldhoogte is genoeg om te overzien wat je
+   typt; daarna schuift het veld zelf, zodat de lijst eronder niet van het
+   scherm geduwd wordt. */
 .notes__input {
   flex: 1;
   min-width: 0;
-  height: var(--control-h);
-  padding: 0 0.625rem;
+  min-height: var(--control-h);
+  max-height: calc(var(--control-h) * 5);
+  padding: 0.3125rem 0.625rem;
   font: inherit;
   font-size: max(1rem, var(--font-size)); /* keeps iOS from zooming on focus */
+  line-height: 1.45;
   color: var(--text);
   background: none;
   border: 1px solid var(--line);
   border-radius: 0;
+  resize: none;
 }
 
 .notes__input::placeholder {

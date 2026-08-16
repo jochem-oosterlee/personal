@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { CalendarPlus, Check, ClipboardList, Plus, X } from 'lucide-react'
 import { usePersistentState } from '../lib/storage'
+import { useAutoGrow } from '../lib/autogrow'
 import { useLanguage } from '../lib/language'
 import { Extract } from './Extract'
 import type { ExtractedTask } from '../lib/tasks'
@@ -72,7 +73,9 @@ export function Checklist({
   const [items, setItems] = usePersistentState<ChecklistItem[]>(storageKey, [])
   const [draft, setDraft] = useState('')
   const [extractOpen, setExtractOpen] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useAutoGrow(inputRef, draft)
 
   const today = todayKey()
 
@@ -87,8 +90,7 @@ export function Checklist({
   )
   const doneCount = items.filter((item) => item.done).length
 
-  function addItem(event: React.FormEvent) {
-    event.preventDefault()
+  function addItem() {
     const name = draft.trim()
     if (!name) return
 
@@ -98,6 +100,19 @@ export function Checklist({
     ])
     setDraft('')
     inputRef.current?.focus()
+  }
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault()
+    addItem()
+  }
+
+  // Het veld is een textarea om te kunnen meegroeien, maar gedraagt zich als
+  // een invoerregel: enter voegt toe, shift+enter maakt wel een nieuwe regel.
+  function onKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== 'Enter' || event.shiftKey) return
+    event.preventDefault()
+    addItem()
   }
 
   /** Wat uit het plakvak komt, wordt hier een gewone taak als alle andere. */
@@ -142,12 +157,14 @@ export function Checklist({
     <div className="checklist">
       <div className="checklist__top sticky-top">
         {tabs}
-        <form className="checklist__add" onSubmit={addItem}>
-          <input
+        <form className="checklist__add" onSubmit={submit}>
+          <textarea
             ref={inputRef}
             className="checklist__input"
             value={draft}
+            rows={1}
             onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={onKeyDown}
             placeholder={placeholder}
             aria-label={addLabel}
             enterKeyHint="done"
