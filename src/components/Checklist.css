@@ -11,11 +11,11 @@
   gap: 0.5rem;
 }
 
-/* De knoppen houden hun eigen hoogte en blijven bij de eerste regel staan als
-   het veld meegroeit. */
+/* De knoppen rekken mee met het veld: vakken van gelijke hoogte blijven één
+   blok als de tekst over meer regels gaat lopen. */
 .checklist__add {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 /* Groeit mee met de tekst: useAutoGrow zet de hoogte, hier staan de bodem en
@@ -52,7 +52,7 @@
   flex: 0 0 auto;
   place-items: center;
   width: var(--control-h);
-  height: var(--control-h);
+  min-height: var(--control-h); /* een vaste hoogte zou het meerekken blokkeren */
   margin-left: -1px; /* share the hairline with the input */
   color: var(--accent);
   background: none;
@@ -80,7 +80,7 @@
   flex: 0 0 auto;
   place-items: center;
   width: var(--control-h);
-  height: var(--control-h);
+  min-height: var(--control-h); /* een vaste hoogte zou het meerekken blokkeren */
   margin-left: -1px; /* share the hairline with the add button */
   color: var(--text-muted);
   background: none;

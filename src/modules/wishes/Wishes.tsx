@@ -292,6 +292,9 @@ function Draft({
   // wachten op de volgende poll.
   const [attachments, setAttachments] = useState<Attachment[]>(wish.attachments ?? [])
   const [attaching, setAttaching] = useState(false)
+  const titleRef = useRef<HTMLTextAreaElement>(null)
+
+  useAutoGrow(titleRef, title)
 
   async function attach(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
@@ -349,12 +352,23 @@ function Draft({
 
   return (
     <div className="draft">
-      <input
+      {/* Een textarea om te kunnen meegroeien met een lange titel, maar het
+          blijft één regel tekst: enter sluit het veld af in plaats van er een
+          regel bij te zetten. */}
+      <textarea
+        ref={titleRef}
         className="draft__title"
         value={title}
+        rows={1}
         onChange={(event) => setTitle(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter') return
+          event.preventDefault()
+          event.currentTarget.blur()
+        }}
         onBlur={save}
         aria-label={t.wishes.inputLabel}
+        enterKeyHint="done"
         autoComplete="off"
       />
       <textarea

@@ -4,11 +4,11 @@
 }
 
 /* Spacing comes from .sticky-top so the bar stays opaque while scrolling. De
-   knop houdt zijn eigen hoogte en blijft bij de eerste regel staan als het veld
-   meegroeit. */
+   knop rekt mee met het veld ernaast: twee vakken van gelijke hoogte blijven
+   één blok als de tekst over meer regels gaat lopen. */
 .notes__add {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 /* Groeit mee met de tekst: useAutoGrow zet de hoogte, hier staan de bodem en
@@ -45,7 +45,7 @@
   flex: 0 0 auto;
   place-items: center;
   width: var(--control-h);
-  height: var(--control-h);
+  min-height: var(--control-h); /* een vaste hoogte zou het meerekken blokkeren */
   margin-left: -1px; /* share the hairline with the input */
   color: var(--accent);
   background: none;
