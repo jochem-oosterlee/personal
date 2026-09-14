@@ -748,6 +748,20 @@ app.post('/api/mail/send', requireUser, async (req, res) => {
 const SUMMARY_MODEL = 'claude-opus-5'
 const MAX_INSTRUCTIONS = 2000
 
+/**
+ * Hoeveel er in een samenvatting past, naar de lengte van de periode.
+ *
+ * Nagemeten op deze mailbox: twee dagen is al zo'n 120.000 tekens over 72
+ * berichten. Met één vast dak zou "deze week" stilletjes bij de nieuwste twee
+ * dagen ophouden. Een week mag dus meer kosten dan een dag, en per bericht
+ * minder: de lange berichten zijn vrijwel altijd de automatische.
+ */
+function budget(days) {
+  if (days <= 2) return { maxThreads: 60, maxChars: 120000, perMessageChars: 2500 }
+  if (days <= 8) return { maxThreads: 150, maxChars: 300000, perMessageChars: 1500 }
+  return { maxThreads: 250, maxChars: 400000, perMessageChars: 1200 }
+}
+
 /** Gmail rekent after/before in epoch-seconden precies af, datums niet. */
 function seconds(value) {
   const time = Date.parse(value)
@@ -758,10 +772,12 @@ const SUMMARY_SYSTEM = [
   { type: 'text', text: "You are Claude Code, Anthropic's official CLI for Claude." },
   {
     type: 'text',
-    text: `Je vat samen wat er in een periode in iemands mailbox binnenkwam. Hij leest dit in plaats van de mail zelf, dus het moet kloppen en volledig zijn over wat ertoe doet.
+    text: `Je vat samen wat er in een periode in iemands mailbox gebeurde. Hij leest dit in plaats van de mail zelf, dus het moet kloppen en volledig zijn over wat ertoe doet.
+
+Wie wat zegt, is hier het makkelijkst fout te doen. De lezer staat hierboven met naam en adres. Elk bericht draagt jij="ja" of jij="nee": bij "ja" heeft de lezer het zelf gestuurd, bij "nee" iemand anders, en dan is de afzender degene in het van-veld. Schrijf nooit dat hij iets gezegd of geantwoord heeft wat in een bericht met jij="nee" staat, ook niet als het in dezelfde draad zit -- een antwoord van iemand anders is niet het zijne. Verwijs naar hem in de tweede persoon ("jij hebt nog niet gereageerd") en naar de rest bij naam.
 
 - Schrijf in het Nederlands, in markdown, met korte kopjes per onderwerp of draad. Geen inleiding, geen afsluiter.
-- Begin met wat om actie van hem vraagt, met wie het vraagt en waarvoor. Daarna de rest, korter.
+- Begin met wat om actie van hem vraagt, met wie het vraagt en waarvoor. Een draad waarin hij zelf het laatste woord had wacht meestal op de ander, niet op hem. Daarna de rest, korter.
 - Noem namen, bedragen, datums en deadlines zoals ze er staan. Verzin niets en gok niet; staat iets er niet, laat het weg.
 - Meerdere mails over hetzelfde horen in één kopje.
 - Wat alleen ter kennisgeving is krijgt één regel. Kwam er niets van belang binnen, zeg dat.
@@ -787,9 +803,12 @@ app.post('/api/mail/summary', requireUser, async (req, res) => {
   const steer = String(instructions).slice(0, MAX_INSTRUCTIONS).trim()
 
   try {
-    const { messages, threads, skipped, truncated } = await collectMessages({
+    const days = ((before ?? Math.floor(Date.now() / 1000)) - after) / 86400
+
+    const { messages, threads, skipped, truncated, me } = await collectMessages({
       query: terms.join(' '),
       skip: Array.isArray(skip) ? skip : [],
+      ...budget(days),
     })
 
     if (messages.length === 0) {
@@ -801,15 +820,22 @@ app.post('/api/mail/summary', requireUser, async (req, res) => {
     const corpus = messages
       .map(
         (message) =>
-          `<bericht van="${message.from}" onderwerp="${message.subject}" op="${message.date ?? ''}">
+          `<bericht van="${message.from}" jij="${message.mine ? 'ja' : 'nee'}" onderwerp="${message.subject}" op="${message.date ?? ''}">
 ${message.body}
 </bericht>`,
       )
       .join('\n\n')
 
+    // De lezer als eerste blok na de identiteit: alles eronder verwijst ernaar.
+    const reader = {
+      type: 'text',
+      text: `De lezer is ${me.name || 'de eigenaar van deze mailbox'} <${me.address}>. Berichten van dat adres heeft hij zelf gestuurd.`,
+    }
+
     const system = steer
       ? [
           ...SUMMARY_SYSTEM,
+          reader,
           {
             type: 'text',
             text: `Wat hij zelf over deze samenvatting heeft gezegd, en wat voorgaat op de algemene regels hierboven:
@@ -817,7 +843,7 @@ ${message.body}
 ${steer}`,
           },
         ]
-      : SUMMARY_SYSTEM
+      : [...SUMMARY_SYSTEM, reader]
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

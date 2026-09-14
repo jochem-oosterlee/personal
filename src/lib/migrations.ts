@@ -40,6 +40,43 @@ function moveTasksToWork() {
   writeStored('tasks.movedToWork', true)
 }
 
+/** Zoals de samenvatting ze bewaart; de tekst is wat Claude te lezen krijgt. */
+type SummaryRule = { id: string; text: string; on: boolean }
+
+/**
+ * De aanwijzingen bij de samenvatting waren één tekstvak. Elke regel daaruit
+ * wordt een eigen vinkje, zodat je "geen jira-onboardingtickets" even uit kunt
+ * zetten in plaats van hem weg te halen en later opnieuw te typen.
+ *
+ * Regels die er al staan blijven staan en de tekst wordt pas leeggemaakt als
+ * de regels geschreven zijn, zodat een halve run niets kost.
+ */
+function instructionsToRules() {
+  if (readStored('mail.summary.rulesMigrated', false)) return
+
+  const text = readStored('mail.summary.instructions', '')
+  const lines = text
+    .split('\n')
+    .map((line) => line.replace(/^[-*]\s*/, '').trim())
+    .filter(Boolean)
+
+  if (lines.length > 0) {
+    const existing = readStored<SummaryRule[]>('mail.summary.rules', [])
+    const known = new Set(existing.map((rule) => rule.text))
+
+    writeStored('mail.summary.rules', [
+      ...existing,
+      ...lines
+        .filter((line) => !known.has(line))
+        .map((line) => ({ id: crypto.randomUUID(), text: line, on: true })),
+    ])
+    writeStored('mail.summary.instructions', '')
+  }
+
+  writeStored('mail.summary.rulesMigrated', true)
+}
+
 export function runMigrations(): void {
   moveTasksToWork()
+  instructionsToRules()
 }

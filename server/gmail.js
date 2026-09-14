@@ -378,12 +378,56 @@ export async function profile() {
   return { address: emailAddress }
 }
 
-/** Het eigen adres, voor de vraag of jij alleen in cc stond. */
+/** Het eigen adres: voor "stond ik alleen in cc" en voor "heb ik dit zelf gestuurd". */
 let ownAddress = null
 
 async function address() {
   if (!ownAddress) ownAddress = (await profile()).address.toLowerCase()
   return ownAddress
+}
+
+/** `Jochem <j@x.nl>` -> `j@x.nl`, zodat vergelijken op het adres gaat en niet op de naam. */
+function emailOf(value) {
+  const match = /<([^>]+)>/.exec(value ?? '')
+  return (match?.[1] ?? value ?? '').trim().toLowerCase()
+}
+
+/**
+ * Het citaat onder een antwoord eraf.
+ *
+ * In Remco's antwoord staat jouw eigen mail er nog een keer onder, met > ervoor
+ * en een "Op ... schreef ..."-regel erboven. Voor een samenvatting is dat niet
+ * alleen dubbel maar ook verwarrend: het zet jouw woorden in zijn bericht. Wat
+ * eronder hangt is per definitie iets wat al eerder in de draad staat.
+ *
+ * Blijft er niets over -- een doorgestuurd bericht is vrijwel helemaal citaat --
+ * dan houden we het origineel, want dan is het citaat juist de inhoud.
+ */
+function withoutQuotes(text) {
+  const lines = text.split('\n')
+  const kept = []
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
+
+    if (line.trimStart().startsWith('>')) break
+
+    // De aanhef boven een citaat. Nederlands zet de naam erachter ("Op ...
+    // schreef Jochem:"), Engels ervoor ("On ... Jochem wrote:"), dus alleen op
+    // de twee woorden letten. Ruim genomen, en daarom alleen geknipt als er ook
+    // echt een citaat op volgt.
+    if (
+      /^\s*(op|on)\b.{0,200}\b(schreef|wrote)\b.{0,80}$/i.test(line) &&
+      lines.slice(index + 1, index + 3).some((next) => next.trimStart().startsWith('>'))
+    ) {
+      break
+    }
+
+    kept.push(line)
+  }
+
+  const trimmed = kept.join('\n').trim()
+  return trimmed || text.trim()
 }
 
 /** Vijf tegelijk: ruim onder wat Gmail per seconde toestaat, en snel genoeg. */
@@ -438,7 +482,10 @@ export async function collectMessages({
     gmail(`/threads/${thread.id}?format=full`),
   )
 
-  const me = skip.includes('cc') ? await address() : null
+  // Altijd nodig: zonder te weten wie jij bent kan een samenvatting een antwoord
+  // van iemand anders voor het jouwe aanzien.
+  const me = await address()
+  let myName = ''
   const collected = []
   let chars = 0
   let dropped = 0
@@ -449,23 +496,32 @@ export async function collectMessages({
     for (const message of thread.messages ?? []) {
       const head = headers(message)
 
-      // Alleen in cc: meelezen, niet aan jou gericht.
-      if (me && !(head.to ?? '').toLowerCase().includes(me) && (head.cc ?? '').toLowerCase().includes(me)) {
+      const mine = emailOf(head.from) === me
+      if (mine && !myName) myName = displayName(head.from)
+
+      // Alleen in cc: meelezen, niet aan jou gericht. Wat je zelf stuurde blijft
+      // staan: dat is juist de helft van een gesprek.
+      if (
+        skip.includes('cc') &&
+        !mine &&
+        !(head.to ?? '').toLowerCase().includes(me) &&
+        (head.cc ?? '').toLowerCase().includes(me)
+      ) {
         skipped += 1
         continue
       }
 
-      if (skip.includes('promotions') && isBulk(head)) {
+      if (!mine && skip.includes('promotions') && isBulk(head)) {
         skipped += 1
         continue
       }
 
-      if (skip.includes('updates') && isAutomated(head)) {
+      if (!mine && skip.includes('updates') && isAutomated(head)) {
         skipped += 1
         continue
       }
 
-      const body = bodyOf(message.payload).slice(0, perMessageChars)
+      const body = withoutQuotes(bodyOf(message.payload)).slice(0, perMessageChars)
       if (!body) continue
 
       if (chars + body.length > maxChars) {
@@ -475,7 +531,9 @@ export async function collectMessages({
 
       chars += body.length
       collected.push({
+        mine,
         from: displayName(head.from),
+        to: head.to ?? '',
         subject: head.subject || '(geen onderwerp)',
         date: head.date ? new Date(head.date).toISOString() : null,
         unread: (message.labelIds ?? []).includes('UNREAD'),
@@ -490,6 +548,7 @@ export async function collectMessages({
     messages: collected,
     threads: full.length,
     skipped,
+    me: { address: me, name: myName },
     // Meer draden dan het dak toestond betekent dat de periode niet heel past.
     truncated: dropped > 0 || threads.length >= maxThreads,
   }

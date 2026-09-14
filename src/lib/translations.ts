@@ -52,6 +52,9 @@ const nl = {
     summaryWait: 'Dit duurt ongeveer een minuut; een hele week wat langer.',
     summaryFailed: 'Samenvatten lukte niet. Probeer het zo nog eens.',
     summaryEmpty: 'In die periode kwam er niets binnen.',
+    summaryNothingNew: 'Niets nieuws in die periode. Hieronder staat de vorige nog.',
+    summaryMadeAt: (moment: string) => `Gemaakt ${moment}`,
+    summaryEarlier: 'Eerdere samenvattingen',
     summaryMeta: (messages: number, threads: number) =>
       `${messages} bericht(en) uit ${threads} draad/draden`,
     summarySkipped: (count: number) => `${count} overgeslagen door je vinkjes`,
@@ -71,11 +74,12 @@ const nl = {
       updates: 'Automatische notificaties overslaan',
       cc: 'Mail waarin je alleen in cc staat overslaan',
     },
-    instructionsPlaceholder:
-      'Bijvoorbeeld: agenda-uitnodigingen alleen noemen als ik moet reageren; facturen altijd met bedrag en vervaldatum.',
-    instructionsLabel: 'Aanwijzingen voor de samenvatting',
+    rulePlaceholder: 'Bijv. geen jira-onboardingtickets noemen',
+    ruleLabel: 'Nieuwe aanwijzing',
+    addRule: 'Aanwijzing toevoegen',
+    removeRule: (text: string) => `${text} verwijderen`,
     instructionsHint:
-      'Dit blijft staan en geldt voor elke volgende samenvatting. Het gaat voor op de algemene regels.',
+      'Eigen aanwijzingen blijven staan en gelden voor elke volgende samenvatting. Uitvinken laat er een even buiten; het kruisje gooit hem weg.',
     notLinked:
       'Gmail is nog niet gekoppeld. Draai infra/gmail-consent.mjs en zet het resultaat als gmail-oauth in Secret Manager; daarna werkt dit onderdeel zonder verder iets in de app.',
     noAccess:
@@ -275,6 +279,9 @@ const en: typeof nl = {
     summaryWait: 'This takes about a minute; a whole week takes longer.',
     summaryFailed: 'Summarising failed. Try again in a moment.',
     summaryEmpty: 'Nothing came in during that period.',
+    summaryNothingNew: 'Nothing new in that period. The previous one is still below.',
+    summaryMadeAt: (moment: string) => `Made ${moment}`,
+    summaryEarlier: 'Earlier summaries',
     summaryMeta: (messages: number, threads: number) =>
       `${messages} message(s) from ${threads} thread(s)`,
     summarySkipped: (count: number) => `${count} skipped by your checkboxes`,
@@ -294,11 +301,12 @@ const en: typeof nl = {
       updates: 'Skip automated notifications',
       cc: 'Skip mail where you are only in cc',
     },
-    instructionsPlaceholder:
-      'For example: only mention calendar invites if I need to respond; always include amount and due date for invoices.',
-    instructionsLabel: 'Instructions for the summary',
+    rulePlaceholder: "E.g. don't mention jira onboarding tickets",
+    ruleLabel: 'New instruction',
+    addRule: 'Add instruction',
+    removeRule: (text: string) => `Remove ${text}`,
     instructionsHint:
-      'This is kept and applies to every summary from now on. It takes precedence over the general rules.',
+      'Your own instructions are kept and apply to every summary from now on. Unticking leaves one out for a while; the cross deletes it.',
     notLinked:
       'Gmail is not linked yet. Run infra/gmail-consent.mjs and store the result as gmail-oauth in Secret Manager; after that this section works without anything else in the app.',
     noAccess:

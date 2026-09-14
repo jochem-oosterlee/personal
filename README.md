@@ -64,14 +64,18 @@ vorige samenvatting, vandaag, deze week, vorige week of een losse dag. Het
 moment van de vorige keer staat in de gedeelde staat, dus dat klopt ook als je
 hem gisteren op een ander toestel opvroeg.
 
-Onder "wat er wel en niet in mag" staan drie vinkjes — nieuwsbrieven,
-automatische notificaties, mail waarin je alleen in cc staat — en een tekstvak
-met aanwijzingen die blijven staan en voorgaan op de algemene regels. Wat de
-vinkjes hebben weggelaten staat boven de samenvatting, zodat het niet stil
-gebeurt.
+Onder "wat er wel en niet in mag" staan drie vaste vinkjes — nieuwsbrieven,
+automatische notificaties, mail waarin je alleen in cc staat — en daaronder je
+eigen aanwijzingen, elk als eigen vinkje. Uitvinken laat er een even buiten,
+het kruisje gooit hem weg. Wat de vinkjes hebben weggelaten staat boven de
+samenvatting, zodat het niet stil gebeurt.
+
+De samenvattingen blijven bewaard (de laatste tien). Je komt binnen op de
+nieuwste, eerdere staan eronder. Levert "sinds vorige keer" niets op, dan blijft
+de vorige gewoon staan in plaats van dat je met een leeg scherm achterblijft.
 
 Dit is de duurste knop in de app: elke draad wordt volledig opgehaald en gaat
-langs Claude. Reken op een minuut voor een dag.
+langs Claude. Reken op een halve tot hele minuut voor een dag.
 
 ## Deploy
 

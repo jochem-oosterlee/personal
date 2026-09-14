@@ -439,3 +439,90 @@
   margin: 0 0 0.75rem;
   color: var(--text-faint);
 }
+
+/* Eerdere samenvattingen: een regel per stuk, zoals de mailrijen zelf. */
+.summary__earlier {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.summary__earlierTitle {
+  margin: 0 0 0.25rem;
+  color: var(--text-faint);
+}
+
+.summary__old {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.375rem 0.125rem;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.summary__oldWhen {
+  font-size: 0.75rem;
+}
+
+.summary__oldWhat {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+}
+
+@media (hover: hover) {
+  .summary__old:hover .summary__oldWhen {
+    color: var(--accent);
+  }
+}
+
+/* Een eigen aanwijzing: vinkje links, kruisje rechts. */
+.summary__rule {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary__rule .summary__skip {
+  flex: 1;
+  min-width: 0;
+}
+
+.summary__remove {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .summary__remove:hover {
+    color: var(--danger);
+  }
+}
+
+.summary__add {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.summary__add .mail__icon {
+  flex-shrink: 0;
+  margin-left: 0;
+}

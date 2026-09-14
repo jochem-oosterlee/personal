@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { ArrowLeft, Check, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, Check, Plus, SlidersHorizontal, X } from 'lucide-react'
 import { summarise, SKIPS } from '../../lib/mail'
-import type { Summary as SummaryResult, SummarySkip } from '../../lib/mail'
+import type { SummarySkip } from '../../lib/mail'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import { Markdown } from '../../components/Markdown'
@@ -14,6 +14,36 @@ type SummaryProps = {
 type RangeId = 'since' | 'today' | 'week' | 'lastWeek' | 'day'
 
 const RANGES: RangeId[] = ['since', 'today', 'week', 'lastWeek', 'day']
+
+/**
+ * Een bewaarde samenvatting. Ze blijven staan omdat "sinds vorige keer" je
+ * anders in de steek laat: druk je hem twee keer, dan is de tweede leeg — wat
+ * klopt, maar het haalt wel je enige exemplaar van het scherm.
+ */
+type StoredSummary = {
+  /** Wanneer hij gemaakt is; tevens de sleutel in de lijst. */
+  at: string
+  from: string
+  to: string | null
+  text: string
+  messages: number
+  threads: number
+  skipped: number
+  truncated: boolean
+}
+
+/**
+ * Een eigen aanwijzing als vinkje. Uitzetten laat hem staan voor later;
+ * weggooien is het kruisje. Zo hoef je "geen jira-onboardingtickets" niet
+ * opnieuw te typen als je hem een keer wél wilt zien.
+ */
+type SummaryRule = { id: string; text: string; on: boolean }
+
+/** Zoveel bewaren we. De hele lijst gaat als één sleutel naar de server. */
+const MAX_KEPT = 10
+
+/** En niet meer dan dit aan tekens, ruim onder wat een Firestore-document mag. */
+const MAX_KEPT_CHARS = 300000
 
 function startOfDay(date: Date) {
   const copy = new Date(date)
@@ -39,7 +69,11 @@ function addDays(date: Date, days: number) {
  * Van keuze naar periode. Alles in lokale tijd: "vandaag" is de dag zoals hij
  * op dit toestel heet, niet zoals de server hem in UTC zou tellen.
  */
-function period(range: RangeId, lastAt: string | null, day: string): { from: Date; to: Date | null } | null {
+function period(
+  range: RangeId,
+  lastAt: string | null,
+  day: string,
+): { from: Date; to: Date | null } | null {
   const now = new Date()
 
   if (range === 'since') {
@@ -67,32 +101,45 @@ function formatMoment(iso: string, language: string) {
   })
 }
 
+/** Houdt de lijst binnen zowel het aantal als het aantal tekens. */
+function trim(list: StoredSummary[]): StoredSummary[] {
+  const kept = list.slice(0, MAX_KEPT)
+  while (kept.length > 1 && JSON.stringify(kept).length > MAX_KEPT_CHARS) kept.pop()
+  return kept
+}
+
 /**
  * Een samenvatting van wat er binnenkwam, over een periode die jij kiest.
  *
  * Het moment van de laatste samenvatting staat in de gedeelde staat, dus
  * "sinds de vorige keer" klopt ook als je hem gisteren op je laptop opvroeg.
  * Het wordt pas bijgewerkt als er ook echt een samenvatting uitkwam — een
- * mislukte poging hoort geen mail over te slaan.
+ * mislukte of lege poging hoort geen mail over te slaan.
  */
 export function Summary({ onClose }: SummaryProps) {
   const { t, language } = useLanguage()
 
   const [lastAt, setLastAt] = usePersistentState<string | null>('mail.summary.lastAt', null)
+  const [history, setHistory] = usePersistentState<StoredSummary[]>('mail.summary.history', [])
   const [skip, setSkip] = usePersistentState<SummarySkip[]>('mail.summary.skip', [
     'promotions',
     'updates',
   ])
-  const [instructions, setInstructions] = usePersistentState('mail.summary.instructions', '')
+  const [rules, setRules] = usePersistentState<SummaryRule[]>('mail.summary.rules', [])
 
   const [range, setRange] = useState<RangeId>(lastAt ? 'since' : 'today')
   const [day, setDay] = useState('')
   const [tweaking, setTweaking] = useState(false)
+  const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<SummaryResult | null>(null)
+  const [nothingNew, setNothingNew] = useState(false)
+  const [openAt, setOpenAt] = useState<string | null>(null)
 
   const chosen = period(range, lastAt, day)
+  // Zonder keuze de nieuwste: je komt binnen op wat je het laatst las.
+  const shown = history.find((item) => item.at === openAt) ?? history[0] ?? null
+  const others = history.filter((item) => item.at !== shown?.at)
 
   function toggleSkip(item: SummarySkip) {
     setSkip((current) =>
@@ -100,18 +147,58 @@ export function Summary({ onClose }: SummaryProps) {
     )
   }
 
+  function addRule() {
+    const text = draft.trim()
+    if (!text) return
+    setRules((current) => [...current, { id: crypto.randomUUID(), text, on: true }])
+    setDraft('')
+  }
+
+  function toggleRule(id: string) {
+    setRules((current) =>
+      current.map((rule) => (rule.id === id ? { ...rule, on: !rule.on } : rule)),
+    )
+  }
+
+  function removeRule(id: string) {
+    setRules((current) => current.filter((rule) => rule.id !== id))
+  }
+
   async function run() {
     if (!chosen) return
     setBusy(true)
     setError(null)
-    setResult(null)
+    setNothingNew(false)
 
     try {
-      const summary = await summarise(chosen.from, chosen.to, skip, instructions)
-      setResult(summary)
-      // Alleen als er echt gekeken is; anders zou een lege poging het venster
-      // verschuiven en de mail ertussenuit vallen.
-      if (summary.text) setLastAt(new Date().toISOString())
+      // Alleen wat aanstaat gaat mee; uitgezette regels blijven bewaard.
+      const steer = rules
+        .filter((rule) => rule.on)
+        .map((rule) => `- ${rule.text}`)
+        .join('\n')
+
+      const summary = await summarise(chosen.from, chosen.to, skip, steer)
+
+      if (!summary.text) {
+        // Niets nieuws is geen reden om de vorige van het scherm te halen.
+        setNothingNew(true)
+        return
+      }
+
+      const stored: StoredSummary = {
+        at: new Date().toISOString(),
+        from: chosen.from.toISOString(),
+        to: chosen.to ? chosen.to.toISOString() : null,
+        text: summary.text,
+        messages: summary.messages,
+        threads: summary.threads,
+        skipped: summary.skipped,
+        truncated: summary.truncated,
+      }
+
+      setHistory((current) => trim([stored, ...current]))
+      setOpenAt(stored.at)
+      setLastAt(stored.at)
     } catch {
       setError(t.mail.summaryFailed)
     } finally {
@@ -184,15 +271,56 @@ export function Summary({ onClose }: SummaryProps) {
             </label>
           ))}
 
-          <textarea
-            className="send__text"
-            value={instructions}
-            rows={4}
-            maxLength={2000}
-            placeholder={t.mail.instructionsPlaceholder}
-            aria-label={t.mail.instructionsLabel}
-            onChange={(event) => setInstructions(event.target.value)}
-          />
+          {rules.map((rule) => (
+            <div key={rule.id} className="summary__rule">
+              <label className="summary__skip">
+                <input
+                  className="tick-input"
+                  type="checkbox"
+                  checked={rule.on}
+                  onChange={() => toggleRule(rule.id)}
+                />
+                <span className="tick" aria-hidden="true">
+                  <Check size={11} strokeWidth={2.5} />
+                </span>
+                <span className="summary__skipName">{rule.text}</span>
+              </label>
+              <button
+                type="button"
+                className="summary__remove"
+                aria-label={t.mail.removeRule(rule.text)}
+                onClick={() => removeRule(rule.id)}
+              >
+                <X size={13} strokeWidth={1.4} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+
+          <form
+            className="summary__add"
+            onSubmit={(event) => {
+              event.preventDefault()
+              addRule()
+            }}
+          >
+            <input
+              className="send__field"
+              value={draft}
+              maxLength={200}
+              placeholder={t.mail.rulePlaceholder}
+              aria-label={t.mail.ruleLabel}
+              onChange={(event) => setDraft(event.target.value)}
+            />
+            <button
+              type="submit"
+              className="mail__icon"
+              disabled={!draft.trim()}
+              aria-label={t.mail.addRule}
+            >
+              <Plus size={14} strokeWidth={1.4} aria-hidden="true" />
+            </button>
+          </form>
+
           <p className="summary__hint">{t.mail.instructionsHint}</p>
         </div>
       )}
@@ -210,16 +338,36 @@ export function Summary({ onClose }: SummaryProps) {
 
       {error && <p className="mail__error">{error}</p>}
 
-      {result && !result.text && <p className="mail__empty">{t.mail.summaryEmpty}</p>}
+      {nothingNew && <p className="mail__note">{t.mail.summaryNothingNew}</p>}
 
-      {result && result.text && (
+      {shown && (
         <div className="summary__result">
           <p className="summary__meta micro">
-            {t.mail.summaryMeta(result.messages, result.threads)}
-            {result.skipped > 0 ? ` — ${t.mail.summarySkipped(result.skipped)}` : ''}
-            {result.truncated ? ` — ${t.mail.summaryTruncated}` : ''}
+            {t.mail.summaryMadeAt(formatMoment(shown.at, language))} —{' '}
+            {t.mail.summaryMeta(shown.messages, shown.threads)}
+            {shown.skipped > 0 ? ` — ${t.mail.summarySkipped(shown.skipped)}` : ''}
+            {shown.truncated ? ` — ${t.mail.summaryTruncated}` : ''}
           </p>
-          <Markdown text={result.text} />
+          <Markdown text={shown.text} />
+        </div>
+      )}
+
+      {others.length > 0 && (
+        <div className="summary__earlier">
+          <p className="micro summary__earlierTitle">{t.mail.summaryEarlier}</p>
+          {others.map((item) => (
+            <button
+              key={item.at}
+              type="button"
+              className="summary__old"
+              onClick={() => setOpenAt(item.at)}
+            >
+              <span className="summary__oldWhen">{formatMoment(item.at, language)}</span>
+              <span className="summary__oldWhat">
+                {t.mail.summaryMeta(item.messages, item.threads)}
+              </span>
+            </button>
+          ))}
         </div>
       )}
     </div>

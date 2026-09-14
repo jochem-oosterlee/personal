@@ -119,6 +119,27 @@ en naar `Auto-Submitted`, `Precedence` en no-reply-afzenders, en dat werkt
 ongeacht wat Gmail van een bericht vindt. Hoeveel er is weggelaten staat boven
 de samenvatting: een filter dat stil dingen weglaat is erger dan geen filter.
 
+**De samenvatting weet wie je bent.** Zonder dat zag hij een draad als een rij
+berichten en schreef hij een antwoord van een collega op jouw naam. Nu gaat het
+eigen adres mee — uit `users/me/profile`, met de naam uit je eigen verzonden
+mail — en draagt elk bericht `jij="ja"` of `jij="nee"`. Het citaat onder een
+antwoord wordt afgeknipt: daarin staat jouw eigen mail nog een keer, wat
+dezelfde verwarring voedt en bovendien dubbel betaalt. Blijft er na het knippen
+niets over, dan houden we het origineel — bij een doorgestuurd bericht ís het
+citaat de inhoud.
+
+**Samenvattingen blijven bewaard, de laatste tien.** "Sinds vorige keer" schuift
+het venster op, dus een tweede druk levert terecht niets op; zonder geschiedenis
+haalde dat je enige exemplaar van het scherm. Ze staan in de gedeelde staat,
+begrensd op tien stuks én op 300.000 tekens, want de hele lijst gaat als één
+sleutel naar Firestore en een document mag daar 1 MiB zijn.
+
+**Het dak schaalt met de periode.** Twee dagen mail is op deze mailbox al zo'n
+120.000 tekens. Met één vast dak zou "deze week" stilletjes bij de nieuwste twee
+dagen ophouden, terwijl de knop iets anders belooft. Een langere periode mag nu
+meer draden en meer tekens kosten, en per bericht minder — de lange berichten
+zijn vrijwel altijd de automatische.
+
 **Vijf draden tegelijk ophalen, niet vijftig.** Gmail rekent per seconde af —
 250 eenheden per gebruiker, en een draad ophalen kost er tien. De lijst vroeg
 twintig draden ineens op en zat daarmee op 200; bij het testen liep het er met
