@@ -47,7 +47,10 @@ export class NotLinkedError extends Error {}
 /** Het secret staat er wel, maar de service mag er niet bij. */
 export class NoAccessError extends Error {}
 
-async function call(path: string, init?: RequestInit): Promise<Response> {
+/** Gmail's quotum is vol. Geen storing: over een minuut lukt het weer. */
+export class BusyError extends Error {}
+
+export async function call(path: string, init?: RequestInit): Promise<Response> {
   const response = await fetch(path, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
@@ -55,10 +58,11 @@ async function call(path: string, init?: RequestInit): Promise<Response> {
   })
 
   if (!response.ok) {
-    if (response.status === 503) {
+    if (response.status === 503 || response.status === 429) {
       const body = await response.json().catch(() => ({}))
       if (body?.code === 'gmail-niet-gekoppeld') throw new NotLinkedError()
       if (body?.code === 'gmail-geen-toegang') throw new NoAccessError()
+      if (body?.code === 'gmail-druk') throw new BusyError()
     }
     throw new Error(`server antwoordde met ${response.status}`)
   }

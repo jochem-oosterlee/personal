@@ -57,9 +57,24 @@ Eenmalig koppelen gaat zo:
 Tot dat gebeurd is zegt het onderdeel dat het nog niet gekoppeld is en werkt de
 rest van de app gewoon door.
 
-### Samenvatting
+### Overzicht
 
-Het schriftpictogram bovenin geeft een samenvatting van een periode: sinds de
+Het schriftpictogram bovenin opent het overzicht: één levende lijst van
+draden die op iemand wachten — boven wat op jou wacht, daaronder waar jij op
+wacht. **Bijwerken** haalt alleen de mail sinds de vorige keer op en laat Claude
+niet een tekst maar wijzigingen teruggeven: toevoegen, bijwerken, sluiten (met
+reden). De app past ze toe.
+
+Elke regel hangt aan een Gmail-draad. Het vinkje is afhandelen: weg uit de
+lijst, maar nieuwe mail in die draad mag hem terugbrengen. Het kruisje is weg
+voorgoed: die draad wordt al uit de mail gefilterd voordat Claude hem ziet.
+Wat Claude sinds de vorige keer sloot staat er even onder, met de reden en een
+knop om het terug te zetten. Onderin het logboek: per bijwerking wat er
+binnenkwam en veranderde.
+
+### Samenvatting van een periode
+
+Vanuit het overzicht, of los. Een samenvatting van een periode: sinds de
 vorige samenvatting, vandaag, deze week, vorige week of een losse dag. Het
 moment van de vorige keer staat in de gedeelde staat, dus dat klopt ook als je
 hem gisteren op een ander toestel opvroeg.

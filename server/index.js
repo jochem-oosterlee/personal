@@ -4,7 +4,10 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import { Firestore, FieldValue } from '@google-cloud/firestore'
 import { Storage } from '@google-cloud/storage'
+import { ask, textOf, toolInput } from './claude.js'
+import { updateOverview } from './overview.js'
 import {
+  BUSY,
   collectMessages,
   getThread,
   listThreads,
@@ -451,14 +454,10 @@ app.post('/api/deploy', requireUser, async (_req, res) => {
 // --- Actiepunten uit tekst --------------------------------------------------
 
 /**
- * Haalt de actiepunten uit een geplakt stuk tekst. Dit draait op het
- * Claude-abonnement: `claude-oauth-token` staat al in Secret Manager voor de
- * wensen-job, en wordt hier bij de eerste aanroep opgehaald in plaats van als
- * env-var gemount. De service-instellingen staan bewust niet in
- * cloudbuild.yaml, dus een deploy kan er geen secret aan koppelen; het
- * service-account heeft wel `secretmanager.secretAccessor`.
+ * Haalt de actiepunten uit een geplakt stuk tekst. Draait op het
+ * Claude-abonnement via `server/claude.js`, net als de samenvatting en het
+ * overzicht van Mail.
  */
-const CLAUDE_SECRET = process.env.CLAUDE_SECRET ?? 'claude-oauth-token'
 const EXTRACT_MODEL = 'claude-haiku-4-5'
 
 // Ruim boven een lange e-mail; de app hanteert dezelfde grens.
@@ -466,23 +465,6 @@ const MAX_EXTRACT_CHARS = 20000
 
 /** Wat je zelf typt is korter dan wat je plakt; genoeg voor een lang antwoord. */
 const MAX_MAIL_CHARS = 10000
-
-/** Gevuld na de eerste aanroep; leeggegooid zodra Anthropic hem weigert. */
-let claudeToken = null
-
-async function fetchClaudeToken() {
-  if (claudeToken) return claudeToken
-
-  const client = await googleClient()
-  const { data } = await client.request({
-    url: `https://secretmanager.googleapis.com/v1/projects/${PROJECT}/secrets/${CLAUDE_SECRET}/versions/latest:access`,
-  })
-
-  const value = Buffer.from(data?.payload?.data ?? '', 'base64').toString('utf8').trim()
-  if (!value) throw new Error(`${CLAUDE_SECRET} is leeg`)
-  claudeToken = value
-  return value
-}
 
 /**
  * Een tool met een schema in plaats van "geef JSON terug": dan komt er geen
@@ -517,14 +499,11 @@ const EXTRACT_TOOL = {
 }
 
 /**
- * `claude setup-token` levert een OAuth-token: het abonnement, niet de API.
- * De Messages API accepteert dat alleen met deze beta-header én met de
- * Claude Code-identiteit als eerste systeemblok — zo praat de CLI zelf. Dat is
- * niet gedocumenteerd en kan dus stilvallen; vandaar dat een fout hier een
- * nette melding wordt en de rest van Taken gewoon doorwerkt.
+ * Het identiteitsblok dat het abonnementstoken vereist zet `claude.js` er
+ * zelf voor. Valt die ongedocumenteerde route ooit stil, dan wordt dat hier
+ * een nette melding en werkt de rest van Taken gewoon door.
  */
 const EXTRACT_SYSTEM = [
-  { type: 'text', text: "You are Claude Code, Anthropic's official CLI for Claude." },
   {
     type: 'text',
     text: `Je haalt actiepunten uit een tekst die iemand plakt: een e-mail, notulen, een appje.
@@ -564,45 +543,22 @@ app.post('/api/extract-tasks', requireUser, async (req, res) => {
   const day = /^\d{4}-\d{2}-\d{2}$/.test(today) ? today : new Date().toISOString().slice(0, 10)
 
   try {
-    const token = await fetchClaudeToken()
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'oauth-2025-04-20',
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        model: EXTRACT_MODEL,
-        max_tokens: 2048,
-        system: EXTRACT_SYSTEM,
-        tools: [EXTRACT_TOOL],
-        tool_choice: { type: 'tool', name: EXTRACT_TOOL.name },
-        messages: [
-          { role: 'user', content: `Vandaag is ${day}.\n\n<tekst>\n${text}\n</tekst>` },
-        ],
-      }),
+    const data = await ask({
+      model: EXTRACT_MODEL,
+      max_tokens: 2048,
+      system: EXTRACT_SYSTEM,
+      tools: [EXTRACT_TOOL],
+      tool_choice: { type: 'tool', name: EXTRACT_TOOL.name },
+      messages: [
+        { role: 'user', content: `Vandaag is ${day}.\n\n<tekst>\n${text}\n</tekst>` },
+      ],
     })
 
-    if (!response.ok) {
-      // Een gedraaide sleutel geneest zo bij de volgende poging.
-      claudeToken = null
-      const body = await response.text().catch(() => '')
-      console.error(`extractie mislukt (${response.status}): ${body.slice(0, 500)}`)
-      return res.status(502).json({ error: `Claude antwoordde met ${response.status}` })
-    }
-
-    const data = await response.json()
-    const block = (data.content ?? []).find((part) => part.type === 'tool_use')
-
     res.set('Cache-Control', 'no-store')
-    res.json({ tasks: cleanTasks(block?.input?.taken) })
+    res.json({ tasks: cleanTasks(toolInput(data, EXTRACT_TOOL.name)?.taken) })
   } catch (error) {
-    claudeToken = null
-    console.error(error)
-    res.status(502).json({ error: String(error) })
+    console.error(`extractie mislukt: ${error}`)
+    res.status(502).json({ error: String(error.message ?? error) })
   }
 })
 
@@ -623,6 +579,11 @@ function mailError(error, res) {
   if (error?.code === NOT_LINKED || error?.code === NO_ACCESS) {
     console.error(String(error))
     return res.status(503).json({ error: String(error.message ?? error), code: error.code })
+  }
+  // Gmail's quotum is vol: geen storing, even wachten. 429 zodat de app dat
+  // onderscheid kan maken.
+  if (error?.code === BUSY) {
+    return res.status(429).json({ error: String(error.message ?? error), code: error.code })
   }
   console.error(error)
   return res.status(502).json({ error: String(error) })
@@ -769,7 +730,6 @@ function seconds(value) {
 }
 
 const SUMMARY_SYSTEM = [
-  { type: 'text', text: "You are Claude Code, Anthropic's official CLI for Claude." },
   {
     type: 'text',
     text: `Je vat samen wat er in een periode in iemands mailbox gebeurde. Hij leest dit in plaats van de mail zelf, dus het moet kloppen en volledig zijn over wat ertoe doet.
@@ -815,8 +775,6 @@ app.post('/api/mail/summary', requireUser, async (req, res) => {
       return res.json({ text: '', threads, messages: 0, skipped, truncated: false })
     }
 
-    const token = await fetchClaudeToken()
-
     const corpus = messages
       .map(
         (message) =>
@@ -845,47 +803,53 @@ ${steer}`,
         ]
       : [...SUMMARY_SYSTEM, reader]
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'oauth-2025-04-20',
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        model: SUMMARY_MODEL,
-        max_tokens: 4096,
-        system,
-        messages: [
-          {
-            role: 'user',
-            content: `Dit kwam er binnen tussen ${from} en ${to ?? 'nu'}.
+    const data = await ask({
+      model: SUMMARY_MODEL,
+      max_tokens: 4096,
+      system,
+      messages: [
+        {
+          role: 'user',
+          content: `Dit kwam er binnen tussen ${from} en ${to ?? 'nu'}.
 
 <mail>
 ${corpus}
 </mail>`,
-          },
-        ],
-      }),
+        },
+      ],
     })
 
-    if (!response.ok) {
-      claudeToken = null
-      const body = await response.text().catch(() => '')
-      console.error(`samenvatten mislukte (${response.status}): ${body.slice(0, 500)}`)
-      return res.status(502).json({ error: `Claude antwoordde met ${response.status}` })
-    }
-
-    const data = await response.json()
-    const text = (data.content ?? [])
-      .filter((part) => part.type === 'text')
-      .map((part) => part.text)
-      .join('\n')
-      .trim()
-
     res.set('Cache-Control', 'no-store')
-    res.json({ text, threads, messages: messages.length, skipped, truncated })
+    res.json({ text: textOf(data), threads, messages: messages.length, skipped, truncated })
+  } catch (error) {
+    mailError(error, res)
+  }
+})
+
+/**
+ * Het overzicht bijwerken: alleen de mail sinds de vorige keer, en wijzigingen
+ * terug in plaats van tekst. De lijst zelf woont in de app; zie overview.js.
+ */
+app.post('/api/mail/overview', requireUser, async (req, res) => {
+  const { since, items, done, dismissed, skip, instructions } = req.body ?? {}
+
+  const list = Array.isArray(items) ? items : []
+  const ids = (value) =>
+    Array.isArray(value) ? value.filter((entry) => typeof entry === 'string').slice(0, 2000) : []
+
+  try {
+    const result = await updateOverview({
+      since: typeof since === 'string' ? since : null,
+      items: list
+        .filter((item) => item && typeof item.id === 'string' && typeof item.threadId === 'string')
+        .slice(0, 300),
+      done: ids(done),
+      dismissed: ids(dismissed),
+      skip: ids(skip),
+      instructions: typeof instructions === 'string' ? instructions : '',
+    })
+    res.set('Cache-Control', 'no-store')
+    res.json(result)
   } catch (error) {
     mailError(error, res)
   }

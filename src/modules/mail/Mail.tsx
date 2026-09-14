@@ -30,6 +30,7 @@ import { useLanguage } from '../../lib/language'
 import { useBackLayer } from '../../lib/back'
 import { Suggestions } from '../../components/Suggestions'
 import { Summary } from './Summary'
+import { Overview } from './Overview'
 import './Mail.css'
 
 /** Dezelfde vorm als de rijen in Taken; hier komen ze alleen ergens anders vandaan. */
@@ -105,6 +106,7 @@ export function Mail() {
   const [detail, setDetail] = useState<MailDetail | null>(null)
   const [composing, setComposing] = useState(false)
   const [summarising, setSummarising] = useState(false)
+  const [overviewing, setOverviewing] = useState(false)
 
   const load = useCallback(
     async (nextBox: MailBox, query: string) => {
@@ -128,13 +130,14 @@ export function Mail() {
     void load(box, query)
   }, [box, query, load])
 
-  async function open(thread: MailThread) {
-    setOpenId(thread.id)
+  /** Ook vanuit het overzicht: daar is alleen het id bekend, en of hij ongelezen is niet. */
+  async function open(id: string, unread: boolean) {
+    setOpenId(id)
     setDetail(null)
     setError(null)
 
     try {
-      setDetail(await getThread(thread.id))
+      setDetail(await getThread(id))
     } catch {
       setError(t.mail.failed)
       return
@@ -142,11 +145,11 @@ export function Mail() {
 
     // Openen is lezen. Lukt het label niet, dan blijft het bericht ongelezen —
     // vervelender is een lijst die iets anders beweert dan Gmail.
-    if (thread.unread) {
+    if (unread) {
       try {
-        await setLabels(thread.id, { remove: ['UNREAD'] })
+        await setLabels(id, { remove: ['UNREAD'] })
         setThreads((current) =>
-          current.map((item) => (item.id === thread.id ? { ...item, unread: false } : item)),
+          current.map((item) => (item.id === id ? { ...item, unread: false } : item)),
         )
       } catch {
         // Stil: het bericht staat al open.
@@ -162,6 +165,7 @@ export function Mail() {
   // De terugknop van het toestel sluit eerst wat er openstaat.
   useBackLayer(openId !== null, back)
   useBackLayer(composing, () => setComposing(false))
+  useBackLayer(overviewing, () => setOverviewing(false))
   useBackLayer(summarising, () => setSummarising(false))
 
   if (link !== 'ok') {
@@ -174,8 +178,6 @@ export function Mail() {
     )
   }
 
-  if (summarising) return <Summary onClose={() => setSummarising(false)} />
-
   if (openId) {
     return (
       <Thread
@@ -184,6 +186,18 @@ export function Mail() {
         error={error}
         onBack={back}
         onChanged={() => void load(box, query)}
+      />
+    )
+  }
+
+  if (summarising) return <Summary onClose={() => setSummarising(false)} />
+
+  if (overviewing) {
+    return (
+      <Overview
+        onClose={() => setOverviewing(false)}
+        onOpenThread={(threadId) => void open(threadId, false)}
+        onSummaries={() => setSummarising(true)}
       />
     )
   }
@@ -219,8 +233,8 @@ export function Mail() {
           <button
             type="button"
             className="mail__icon"
-            aria-label={t.mail.summarise}
-            onClick={() => setSummarising(true)}
+            aria-label={t.mail.overview}
+            onClick={() => setOverviewing(true)}
           >
             <ScrollText size={14} strokeWidth={1.4} aria-hidden="true" />
           </button>
@@ -266,7 +280,7 @@ export function Mail() {
             <button
               type="button"
               className={thread.unread ? 'thread thread--unread' : 'thread'}
-              onClick={() => void open(thread)}
+              onClick={() => void open(thread.id, thread.unread)}
             >
               <span className="thread__head">
                 <span className="thread__from">{thread.from}</span>

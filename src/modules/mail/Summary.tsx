@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { ArrowLeft, Check, Plus, SlidersHorizontal, X } from 'lucide-react'
-import { summarise, SKIPS } from '../../lib/mail'
+import { ArrowLeft, SlidersHorizontal } from 'lucide-react'
+import { BusyError, summarise } from '../../lib/mail'
 import type { SummarySkip } from '../../lib/mail'
+import { activeInstructions } from '../../lib/overview'
+import type { SummaryRule } from '../../lib/overview'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import { Markdown } from '../../components/Markdown'
+import { Tweaks } from './Tweaks'
 
 type SummaryProps = {
   onClose: () => void
@@ -31,13 +34,6 @@ type StoredSummary = {
   skipped: number
   truncated: boolean
 }
-
-/**
- * Een eigen aanwijzing als vinkje. Uitzetten laat hem staan voor later;
- * weggooien is het kruisje. Zo hoef je "geen jira-onboardingtickets" niet
- * opnieuw te typen als je hem een keer wél wilt zien.
- */
-type SummaryRule = { id: string; text: string; on: boolean }
 
 /** Zoveel bewaren we. De hele lijst gaat als één sleutel naar de server. */
 const MAX_KEPT = 10
@@ -121,16 +117,13 @@ export function Summary({ onClose }: SummaryProps) {
 
   const [lastAt, setLastAt] = usePersistentState<string | null>('mail.summary.lastAt', null)
   const [history, setHistory] = usePersistentState<StoredSummary[]>('mail.summary.history', [])
-  const [skip, setSkip] = usePersistentState<SummarySkip[]>('mail.summary.skip', [
-    'promotions',
-    'updates',
-  ])
-  const [rules, setRules] = usePersistentState<SummaryRule[]>('mail.summary.rules', [])
+  // Alleen lezen; bewerken gebeurt in Tweaks, op dezelfde sleutels.
+  const [skip] = usePersistentState<SummarySkip[]>('mail.summary.skip', ['promotions', 'updates'])
+  const [rules] = usePersistentState<SummaryRule[]>('mail.summary.rules', [])
 
   const [range, setRange] = useState<RangeId>(lastAt ? 'since' : 'today')
   const [day, setDay] = useState('')
   const [tweaking, setTweaking] = useState(false)
-  const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [nothingNew, setNothingNew] = useState(false)
@@ -141,29 +134,6 @@ export function Summary({ onClose }: SummaryProps) {
   const shown = history.find((item) => item.at === openAt) ?? history[0] ?? null
   const others = history.filter((item) => item.at !== shown?.at)
 
-  function toggleSkip(item: SummarySkip) {
-    setSkip((current) =>
-      current.includes(item) ? current.filter((entry) => entry !== item) : [...current, item],
-    )
-  }
-
-  function addRule() {
-    const text = draft.trim()
-    if (!text) return
-    setRules((current) => [...current, { id: crypto.randomUUID(), text, on: true }])
-    setDraft('')
-  }
-
-  function toggleRule(id: string) {
-    setRules((current) =>
-      current.map((rule) => (rule.id === id ? { ...rule, on: !rule.on } : rule)),
-    )
-  }
-
-  function removeRule(id: string) {
-    setRules((current) => current.filter((rule) => rule.id !== id))
-  }
-
   async function run() {
     if (!chosen) return
     setBusy(true)
@@ -171,13 +141,7 @@ export function Summary({ onClose }: SummaryProps) {
     setNothingNew(false)
 
     try {
-      // Alleen wat aanstaat gaat mee; uitgezette regels blijven bewaard.
-      const steer = rules
-        .filter((rule) => rule.on)
-        .map((rule) => `- ${rule.text}`)
-        .join('\n')
-
-      const summary = await summarise(chosen.from, chosen.to, skip, steer)
+      const summary = await summarise(chosen.from, chosen.to, skip, activeInstructions(rules))
 
       if (!summary.text) {
         // Niets nieuws is geen reden om de vorige van het scherm te halen.
@@ -202,8 +166,8 @@ export function Summary({ onClose }: SummaryProps) {
       // "vorige week" zou het punt anders bij nu komen te liggen en viel deze
       // hele week tussen wal en schip.
       if (!chosen.to) setLastAt(stored.at)
-    } catch {
-      setError(t.mail.summaryFailed)
+    } catch (problem) {
+      setError(problem instanceof BusyError ? t.mail.busy : t.mail.summaryFailed)
     } finally {
       setBusy(false)
     }
@@ -257,76 +221,7 @@ export function Summary({ onClose }: SummaryProps) {
         {t.mail.tweak}
       </button>
 
-      {tweaking && (
-        <div className="summary__tweak">
-          {SKIPS.map((item) => (
-            <label key={item} className="summary__skip">
-              <input
-                className="tick-input"
-                type="checkbox"
-                checked={skip.includes(item)}
-                onChange={() => toggleSkip(item)}
-              />
-              <span className="tick" aria-hidden="true">
-                <Check size={11} strokeWidth={2.5} />
-              </span>
-              <span className="summary__skipName">{t.mail.skip[item]}</span>
-            </label>
-          ))}
-
-          {rules.map((rule) => (
-            <div key={rule.id} className="summary__rule">
-              <label className="summary__skip">
-                <input
-                  className="tick-input"
-                  type="checkbox"
-                  checked={rule.on}
-                  onChange={() => toggleRule(rule.id)}
-                />
-                <span className="tick" aria-hidden="true">
-                  <Check size={11} strokeWidth={2.5} />
-                </span>
-                <span className="summary__skipName">{rule.text}</span>
-              </label>
-              <button
-                type="button"
-                className="summary__remove"
-                aria-label={t.mail.removeRule(rule.text)}
-                onClick={() => removeRule(rule.id)}
-              >
-                <X size={13} strokeWidth={1.4} aria-hidden="true" />
-              </button>
-            </div>
-          ))}
-
-          <form
-            className="summary__add"
-            onSubmit={(event) => {
-              event.preventDefault()
-              addRule()
-            }}
-          >
-            <input
-              className="send__field"
-              value={draft}
-              maxLength={200}
-              placeholder={t.mail.rulePlaceholder}
-              aria-label={t.mail.ruleLabel}
-              onChange={(event) => setDraft(event.target.value)}
-            />
-            <button
-              type="submit"
-              className="mail__icon"
-              disabled={!draft.trim()}
-              aria-label={t.mail.addRule}
-            >
-              <Plus size={14} strokeWidth={1.4} aria-hidden="true" />
-            </button>
-          </form>
-
-          <p className="summary__hint">{t.mail.instructionsHint}</p>
-        </div>
-      )}
+      {tweaking && <Tweaks />}
 
       <button
         type="button"

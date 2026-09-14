@@ -128,6 +128,19 @@ dezelfde verwarring voedt en bovendien dubbel betaalt. Blijft er na het knippen
 niets over, dan houden we het origineel — bij een doorgestuurd bericht ís het
 citaat de inhoud.
 
+**Het overzicht is een lijst die de app bezit; Claude levert wijzigingen.**
+Losse samenvattingen over overlappende periodes werden een rommel: "sinds net"
+en "vorige week" leverden elk een kaartje op zonder verband. Het overzicht is
+één levende lijst van draden die op iemand wachten. Bijwerken legt Claude de
+huidige lijst en alleen de nieuwe mail voor, en vraagt via een tool met schema
+wijzigingen terug — toevoegen, bijwerken, sluiten met reden — die de app
+toepast (`lib/overview.ts`, los van React en daarom te toetsen). De identiteit
+van een kwestie is de Gmail-draad, geen tekstvergelijking: daardoor blijven
+jouw ingrepen staan. Weggekruist wordt serverzijde uit de mail gefilterd
+voordat het model hem ziet; afgevinkt komt alleen terug bij nieuwe mail in die
+draad. Wat het model sluit blijft zichtbaar met reden en is terug te draaien,
+want "dit is afgehandeld" is zijn oordeel en dat zal soms te vroeg zijn.
+
 **Samenvattingen blijven bewaard, de laatste tien.** "Sinds vorige keer" schuift
 het venster op, dus een tweede druk levert terecht niets op; zonder geschiedenis
 haalde dat je enige exemplaar van het scherm. Ze staan in de gedeelde staat,
@@ -144,7 +157,10 @@ zijn vrijwel altijd de automatische.
 250 eenheden per gebruiker, en een draad ophalen kost er tien. De lijst vroeg
 twintig draden ineens op en zat daarmee op 200; bij het testen liep het er met
 403's uit. Nu vijf tegelijk, met twee keer opnieuw proberen bij een 403 of 429
-die over snelheid gaat. Een geweigerd token blijft wél meteen een fout.
+die over snelheid gaat. Er is ook een quotum per minuut, dat je volloopt met
+een samenvatting en direct daarna het overzicht; daar wacht de server één keer
+dertig seconden, en meldt hij het daarna als "druk" (429) in plaats van als
+storing. Een geweigerd token blijft wél meteen een fout.
 
 **Geen token meer op het toestel.** De app praat alleen met zijn eigen backend.
 GitHub-credentials staan serverzijde in Secret Manager, met IAM eromheen.

@@ -526,3 +526,123 @@
   flex-shrink: 0;
   margin-left: 0;
 }
+
+/* --- Overzicht ------------------------------------------------------------ */
+
+.overview__update {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.overview__when {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.overview__head {
+  margin: 1rem 0 0.25rem;
+  color: var(--text-muted);
+}
+
+.overview__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+/* Wachten op de ander is rustiger: het vraagt nu niets van je. */
+.overview__list--waiting .item__title,
+.overview__list--closed .item__title {
+  color: var(--text-muted);
+}
+
+.item {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line);
+}
+
+.item__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  padding: 0.5rem 0.125rem;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .item__main:hover .item__title {
+    color: var(--accent);
+  }
+}
+
+.item__title {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.item__meta {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.item__since {
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.item__act {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  border-left: 1px solid var(--line);
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .item__act:hover {
+    color: var(--accent);
+  }
+
+  .item__act--dismiss:hover {
+    color: var(--danger);
+  }
+}
+
+.overview__log {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.logEntry {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.logEntry__head {
+  margin: 0 0 0.375rem;
+  color: var(--text-faint);
+}

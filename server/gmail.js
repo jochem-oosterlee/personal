@@ -121,9 +121,24 @@ async function accessToken() {
  */
 const RETRY_AFTER = [400, 1200]
 
+/**
+ * Naast de limiet per seconde is er een per minuut; die loop je vol als je
+ * kort na elkaar veel draden ophaalt, bijvoorbeeld een samenvatting en dan het
+ * overzicht. Daar helpt een seconde wachten niet — dan één keer echt wachten
+ * tot de minuut om is. Lang, maar korter dan een foutmelding en zelf opnieuw.
+ */
+const MINUTE_QUOTA_WAIT = 30000
+
 function isRateLimit(status, body) {
   return status === 429 || (status === 403 && /rateLimit|Quota exceeded/i.test(body))
 }
+
+function isMinuteQuota(body) {
+  return /per minute/i.test(body)
+}
+
+/** Voor de route: zo kan de app "even wachten" zeggen in plaats van "mislukt". */
+export const BUSY = 'gmail-druk'
 
 async function gmail(pathname, init = {}, attempt = 0) {
   const token = await accessToken()
@@ -142,9 +157,13 @@ async function gmail(pathname, init = {}, attempt = 0) {
     // Een geweigerd token geneest bij de volgende poging.
     if (response.status === 401) access = null
 
-    if (isRateLimit(response.status, body) && attempt < RETRY_AFTER.length) {
-      await new Promise((resume) => setTimeout(resume, RETRY_AFTER[attempt]))
-      return gmail(pathname, init, attempt + 1)
+    if (isRateLimit(response.status, body)) {
+      if (attempt < RETRY_AFTER.length) {
+        const wait = isMinuteQuota(body) ? MINUTE_QUOTA_WAIT : RETRY_AFTER[attempt]
+        await new Promise((resume) => setTimeout(resume, wait))
+        return gmail(pathname, init, attempt + 1)
+      }
+      throw Object.assign(new Error(`Gmail houdt de boot af: ${body.slice(0, 200)}`), { code: BUSY })
     }
 
     throw new Error(`Gmail antwoordde met ${response.status}: ${body.slice(0, 300)}`)
@@ -531,6 +550,8 @@ export async function collectMessages({
 
       chars += body.length
       collected.push({
+        // De draad is de identiteit van een kwestie: daar hangt het overzicht aan.
+        threadId: thread.id,
         mine,
         from: displayName(head.from),
         to: head.to ?? '',
