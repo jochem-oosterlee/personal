@@ -49,6 +49,8 @@ const nl = {
     failed: 'Gmail antwoordde niet. Probeer het zo nog eens.',
     notLinked:
       'Gmail is nog niet gekoppeld. Draai infra/gmail-consent.mjs en zet het resultaat als gmail-oauth in Secret Manager; daarna werkt dit onderdeel zonder verder iets in de app.',
+    noAccess:
+      'Het secret gmail-oauth staat er wel, maar deze service mag er niet bij. Geef het service-account roles/secretmanager.secretAccessor op die sleutel — opnieuw toestemming geven helpt hier niet.',
     back: 'Terug',
     archive: 'Archiveren',
     archived: 'Uit je postvak gehaald.',
@@ -241,6 +243,8 @@ const en: typeof nl = {
     failed: "Gmail didn't answer. Try again in a moment.",
     notLinked:
       'Gmail is not linked yet. Run infra/gmail-consent.mjs and store the result as gmail-oauth in Secret Manager; after that this section works without anything else in the app.',
+    noAccess:
+      'The gmail-oauth secret exists, but this service cannot read it. Grant the service account roles/secretmanager.secretAccessor on that key — going through consent again will not help.',
     back: 'Back',
     archive: 'Archive',
     archived: 'Taken out of your inbox.',

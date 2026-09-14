@@ -4,7 +4,15 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import { Firestore, FieldValue } from '@google-cloud/firestore'
 import { Storage } from '@google-cloud/storage'
-import { getThread, listThreads, modifyThread, NOT_LINKED, profile, sendMail } from './gmail.js'
+import {
+  getThread,
+  listThreads,
+  modifyThread,
+  NO_ACCESS,
+  NOT_LINKED,
+  profile,
+  sendMail,
+} from './gmail.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const STATIC = path.join(here, 'public')
@@ -605,10 +613,15 @@ app.post('/api/extract-tasks', requireUser, async (req, res) => {
  * Firestore — de app haalt bij elke weergave op wat er nú staat.
  */
 
-/** Nog niet gekoppeld is geen storing: 503 met uitleg, de app zegt het netjes. */
+/**
+ * Nog niet gekoppeld is geen storing: 503 met uitleg, de app zegt het netjes.
+ * Een ontbrekende IAM-binding krijgt zijn eigen code — anders ga je opnieuw
+ * toestemming geven terwijl het secret er allang staat.
+ */
 function mailError(error, res) {
-  if (error?.code === NOT_LINKED) {
-    return res.status(503).json({ error: 'gmail is nog niet gekoppeld', code: error.code })
+  if (error?.code === NOT_LINKED || error?.code === NO_ACCESS) {
+    console.error(String(error))
+    return res.status(503).json({ error: String(error.message ?? error), code: error.code })
   }
   console.error(error)
   return res.status(502).json({ error: String(error) })

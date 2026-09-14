@@ -44,6 +44,9 @@ export type MailBox = 'inbox' | 'unread' | 'starred'
 /** Nog geen koppeling is iets anders dan een storing; de module zegt dat apart. */
 export class NotLinkedError extends Error {}
 
+/** Het secret staat er wel, maar de service mag er niet bij. */
+export class NoAccessError extends Error {}
+
 async function call(path: string, init?: RequestInit): Promise<Response> {
   const response = await fetch(path, {
     ...init,
@@ -55,6 +58,7 @@ async function call(path: string, init?: RequestInit): Promise<Response> {
     if (response.status === 503) {
       const body = await response.json().catch(() => ({}))
       if (body?.code === 'gmail-niet-gekoppeld') throw new NotLinkedError()
+      if (body?.code === 'gmail-geen-toegang') throw new NoAccessError()
     }
     throw new Error(`server antwoordde met ${response.status}`)
   }

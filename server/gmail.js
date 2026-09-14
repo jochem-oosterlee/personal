@@ -24,6 +24,13 @@ const MAX_BODY_CHARS = 20000
 /** Fout met deze code betekent: nog niet gekoppeld, geen storing. */
 export const NOT_LINKED = 'gmail-niet-gekoppeld'
 
+/**
+ * Het secret bestaat, maar deze service mag er niet bij. Een aparte code, want
+ * dit als "nog niet gekoppeld" tonen stuurt je het verkeerde gat in: je gaat
+ * opnieuw toestemming geven terwijl er een IAM-binding mist.
+ */
+export const NO_ACCESS = 'gmail-geen-toegang'
+
 let credentials = null
 let access = null
 
@@ -44,10 +51,15 @@ async function fetchCredentials() {
     })
     raw = Buffer.from(data?.payload?.data ?? '', 'base64').toString('utf8').trim()
   } catch (error) {
-    // Bestaat het secret niet, dan is Gmail simpelweg nog niet ingericht.
     const status = error?.response?.status
-    if (status === 403 || status === 404) {
-      throw Object.assign(new Error(`${SECRET} ontbreekt`), { code: NOT_LINKED })
+    // Bestaat het secret niet, dan is Gmail simpelweg nog niet ingericht.
+    if (status === 404) {
+      throw Object.assign(new Error(`${SECRET} bestaat niet`), { code: NOT_LINKED })
+    }
+    // Wel een secret, geen toegang: het service-account mist
+    // roles/secretmanager.secretAccessor op deze sleutel.
+    if (status === 403) {
+      throw Object.assign(new Error(`geen toegang tot ${SECRET}`), { code: NO_ACCESS })
     }
     throw error
   }

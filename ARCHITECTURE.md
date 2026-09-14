@@ -159,7 +159,17 @@ synchronisatie alles terugzette. En de herlaad erna brak de DELETE af.
 repo — de agent pusht ermee. `claude-oauth-token` komt uit
 `claude setup-token`. `gmail-oauth` is JSON met `client_id`, `client_secret` en
 `refresh_token`, afgedrukt door `node infra/gmail-consent.mjs` — scopes
-`gmail.modify` en `gmail.send`. Nieuwe waarde toevoegen:
+`gmail.modify` en `gmail.send`.
+
+De rollen staan per secret, niet op het project. Een nieuw secret is daarmee
+onzichtbaar voor de service tot het zijn eigen binding krijgt, en een geweigerd
+secret is van buiten niet te onderscheiden van een secret dat er niet is:
+
+```
+gcloud secrets add-iam-policy-binding gmail-oauth   --member=serviceAccount:690141536321-compute@developer.gserviceaccount.com   --role=roles/secretmanager.secretAccessor --project=jochem-personal-pwa
+```
+
+Nieuwe waarde toevoegen:
 
 ```
 gcloud secrets versions add github-token --data-file=- --project=jochem-personal-pwa

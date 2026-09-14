@@ -13,6 +13,7 @@ import {
 import {
   getThread,
   listThreads,
+  NoAccessError,
   NotLinkedError,
   reply as sendReply,
   senderAddress,
@@ -93,7 +94,9 @@ export function Mail() {
   const [threads, setThreads] = useState<MailThread[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [linked, setLinked] = useState(true)
+  // 'ok' zolang er niets aan de koppeling mankeert; de andere twee hebben elk
+  // een eigen uitleg, want ze vragen om iets anders van je.
+  const [link, setLink] = useState<'ok' | 'not-linked' | 'no-access'>('ok')
 
   const [openId, setOpenId] = useState<string | null>(null)
   const [detail, setDetail] = useState<MailDetail | null>(null)
@@ -105,9 +108,10 @@ export function Mail() {
       setError(null)
       try {
         setThreads(await listThreads(nextBox, query))
-        setLinked(true)
+        setLink('ok')
       } catch (problem) {
-        if (problem instanceof NotLinkedError) setLinked(false)
+        if (problem instanceof NotLinkedError) setLink('not-linked')
+        else if (problem instanceof NoAccessError) setLink('no-access')
         else setError(t.mail.failed)
       } finally {
         setLoading(false)
@@ -151,10 +155,12 @@ export function Mail() {
     setDetail(null)
   }
 
-  if (!linked) {
+  if (link !== 'ok') {
     return (
       <div className="mail__notice">
-        <p className="mail__noticeText">{t.mail.notLinked}</p>
+        <p className="mail__noticeText">
+          {link === 'no-access' ? t.mail.noAccess : t.mail.notLinked}
+        </p>
       </div>
     )
   }
