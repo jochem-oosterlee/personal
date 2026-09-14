@@ -73,8 +73,9 @@ Elke regel hangt aan een Gmail-draad. Het vinkje is afhandelen: weg uit de
 lijst, maar nieuwe mail in die draad mag hem terugbrengen. Het kruisje is weg
 voorgoed: die draad wordt al uit de mail gefilterd voordat Claude hem ziet.
 Wat Claude sinds de vorige keer sloot staat er even onder, met de reden en een
-knop om het terug te zetten. Onderin het logboek: per bijwerking wat er
-binnenkwam en veranderde.
+knop om het terug te zetten. Wat jij zelf wegkruiste of afvinkte staat onder
+*Verborgen*, ingeklapt, ook met terugzetknop — "voorgoed" moet je kunnen
+nakijken. Onderin het logboek: per bijwerking wat er binnenkwam en veranderde.
 
 ### Samenvatting van een periode
 

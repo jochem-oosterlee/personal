@@ -62,6 +62,7 @@ export function Overview({ onClose, onOpenThread, onSummaries }: OverviewProps) 
   const [note, setNote] = useState<string | null>(null)
   const [tweaking, setTweaking] = useState(false)
   const [showLog, setShowLog] = useState(false)
+  const [showHidden, setShowHidden] = useState(false)
 
   const open = items.filter((item) => item.status === 'open')
   const waiting = items.filter((item) => item.status === 'waiting')
@@ -70,6 +71,9 @@ export function Overview({ onClose, onOpenThread, onSummaries }: OverviewProps) 
   const closed = items.filter(
     (item) => item.status === 'done' && item.closedBy === 'claude' && item.closedAt === lastAt,
   )
+  // Wat jij zelf wegdeed. "Voorgoed" moet je wel kunnen nakijken en herroepen.
+  const dismissed = items.filter((item) => item.status === 'dismissed')
+  const handled = items.filter((item) => item.status === 'done' && item.closedBy === 'you')
 
   async function refresh() {
     setBusy(true)
@@ -157,6 +161,26 @@ export function Overview({ onClose, onOpenThread, onSummaries }: OverviewProps) 
           onClick={() => setItems((current) => dismiss(current, item.id, now()))}
         >
           <X size={14} strokeWidth={1.4} aria-hidden="true" />
+        </button>
+      </li>
+    )
+  }
+
+  /** Een verborgen regel: alleen terugzetten, verder niets. */
+  function hiddenRow(item: OverviewItem) {
+    return (
+      <li key={item.id} className="item">
+        <button type="button" className="item__main" onClick={() => onOpenThread(item.threadId)}>
+          <span className="item__title">{item.title}</span>
+          <span className="item__meta">{item.who}</span>
+        </button>
+        <button
+          type="button"
+          className="item__act"
+          aria-label={t.mail.overviewReopen}
+          onClick={() => setItems((current) => reopen(current, item.id, now()))}
+        >
+          <RotateCcw size={14} strokeWidth={1.4} aria-hidden="true" />
         </button>
       </li>
     )
@@ -255,6 +279,34 @@ export function Overview({ onClose, onOpenThread, onSummaries }: OverviewProps) 
             ))}
           </ul>
         </>
+      )}
+
+      {dismissed.length + handled.length > 0 && (
+        <div className="overview__log">
+          <button
+            type="button"
+            className="hairline-button"
+            onClick={() => setShowHidden((current) => !current)}
+          >
+            {showHidden
+              ? t.mail.overviewHiddenHide
+              : t.mail.overviewHidden(dismissed.length + handled.length)}
+          </button>
+
+          {showHidden && dismissed.length > 0 && (
+            <>
+              <p className="micro overview__head">{t.mail.overviewDismissed}</p>
+              <ul className="overview__list overview__list--closed">{dismissed.map(hiddenRow)}</ul>
+            </>
+          )}
+
+          {showHidden && handled.length > 0 && (
+            <>
+              <p className="micro overview__head">{t.mail.overviewHandled}</p>
+              <ul className="overview__list overview__list--closed">{handled.map(hiddenRow)}</ul>
+            </>
+          )}
+        </div>
       )}
 
       {log.length > 0 && (

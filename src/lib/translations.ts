@@ -66,6 +66,10 @@ const nl = {
       `${added} nieuw, ${updated} bijgewerkt, ${closed} gesloten.`,
     overviewFailed: 'Bijwerken lukte niet. Probeer het zo nog eens.',
     overviewPeriod: 'Een periode samenvatten',
+    overviewHidden: (count: number) => `Verborgen (${count})`,
+    overviewHiddenHide: 'Verborgen dichtklappen',
+    overviewDismissed: 'Niet meer getoond — komt nooit terug',
+    overviewHandled: 'Door jou afgehandeld — komt terug bij nieuwe mail',
     overviewLog: 'Logboek',
     overviewLogHide: 'Logboek dichtklappen',
     overviewLogMeta: (messages: number, added: number, updated: number, closed: number) =>
@@ -316,6 +320,10 @@ const en: typeof nl = {
       `${added} new, ${updated} updated, ${closed} closed.`,
     overviewFailed: 'Updating failed. Try again in a moment.',
     overviewPeriod: 'Summarise a period',
+    overviewHidden: (count: number) => `Hidden (${count})`,
+    overviewHiddenHide: 'Hide hidden',
+    overviewDismissed: 'Not shown anymore — never comes back',
+    overviewHandled: 'Handled by you — comes back on new mail',
     overviewLog: 'Log',
     overviewLogHide: 'Hide log',
     overviewLogMeta: (messages: number, added: number, updated: number, closed: number) =>
