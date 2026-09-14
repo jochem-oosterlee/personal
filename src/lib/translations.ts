@@ -47,6 +47,35 @@ const nl = {
     loading: 'Ophalen…',
     empty: 'Niets gevonden.',
     failed: 'Gmail antwoordde niet. Probeer het zo nog eens.',
+    summarise: 'Samenvatting',
+    summarising: 'Claude leest je mail…',
+    summaryWait: 'Dit duurt ongeveer een minuut; een hele week wat langer.',
+    summaryFailed: 'Samenvatten lukte niet. Probeer het zo nog eens.',
+    summaryEmpty: 'In die periode kwam er niets binnen.',
+    summaryMeta: (messages: number, threads: number) =>
+      `${messages} bericht(en) uit ${threads} draad/draden`,
+    summarySkipped: (count: number) => `${count} overgeslagen door je vinkjes`,
+    summaryTruncated: 'ingekort, de periode paste niet helemaal',
+    range: {
+      since: 'Sinds vorige keer',
+      today: 'Vandaag',
+      week: 'Deze week',
+      lastWeek: 'Vorige week',
+      day: 'Een dag',
+    },
+    sinceLast: (moment: string) => `Laatste samenvatting: ${moment}.`,
+    sinceNever: 'Alles in de gekozen periode, ook wat je al gearchiveerd hebt.',
+    tweak: 'Wat er wel en niet in mag',
+    skip: {
+      promotions: 'Nieuwsbrieven en reclame overslaan',
+      updates: 'Automatische notificaties overslaan',
+      cc: 'Mail waarin je alleen in cc staat overslaan',
+    },
+    instructionsPlaceholder:
+      'Bijvoorbeeld: agenda-uitnodigingen alleen noemen als ik moet reageren; facturen altijd met bedrag en vervaldatum.',
+    instructionsLabel: 'Aanwijzingen voor de samenvatting',
+    instructionsHint:
+      'Dit blijft staan en geldt voor elke volgende samenvatting. Het gaat voor op de algemene regels.',
     notLinked:
       'Gmail is nog niet gekoppeld. Draai infra/gmail-consent.mjs en zet het resultaat als gmail-oauth in Secret Manager; daarna werkt dit onderdeel zonder verder iets in de app.',
     noAccess:
@@ -241,6 +270,35 @@ const en: typeof nl = {
     loading: 'Fetching…',
     empty: 'Nothing found.',
     failed: "Gmail didn't answer. Try again in a moment.",
+    summarise: 'Summary',
+    summarising: 'Claude is reading your mail…',
+    summaryWait: 'This takes about a minute; a whole week takes longer.',
+    summaryFailed: 'Summarising failed. Try again in a moment.',
+    summaryEmpty: 'Nothing came in during that period.',
+    summaryMeta: (messages: number, threads: number) =>
+      `${messages} message(s) from ${threads} thread(s)`,
+    summarySkipped: (count: number) => `${count} skipped by your checkboxes`,
+    summaryTruncated: 'shortened, the period did not fit',
+    range: {
+      since: 'Since last time',
+      today: 'Today',
+      week: 'This week',
+      lastWeek: 'Last week',
+      day: 'A day',
+    },
+    sinceLast: (moment: string) => `Last summary: ${moment}.`,
+    sinceNever: 'Everything in the chosen period, including what you archived.',
+    tweak: 'What to leave in or out',
+    skip: {
+      promotions: 'Skip newsletters and promotions',
+      updates: 'Skip automated notifications',
+      cc: 'Skip mail where you are only in cc',
+    },
+    instructionsPlaceholder:
+      'For example: only mention calendar invites if I need to respond; always include amount and due date for invoices.',
+    instructionsLabel: 'Instructions for the summary',
+    instructionsHint:
+      'This is kept and applies to every summary from now on. It takes precedence over the general rules.',
     notLinked:
       'Gmail is not linked yet. Run infra/gmail-consent.mjs and store the result as gmail-oauth in Secret Manager; after that this section works without anything else in the app.',
     noAccess:

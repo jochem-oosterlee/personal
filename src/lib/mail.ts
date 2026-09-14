@@ -106,3 +106,42 @@ export async function senderAddress(): Promise<string> {
   const { address } = await (await call('/api/mail/profile')).json()
   return typeof address === 'string' ? address : ''
 }
+
+/** Wat je uit een samenvatting kunt weglaten. De server vertaalt het. */
+export type SummarySkip = 'promotions' | 'updates' | 'cc'
+
+export const SKIPS: SummarySkip[] = ['promotions', 'updates', 'cc']
+
+export type Summary = {
+  /** Markdown; leeg als er in die periode niets binnenkwam. */
+  text: string
+  threads: number
+  messages: number
+  /** Hoeveel berichten je vinkjes hebben weggelaten. */
+  skipped: number
+  /** De periode paste niet helemaal; er is ingekort. */
+  truncated: boolean
+}
+
+/**
+ * Duurt lang genoeg om op te wachten: elke draad wordt volledig opgehaald en
+ * gaat daarna langs Claude. Alleen op verzoek dus, nooit vanzelf.
+ */
+export async function summarise(
+  from: Date,
+  to: Date | null,
+  skip: SummarySkip[],
+  instructions: string,
+): Promise<Summary> {
+  const response = await call('/api/mail/summary', {
+    method: 'POST',
+    body: JSON.stringify({
+      from: from.toISOString(),
+      to: to ? to.toISOString() : null,
+      skip,
+      instructions,
+    }),
+  })
+
+  return response.json()
+}

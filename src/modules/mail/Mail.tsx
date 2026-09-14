@@ -7,6 +7,7 @@ import {
   MailOpen,
   PenLine,
   RefreshCw,
+  ScrollText,
   Reply,
   Star,
 } from 'lucide-react'
@@ -28,6 +29,7 @@ import { readStored, writeStored } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import { useBackLayer } from '../../lib/back'
 import { Suggestions } from '../../components/Suggestions'
+import { Summary } from './Summary'
 import './Mail.css'
 
 /** Dezelfde vorm als de rijen in Taken; hier komen ze alleen ergens anders vandaan. */
@@ -102,6 +104,7 @@ export function Mail() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [detail, setDetail] = useState<MailDetail | null>(null)
   const [composing, setComposing] = useState(false)
+  const [summarising, setSummarising] = useState(false)
 
   const load = useCallback(
     async (nextBox: MailBox, query: string) => {
@@ -159,6 +162,7 @@ export function Mail() {
   // De terugknop van het toestel sluit eerst wat er openstaat.
   useBackLayer(openId !== null, back)
   useBackLayer(composing, () => setComposing(false))
+  useBackLayer(summarising, () => setSummarising(false))
 
   if (link !== 'ok') {
     return (
@@ -169,6 +173,8 @@ export function Mail() {
       </div>
     )
   }
+
+  if (summarising) return <Summary onClose={() => setSummarising(false)} />
 
   if (openId) {
     return (
@@ -208,6 +214,15 @@ export function Mail() {
             onClick={() => void load(box, query)}
           >
             <RefreshCw size={14} strokeWidth={1.4} aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            className="mail__icon"
+            aria-label={t.mail.summarise}
+            onClick={() => setSummarising(true)}
+          >
+            <ScrollText size={14} strokeWidth={1.4} aria-hidden="true" />
           </button>
 
           <button

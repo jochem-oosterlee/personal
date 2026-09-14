@@ -57,6 +57,22 @@ Eenmalig koppelen gaat zo:
 Tot dat gebeurd is zegt het onderdeel dat het nog niet gekoppeld is en werkt de
 rest van de app gewoon door.
 
+### Samenvatting
+
+Het schriftpictogram bovenin geeft een samenvatting van een periode: sinds de
+vorige samenvatting, vandaag, deze week, vorige week of een losse dag. Het
+moment van de vorige keer staat in de gedeelde staat, dus dat klopt ook als je
+hem gisteren op een ander toestel opvroeg.
+
+Onder "wat er wel en niet in mag" staan drie vinkjes — nieuwsbrieven,
+automatische notificaties, mail waarin je alleen in cc staat — en een tekstvak
+met aanwijzingen die blijven staan en voorgaan op de algemene regels. Wat de
+vinkjes hebben weggelaten staat boven de samenvatting, zodat het niet stil
+gebeurt.
+
+Dit is de duurste knop in de app: elke draad wordt volledig opgehaald en gaat
+langs Claude. Reken op een minuut voor een dag.
+
 ## Deploy
 
 Push naar `main` -> Cloud Build -> nieuwe revisie op Cloud Run. Er zijn geen

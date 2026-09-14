@@ -128,6 +128,35 @@ button {
   }
 }
 
+/* Aanvinkvakje zonder vlak: de voorstellenlijst en de samenvatting gebruiken
+   het allebei, dus staat het hier in plaats van bij een van de twee. */
+.tick-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.tick {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  color: transparent;
+  border: 1px solid var(--line-strong);
+}
+
+.tick-input:checked + .tick {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.tick-input:focus-visible + .tick {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* Small caps-ish label used for section headings and the page title. */
 .micro {
   font-size: 0.6875rem;

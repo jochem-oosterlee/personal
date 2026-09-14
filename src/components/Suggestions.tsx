@@ -54,12 +54,12 @@ export function Suggestions({ tasks, onAdd }: SuggestionsProps) {
           <li key={item.id} className="suggestion">
             <label className="suggestion__label">
               <input
-                className="suggestion__input"
+                className="tick-input"
                 type="checkbox"
                 checked={item.picked}
                 onChange={() => toggle(item.id)}
               />
-              <span className="suggestion__box" aria-hidden="true">
+              <span className="tick" aria-hidden="true">
                 <Check size={11} strokeWidth={2.5} />
               </span>
               <span className="suggestion__name">{item.name}</span>

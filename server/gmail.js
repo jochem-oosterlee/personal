@@ -114,7 +114,18 @@ async function accessToken() {
   return access.token
 }
 
-async function gmail(pathname, init = {}) {
+/**
+ * Gmail rekent per seconde af (250 eenheden per gebruiker, en een draad ophalen
+ * kost er tien). Een reeks verzoeken loopt daar zo tegenaan, en dat is geen
+ * fout maar een ritme-probleem: even wachten en het lukt wel.
+ */
+const RETRY_AFTER = [400, 1200]
+
+function isRateLimit(status, body) {
+  return status === 429 || (status === 403 && /rateLimit|Quota exceeded/i.test(body))
+}
+
+async function gmail(pathname, init = {}, attempt = 0) {
   const token = await accessToken()
 
   const response = await fetch(`${API}${pathname}`, {
@@ -130,6 +141,12 @@ async function gmail(pathname, init = {}) {
     const body = await response.text().catch(() => '')
     // Een geweigerd token geneest bij de volgende poging.
     if (response.status === 401) access = null
+
+    if (isRateLimit(response.status, body) && attempt < RETRY_AFTER.length) {
+      await new Promise((resume) => setTimeout(resume, RETRY_AFTER[attempt]))
+      return gmail(pathname, init, attempt + 1)
+    }
+
     throw new Error(`Gmail antwoordde met ${response.status}: ${body.slice(0, 300)}`)
   }
 
@@ -230,7 +247,8 @@ function summarise(thread) {
 
 /**
  * Twee rondjes: de lijst geeft alleen ids terug, de koppen zitten per draad.
- * Twintig tegelijk blijft ruim onder de limiet die Gmail per seconde toestaat.
+ * Vijf tegelijk, want twintig ineens is al 200 quota-eenheden en daarmee zat de
+ * lijst tegen het plafond van 250 per seconde aan te schuren.
  */
 export async function listThreads({ query = 'in:inbox', limit = 20 } = {}) {
   const params = new URLSearchParams({ q: query, maxResults: String(Math.min(limit, 50)) })
@@ -239,8 +257,8 @@ export async function listThreads({ query = 'in:inbox', limit = 20 } = {}) {
   const metadata = new URLSearchParams({ format: 'metadata' })
   for (const name of ['From', 'Subject', 'Date']) metadata.append('metadataHeaders', name)
 
-  const full = await Promise.all(
-    threads.map((thread) => gmail(`/threads/${thread.id}?${metadata}`)),
+  const full = await inChunks(threads, 5, (thread) =>
+    gmail(`/threads/${thread.id}?${metadata}`),
   )
 
   return full.map(summarise)
@@ -358,4 +376,121 @@ export async function sendMail({ to, cc, subject, text, threadId, inReplyTo, ref
 export async function profile() {
   const { emailAddress } = await gmail('/profile')
   return { address: emailAddress }
+}
+
+/** Het eigen adres, voor de vraag of jij alleen in cc stond. */
+let ownAddress = null
+
+async function address() {
+  if (!ownAddress) ownAddress = (await profile()).address.toLowerCase()
+  return ownAddress
+}
+
+/** Vijf tegelijk: ruim onder wat Gmail per seconde toestaat, en snel genoeg. */
+async function inChunks(items, size, work) {
+  const done = []
+  for (let index = 0; index < items.length; index += size) {
+    done.push(...(await Promise.all(items.slice(index, index + size).map(work))))
+  }
+  return done
+}
+
+/**
+ * De berichten uit een periode, met hun tekst, om samen te vatten.
+ *
+ * Anders dan de lijst haalt dit elke draad volledig op, dus het is duur: een
+ * verzoek per draad. Daarom een dak op het aantal draden én op het aantal
+ * tekens, en meldt het terug wanneer er iets is afgevallen — een samenvatting
+ * die stilzwijgend de helft weglaat is erger dan een die zegt dat hij inkort.
+ */
+/**
+ * Wat "nieuwsbrief" en "automatische notificatie" betekenen.
+ *
+ * Niet via Gmail's categorieën: dit account blijkt ze niet te gebruiken --
+ * category:promotions gaf nul draden -- dus zouden die vinkjes stilletjes niets
+ * doen. De koppen zijn wel betrouwbaar: een nieuwsbrief hoort je te laten
+ * uitschrijven, en een machine die mailt zegt dat in Auto-Submitted of
+ * Precedence, of heet no-reply.
+ */
+function isBulk(head) {
+  return Boolean(head['list-unsubscribe'] || head['list-id'])
+}
+
+function isAutomated(head) {
+  return (
+    /auto-(generated|replied|notified)/i.test(head['auto-submitted'] ?? '') ||
+    /bulk|auto_reply|list/i.test(head.precedence ?? '') ||
+    /no-?reply|do-?not-?reply|noreply/i.test(head.from ?? '')
+  )
+}
+
+export async function collectMessages({
+  query,
+  skip = [],
+  maxThreads = 60,
+  maxChars = 120000,
+  perMessageChars = 2500,
+}) {
+  const params = new URLSearchParams({ q: query, maxResults: String(maxThreads) })
+  const { threads = [] } = await gmail(`/threads?${params}`)
+
+  const full = await inChunks(threads, 5, (thread) =>
+    gmail(`/threads/${thread.id}?format=full`),
+  )
+
+  const me = skip.includes('cc') ? await address() : null
+  const collected = []
+  let chars = 0
+  let dropped = 0
+  let skipped = 0
+
+  // Nieuwste eerst binnen; oudste valt als eerste af zodra het dak in zicht komt.
+  for (const thread of full) {
+    for (const message of thread.messages ?? []) {
+      const head = headers(message)
+
+      // Alleen in cc: meelezen, niet aan jou gericht.
+      if (me && !(head.to ?? '').toLowerCase().includes(me) && (head.cc ?? '').toLowerCase().includes(me)) {
+        skipped += 1
+        continue
+      }
+
+      if (skip.includes('promotions') && isBulk(head)) {
+        skipped += 1
+        continue
+      }
+
+      if (skip.includes('updates') && isAutomated(head)) {
+        skipped += 1
+        continue
+      }
+
+      const body = bodyOf(message.payload).slice(0, perMessageChars)
+      if (!body) continue
+
+      if (chars + body.length > maxChars) {
+        dropped += 1
+        continue
+      }
+
+      chars += body.length
+      collected.push({
+        from: displayName(head.from),
+        subject: head.subject || '(geen onderwerp)',
+        date: head.date ? new Date(head.date).toISOString() : null,
+        unread: (message.labelIds ?? []).includes('UNREAD'),
+        body,
+      })
+    }
+  }
+
+  collected.sort((a, b) => String(a.date).localeCompare(String(b.date)))
+
+  return {
+    messages: collected,
+    threads: full.length,
+    skipped,
+    // Meer draden dan het dak toestond betekent dat de periode niet heel past.
+    truncated: dropped > 0 || threads.length >= maxThreads,
+  }
 }

@@ -110,6 +110,21 @@ onderdelen zijn lijstjes die je zelf bijhoudt; een mailbox is dat niet. Een
 verouderde kopie tonen is daar erger dan even niets tonen, dus haalt het
 onderdeel bij elke weergave op wat er nú staat en blijft het offline leeg.
 
+**De samenvatting leest op koppen, niet op Gmail's categorieën.** De vinkjes
+"nieuwsbrieven" en "automatische notificaties" begonnen als `-category:promotions`
+en `-category:updates`. Nagemeten op deze mailbox: nul draden in promotions,
+één in updates, nul in primary — dit Workspace-account categoriseert niet, dus
+die vinkjes deden niets. Nu kijkt de server naar `List-Unsubscribe`/`List-Id`
+en naar `Auto-Submitted`, `Precedence` en no-reply-afzenders, en dat werkt
+ongeacht wat Gmail van een bericht vindt. Hoeveel er is weggelaten staat boven
+de samenvatting: een filter dat stil dingen weglaat is erger dan geen filter.
+
+**Vijf draden tegelijk ophalen, niet vijftig.** Gmail rekent per seconde af —
+250 eenheden per gebruiker, en een draad ophalen kost er tien. De lijst vroeg
+twintig draden ineens op en zat daarmee op 200; bij het testen liep het er met
+403's uit. Nu vijf tegelijk, met twee keer opnieuw proberen bij een 403 of 429
+die over snelheid gaat. Een geweigerd token blijft wél meteen een fout.
+
 **Geen token meer op het toestel.** De app praat alleen met zijn eigen backend.
 GitHub-credentials staan serverzijde in Secret Manager, met IAM eromheen.
 
