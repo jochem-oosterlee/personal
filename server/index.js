@@ -753,11 +753,12 @@ app.post('/api/mail/summary', requireUser, async (req, res) => {
   const before = to ? seconds(to) : null
   if (!after) return res.status(400).json({ error: 'begin van de periode ontbreekt' })
 
-  // Alleen de periode. Zonder in:inbox telt ook mee wat je zelf al
-  // gearchiveerd hebt; prullenbak en spam laat Gmail vanzelf buiten een gewone
-  // zoekopdracht. Wat je wilt overslaan gebeurt op de koppen, niet hier: de
-  // categorieën van Gmail blijken op dit account leeg te zijn.
-  const terms = [`after:${after}`]
+  // De periode, en alleen het postvak. Dit account heeft filters die Jira,
+  // GitHub, Slack en de rest langs het postvak heen leiden; zonder in:inbox
+  // las de samenvatting die stromen alsnog, en ging driekwart van wat hij
+  // ophaalde meteen weer weg door de vinkjes. Wat je verder wilt overslaan
+  // gebeurt op de koppen: de categorieën van Gmail zijn op dit account leeg.
+  const terms = [`after:${after}`, 'in:inbox']
   if (before) terms.push(`before:${before}`)
 
   const steer = String(instructions).slice(0, MAX_INSTRUCTIONS).trim()

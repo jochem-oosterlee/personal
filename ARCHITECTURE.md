@@ -141,9 +141,12 @@ voordat het model hem ziet; afgevinkt komt alleen terug bij nieuwe mail in die
 draad. Wat het model sluit blijft zichtbaar met reden en is terug te draaien,
 want "dit is afgehandeld" is zijn oordeel en dat zal soms te vroeg zijn.
 
-**Archiveren is het signaal "af", en dat komt van jou.** Het overzicht leest
-alleen het postvak (`in:inbox`), anders dan de samenvatting waar gearchiveerd
-wel meetelt omdat de vraag daar "wat gebeurde er" is. En een regel waarvan jij
+**Alleen het postvak, voor overzicht én samenvatting.** De filters van dit
+account leiden Jira, GitHub, Slack, Miro en de rest langs het postvak heen;
+zonder `in:inbox` las de samenvatting die stromen alsnog en ging driekwart van
+wat hij ophaalde meteen weer weg door de vinkjes. Het postvak ís hier de
+curatie. Voor het overzicht geldt bovendien: gearchiveerd is jouw signaal dat
+iets af is, en dat hoort niet in "wat staat er open". Een regel waarvan jij
 de draad archiveert gaat bij de volgende bijwerking dicht zonder het model te
 vragen — een `threads.get` met `format=minimal` per stille regel, het
 goedkoopste wat Gmail heeft. Dat oordeel is al geveld, door jou, dus het wint

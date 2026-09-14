@@ -90,7 +90,7 @@ const nl = {
       day: 'Een dag',
     },
     sinceLast: (moment: string) => `Laatste samenvatting: ${moment}.`,
-    sinceNever: 'Alles in de gekozen periode, ook wat je al gearchiveerd hebt.',
+    sinceNever: 'Wat er in de gekozen periode in je postvak kwam. Wat je filters eruit houden telt niet mee.',
     tweak: 'Wat er wel en niet in mag',
     skip: {
       promotions: 'Nieuwsbrieven en reclame overslaan',
@@ -340,7 +340,7 @@ const en: typeof nl = {
       day: 'A day',
     },
     sinceLast: (moment: string) => `Last summary: ${moment}.`,
-    sinceNever: 'Everything in the chosen period, including what you archived.',
+    sinceNever: 'What reached your inbox in the chosen period. What your filters keep out does not count.',
     tweak: 'What to leave in or out',
     skip: {
       promotions: 'Skip newsletters and promotions',

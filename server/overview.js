@@ -188,8 +188,8 @@ export async function updateOverview({
   const blocked = new Set(dismissed)
 
   // Alleen het postvak: gearchiveerd is jouw signaal dat iets af is, en dat
-  // hoort dus niet in "wat staat er open". Anders dan bij de samenvatting,
-  // waar de vraag "wat gebeurde er" is en gearchiveerd wél meetelt.
+  // hoort dus niet in "wat staat er open". En de filters van dit account
+  // leiden alle automatische stromen er al langs.
   const collected = await collectMessages({
     query: `after:${Math.floor(from.getTime() / 1000)} in:inbox`,
     skip,
