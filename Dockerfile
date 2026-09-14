@@ -29,7 +29,8 @@ ENV COMMIT_SHA=$COMMIT_SHA
 COPY server/package*.json ./
 RUN npm ci --omit=dev
 
-COPY server/index.js ./
+# Alle server-modules, niet alleen index.js: die importeert er inmiddels een.
+COPY server/*.js ./
 COPY --from=build /app/dist ./public
 
 EXPOSE 8080

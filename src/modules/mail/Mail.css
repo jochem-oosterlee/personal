@@ -1,0 +1,375 @@
+.mail {
+  display: flex;
+  flex-direction: column;
+}
+
+.mail__top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mail__boxes {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* Postvakken als hairline-tabjes; het actieve krijgt de accentlijn. */
+.mail__box {
+  padding: 0.1875rem 0.5rem;
+  font: inherit;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.mail__box--active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (hover: hover) {
+  .mail__box:not(.mail__box--active):hover {
+    color: var(--text);
+    border-color: var(--line-strong);
+  }
+}
+
+/* Verversen en nieuw bericht duwen we naar rechts; het eerste is de lijst. */
+.mail__icon {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.mail__icon:first-of-type {
+  margin-left: auto;
+}
+
+@media (hover: hover) {
+  .mail__icon:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+}
+
+.mail__search {
+  display: flex;
+}
+
+.mail__searchInput {
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 0.5rem;
+  font: inherit;
+  font-size: max(1rem, var(--font-size)); /* keeps iOS from zooming on focus */
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.mail__searchInput::placeholder {
+  color: var(--text-faint);
+}
+
+.mail__searchInput:focus {
+  border-color: var(--line-strong);
+  outline: none;
+}
+
+.mail__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.mail__empty,
+.mail__note,
+.mail__error {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.mail__error {
+  color: var(--danger);
+}
+
+.mail__notice {
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+}
+
+.mail__noticeText {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* --- Een draad in de lijst ------------------------------------------------ */
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  width: 100%;
+  padding: 0.5rem 0.125rem;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .thread:hover .thread__subject {
+    color: var(--accent);
+  }
+}
+
+.thread__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.thread__from {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.thread--unread .thread__from {
+  color: var(--text);
+}
+
+.thread__date {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.thread__subject {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ongelezen krijgt gewicht, geen vlak: de rest van de app kent ook geen vlakken. */
+.thread--unread .thread__subject {
+  font-weight: 600;
+}
+
+.thread__star {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.thread__count {
+  flex-shrink: 0;
+  padding: 0 0.25rem;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  border: 1px solid var(--line);
+}
+
+.thread__snippet {
+  overflow: hidden;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Een open draad ------------------------------------------------------- */
+
+.mail__subject {
+  margin: 0.75rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.mail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+}
+
+.mail__messages {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.message {
+  padding: 0.625rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.message__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.message__from {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message__date {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.message__body {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.message__attachments {
+  margin: 0.5rem 0 0;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* --- Versturen ------------------------------------------------------------ */
+
+.send {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+}
+
+.send__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.send__title,
+.send__to {
+  margin: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.send__subject {
+  margin: 0;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.send__field {
+  width: 100%;
+  height: var(--control-h);
+  padding: 0 0.5rem;
+  font: inherit;
+  font-size: max(1rem, var(--font-size));
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.send__field::placeholder {
+  color: var(--text-faint);
+}
+
+.send__field:focus,
+.send__text:focus {
+  border-color: var(--line-strong);
+  outline: none;
+}
+
+.send__text {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font: inherit;
+  font-size: max(1rem, var(--font-size));
+  line-height: 1.5;
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  resize: vertical;
+}
+
+.send__text::placeholder {
+  color: var(--text-faint);
+}
+
+/* Twee klikken: de vraag staat naast de knoppen, zoals bij het afbreken van een wens. */
+.send__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.send__ask {
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--danger);
+}
+
+/* De nieuw-berichtkaart bevat zelf weer een verstuurvak; één rand is genoeg. */
+.send .send {
+  margin-top: 0;
+  padding: 0;
+  border: none;
+}

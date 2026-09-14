@@ -34,6 +34,29 @@ opnieuw met de hele draad erbij.
 Er zijn geen GitHub-issues, labels of pull requests meer, en de app heeft geen
 GitHub-token nodig. Zie [ARCHITECTURE.md](ARCHITECTURE.md).
 
+## Mail
+
+Gmail in de app zelf: lezen, archiveren, een ster, actiepunten eruit halen en
+antwoorden. De server praat met de Gmail-API; de app praat alleen met de server,
+net als bij wensen.
+
+De Gmail-connector van claude.ai kan hier niet voor gebruikt worden — dat is een
+MCP-server van Anthropic waarvan de toestemming aan het claude.ai-account hangt.
+Eenmalig koppelen gaat zo:
+
+1. Gmail-API aanzetten in `jochem-personal-pwa`, het toestemmingsscherm op
+   **Internal** zetten — het project zit in de cleverbase.com-organisatie, dus
+   dat kan, en dan is er geen verificatie en geen verval — en een OAuth-client
+   van het type **Desktop app** aanmaken. Moet het een privé-Gmail worden, dan
+   is het External en moet de app **gepubliceerd** zijn: op *Testing* trekt
+   Google het refresh token na zeven dagen weer in.
+2. `node infra/gmail-consent.mjs <client-id> <client-secret>` — dat opent één
+   keer het toestemmingsscherm en drukt af wat er in Secret Manager moet.
+3. Dat commando draaien; het secret heet `gmail-oauth`.
+
+Tot dat gebeurd is zegt het onderdeel dat het nog niet gekoppeld is en werkt de
+rest van de app gewoon door.
+
 ## Deploy
 
 Push naar `main` -> Cloud Build -> nieuwe revisie op Cloud Run. Er zijn geen
@@ -52,6 +75,7 @@ src/
 ├─ App.tsx                      module-registry + tabbalk
 ├─ components/Checklist.tsx     de lijst met afvinkbare regels bij Taken
 ├─ components/Extract.tsx       plakvak bij Taken: tekst in, actiepunten uit
+├─ components/Suggestions.tsx   kies welke actiepunten je overneemt
 ├─ components/Markdown.tsx      kleine markdown-weergave voor Claude's antwoorden
 ├─ lib/
 │  ├─ storage.ts                usePersistentState + synchronisatie
@@ -60,12 +84,14 @@ src/
 │  ├─ session.ts                herkent een verlopen IAP-sessie
 │  ├─ wishes.ts                 praat met /api/wishes
 │  ├─ tasks.ts                  praat met /api/extract-tasks
+│  ├─ mail.ts                   praat met /api/mail
 │  ├─ models.ts                 keuze van het model
 │  ├─ autogrow.ts               tekstvelden die meegroeien met hun inhoud
 │  ├─ version.ts                draait dit toestel de laatste build?
 │  └─ theme.ts                  licht/donker/systeem
 └─ modules/
    ├─ tasks/                    Taken — schakelt tussen persoonlijk en werk
+   ├─ mail/                     Mail
    ├─ notes/                    Notities
    ├─ wishes/                   Wensen
    └─ settings/                 Instellingen
@@ -84,6 +110,10 @@ teruggeschreven, zodat je lijstjes op elk toestel gelijk staan.
 
 Per sleutel wint de laatste schrijver. Dezelfde lijst tegelijk op twee
 toestellen bewerken verliest er een; dat is bewust niet opgelost.
+
+Mail is de uitzondering: daar staat niets van in `localStorage`. Een mailbox is
+geen lijst die je zelf bijhoudt, en een oude kopie tonen is erger dan even niets
+tonen — offline blijft dat onderdeel dus leeg.
 
 `usePersistentState` houdt ook hooks op dezelfde sleutel binnen één document
 gelijk, en luistert op `storage` voor andere tabs.

@@ -1,25 +1,16 @@
 import { useState } from 'react'
-import { Check, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { extractTasks, MAX_TEXT } from '../lib/tasks'
 import type { ExtractedTask } from '../lib/tasks'
 import { useLanguage } from '../lib/language'
+import { Suggestions } from './Suggestions'
 import './Extract.css'
-
-type Suggestion = ExtractedTask & { id: string; picked: boolean }
 
 type ExtractProps = {
   /** Zet de aangevinkte voorstellen als taken in de lijst. */
   onAdd: (tasks: ExtractedTask[]) => void
   /** Klapt het plakvak dicht; de knop ernaartoe staat bij het invoerveld. */
   onClose: () => void
-}
-
-/** Kort en zonder jaartal: een voorstel staat maar even op het scherm. */
-function formatDue(dueAt: string, language: string) {
-  return new Date(`${dueAt}T00:00:00`).toLocaleDateString(language, {
-    day: 'numeric',
-    month: 'short',
-  })
 }
 
 /**
@@ -29,49 +20,30 @@ function formatDue(dueAt: string, language: string) {
  * klapt het open, zodat een taak intypen het eerste blijft wat je ziet.
  */
 export function Extract({ onAdd, onClose }: ExtractProps) {
-  const { t, language } = useLanguage()
+  const { t } = useLanguage()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null)
+  const [found, setFound] = useState<{ key: string; tasks: ExtractedTask[] } | null>(null)
 
   async function find() {
     setBusy(true)
     setError(null)
-    setSuggestions(null)
+    setFound(null)
 
     try {
-      const found = await extractTasks(text.trim())
-      if (found.length === 0) {
+      const tasks = await extractTasks(text.trim())
+      if (tasks.length === 0) {
         setError(t.extract.nothing)
         return
       }
-      setSuggestions(
-        found.map((task) => ({ ...task, id: crypto.randomUUID(), picked: true })),
-      )
+      setFound({ key: crypto.randomUUID(), tasks })
     } catch {
       setError(t.extract.failed)
     } finally {
       setBusy(false)
     }
   }
-
-  function toggle(id: string) {
-    setSuggestions((current) =>
-      (current ?? []).map((item) =>
-        item.id === id ? { ...item, picked: !item.picked } : item,
-      ),
-    )
-  }
-
-  function add() {
-    const picked = (suggestions ?? []).filter((item) => item.picked)
-    if (picked.length === 0) return
-    onAdd(picked.map(({ name, dueAt }) => ({ name, dueAt })))
-    onClose()
-  }
-
-  const pickedCount = (suggestions ?? []).filter((item) => item.picked).length
 
   return (
     <div className="extract">
@@ -98,7 +70,7 @@ export function Extract({ onAdd, onClose }: ExtractProps) {
       />
 
       <button
-        className="extract__button"
+        className="hairline-button"
         type="button"
         disabled={busy || !text.trim()}
         onClick={() => void find()}
@@ -108,39 +80,15 @@ export function Extract({ onAdd, onClose }: ExtractProps) {
 
       {error && <p className="extract__error">{error}</p>}
 
-      {suggestions && (
-        <>
-          <ul className="extract__list">
-            {suggestions.map((item) => (
-              <li key={item.id} className="suggestion">
-                <label className="suggestion__label">
-                  <input
-                    className="suggestion__input"
-                    type="checkbox"
-                    checked={item.picked}
-                    onChange={() => toggle(item.id)}
-                  />
-                  <span className="suggestion__box" aria-hidden="true">
-                    <Check size={11} strokeWidth={2.5} />
-                  </span>
-                  <span className="suggestion__name">{item.name}</span>
-                </label>
-                {item.dueAt && (
-                  <span className="suggestion__due">{formatDue(item.dueAt, language)}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-
-          <button
-            className="extract__button"
-            type="button"
-            disabled={pickedCount === 0}
-            onClick={add}
-          >
-            {t.extract.add(pickedCount)}
-          </button>
-        </>
+      {found && (
+        <Suggestions
+          key={found.key}
+          tasks={found.tasks}
+          onAdd={(tasks) => {
+            onAdd(tasks)
+            onClose()
+          }}
+        />
       )}
     </div>
   )

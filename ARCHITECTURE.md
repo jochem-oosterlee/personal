@@ -10,7 +10,7 @@ GitHub is uitsluitend git-host.
 | | **Cloud Storage** — screenshots bij een wens, bucket dicht |
 | | **Cloud Run Job `wish-agent`** — bouwt een wens |
 | | **Cloud Build-trigger** — push naar `main` → deploy |
-| | **Secret Manager** — `github-token`, `claude-oauth-token` |
+| | **Secret Manager** — `github-token`, `claude-oauth-token`, `gmail-oauth` |
 
 Geen GitHub Actions, geen issues, geen labels, geen pull requests.
 
@@ -85,6 +85,31 @@ plaats van als gemounte env-var: de service-instellingen staan bewust niet in
 op de Messages API is niet gedocumenteerd en kan stilvallen; dan geeft het
 plakvak een melding en werkt de rest van Taken door.
 
+**Gmail met een eigen OAuth-client, niet via de connector.** De Gmail-connector
+van claude.ai is een door Anthropic gehoste MCP-server (`gmail.mcp.claude.com`)
+waarvan de toestemming aan het claude.ai-account hangt; er is geen token dat
+deze service daarvoor kan tonen, en `claude-oauth-token` geeft toegang tot het
+model, niet tot connectors. De MCP-connector in de Messages API zou een server
+vragen die Anthropic kan bereiken — deze zit achter IAP. Dus praat de server
+rechtstreeks met de Gmail-API. Het refresh token komt uit een eenmalige consent
+op de eigen machine (`infra/gmail-consent.mjs`) en staat in Secret Manager; de
+app ziet het nooit, net zomin als het GitHub-token.
+
+**De toestemming staat op "In production", ook zonder verificatie.** Bij
+publicatiestatus *Testing* trekt Google een refresh token na zeven dagen in, en
+dan valt Mail elke week stil. Een ongeverifieerde productie-app kost één
+waarschuwingsscherm bij het koppelen, en daarna niets meer.
+
+**Waar een antwoord heen gaat, bepaalt de server.** De app stuurt bij een
+antwoord alleen de tekst mee; geadresseerde, onderwerp en `References` haalt de
+server uit de draad. Zo kan een fout in het scherm geen mail naar de verkeerde
+persoon sturen, en staat versturen los van wat de client denkt te weten.
+
+**Mail staat niet in Firestore en niet in `localStorage`.** Alle andere
+onderdelen zijn lijstjes die je zelf bijhoudt; een mailbox is dat niet. Een
+verouderde kopie tonen is daar erger dan even niets tonen, dus haalt het
+onderdeel bij elke weergave op wat er nú staat en blijft het offline leeg.
+
 **Geen token meer op het toestel.** De app praat alleen met zijn eigen backend.
 GitHub-credentials staan serverzijde in Secret Manager, met IAM eromheen.
 
@@ -115,7 +140,7 @@ synchronisatie alles terugzette. En de herlaad erna brak de DELETE af.
 
 - Project in de organisatie, gekoppeld aan billing
 - API's: Cloud Run, Cloud Build, Artifact Registry, IAP, Firestore,
-  Secret Manager, Cloud Resource Manager
+  Secret Manager, Cloud Resource Manager, Gmail
 - IAP op de service, `roles/iap.httpsResourceAccessor` op één principal
 - Cloud Build-verbinding met GitHub, repository gekoppeld, trigger op `main`
   met een expliciet `--service-account` (nieuwe projecten eisen dat, en de
@@ -123,6 +148,8 @@ synchronisatie alles terugzette. En de herlaad erna brak de DELETE af.
 - Service-account rollen: `run.admin`, `artifactregistry.writer`,
   `logging.logWriter`, `iam.serviceAccountUser`, `datastore.user`,
   `secretmanager.secretAccessor`
+- OAuth-client van het type "Desktop app" voor Gmail, toestemmingsscherm op
+  "In production" met de scopes `gmail.modify` en `gmail.send`
 - `roles/secretmanager.admin` voor de Cloud Build-agent; daar bewaart hij het
   GitHub-token van de verbinding
 
@@ -130,7 +157,9 @@ synchronisatie alles terugzette. En de herlaad erna brak de DELETE af.
 
 `github-token` is een fine-grained PAT met `Contents: read and write` op deze
 repo — de agent pusht ermee. `claude-oauth-token` komt uit
-`claude setup-token`. Nieuwe waarde toevoegen:
+`claude setup-token`. `gmail-oauth` is JSON met `client_id`, `client_secret` en
+`refresh_token`, afgedrukt door `node infra/gmail-consent.mjs` — scopes
+`gmail.modify` en `gmail.send`. Nieuwe waarde toevoegen:
 
 ```
 gcloud secrets versions add github-token --data-file=- --project=jochem-personal-pwa

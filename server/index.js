@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import express from 'express'
 import { Firestore, FieldValue } from '@google-cloud/firestore'
 import { Storage } from '@google-cloud/storage'
+import { getThread, listThreads, modifyThread, NOT_LINKED, profile, sendMail } from './gmail.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const STATIC = path.join(here, 'public')
@@ -454,6 +455,9 @@ const EXTRACT_MODEL = 'claude-haiku-4-5'
 // Ruim boven een lange e-mail; de app hanteert dezelfde grens.
 const MAX_EXTRACT_CHARS = 20000
 
+/** Wat je zelf typt is korter dan wat je plakt; genoeg voor een lang antwoord. */
+const MAX_MAIL_CHARS = 10000
+
 /** Gevuld na de eerste aanroep; leeggegooid zodra Anthropic hem weigert. */
 let claudeToken = null
 
@@ -590,6 +594,140 @@ app.post('/api/extract-tasks', requireUser, async (req, res) => {
     claudeToken = null
     console.error(error)
     res.status(502).json({ error: String(error) })
+  }
+})
+
+// --- Mail -------------------------------------------------------------------
+
+/**
+ * Gmail loopt via `server/gmail.js`; hier blijven alleen de routes over. Alles
+ * gaat langs `requireUser`, dus langs IAP, en de mailbox zelf staat nergens in
+ * Firestore — de app haalt bij elke weergave op wat er nú staat.
+ */
+
+/** Nog niet gekoppeld is geen storing: 503 met uitleg, de app zegt het netjes. */
+function mailError(error, res) {
+  if (error?.code === NOT_LINKED) {
+    return res.status(503).json({ error: 'gmail is nog niet gekoppeld', code: error.code })
+  }
+  console.error(error)
+  return res.status(502).json({ error: String(error) })
+}
+
+const MAIL_QUERIES = {
+  inbox: 'in:inbox',
+  unread: 'in:inbox is:unread',
+  starred: 'is:starred',
+}
+
+app.get('/api/mail/threads', requireUser, async (req, res) => {
+  const { box, q, limit } = req.query
+  // Vrij zoeken mag, maar alleen wat de app zelf aanbiedt komt uit de knoppen.
+  const query = typeof q === 'string' && q.trim()
+    ? q.trim().slice(0, 200)
+    : (MAIL_QUERIES[box] ?? MAIL_QUERIES.inbox)
+
+  try {
+    const threads = await listThreads({ query, limit: Number(limit) || 20 })
+    res.set('Cache-Control', 'no-store')
+    res.json({ threads })
+  } catch (error) {
+    mailError(error, res)
+  }
+})
+
+app.get('/api/mail/threads/:id', requireUser, async (req, res) => {
+  try {
+    const thread = await getThread(req.params.id)
+    res.set('Cache-Control', 'no-store')
+    res.json(thread)
+  } catch (error) {
+    mailError(error, res)
+  }
+})
+
+/**
+ * Labels zetten in plaats van losse acties: archiveren is INBOX weghalen,
+ * gelezen is UNREAD weghalen. Alleen deze drie, zodat een typefout in de app
+ * geen label aanmaakt of iets in de prullenbak gooit.
+ */
+const MAIL_LABELS = new Set(['INBOX', 'UNREAD', 'STARRED'])
+
+app.post('/api/mail/threads/:id/labels', requireUser, async (req, res) => {
+  const { add = [], remove = [] } = req.body ?? {}
+  const allowed = (list) =>
+    Array.isArray(list) ? list.filter((label) => MAIL_LABELS.has(label)) : []
+
+  try {
+    await modifyThread(req.params.id, { add: allowed(add), remove: allowed(remove) })
+    res.sendStatus(204)
+  } catch (error) {
+    mailError(error, res)
+  }
+})
+
+app.post('/api/mail/threads/:id/reply', requireUser, async (req, res) => {
+  const { text } = req.body ?? {}
+
+  if (typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'tekst ontbreekt' })
+  }
+  if (text.length > MAX_MAIL_CHARS) {
+    return res.status(413).json({ error: 'tekst te lang' })
+  }
+
+  try {
+    // Geadresseerde en onderwerp komen uit de draad, niet uit het verzoek: de
+    // app hoeft niet te kunnen bepalen waar een antwoord heen gaat.
+    const { reply } = await getThread(req.params.id)
+    if (!reply.to) return res.status(409).json({ error: 'geen afzender in deze draad' })
+
+    const sent = await sendMail({
+      to: reply.to,
+      subject: reply.subject,
+      text: text.trim(),
+      threadId: req.params.id,
+      inReplyTo: reply.messageId,
+      references: reply.references,
+    })
+    res.status(201).json(sent)
+  } catch (error) {
+    mailError(error, res)
+  }
+})
+
+app.post('/api/mail/send', requireUser, async (req, res) => {
+  const { to, subject, text } = req.body ?? {}
+
+  if (typeof to !== 'string' || !to.includes('@')) {
+    return res.status(400).json({ error: 'geadresseerde ontbreekt' })
+  }
+  if (typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'tekst ontbreekt' })
+  }
+  if (text.length > MAX_MAIL_CHARS) {
+    return res.status(413).json({ error: 'tekst te lang' })
+  }
+
+  try {
+    const sent = await sendMail({
+      to: to.trim().slice(0, 200),
+      subject: String(subject ?? '').trim().slice(0, 200) || '(geen onderwerp)',
+      text: text.trim(),
+    })
+    res.status(201).json(sent)
+  } catch (error) {
+    mailError(error, res)
+  }
+})
+
+/** Welk adres er verstuurt. De app zet dat bij de knop, voor het de deur uit gaat. */
+app.get('/api/mail/profile', requireUser, async (_req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store')
+    res.json(await profile())
+  } catch (error) {
+    mailError(error, res)
   }
 })
 
