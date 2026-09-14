@@ -26,6 +26,7 @@ import { extractTasks } from '../../lib/tasks'
 import type { ExtractedTask } from '../../lib/tasks'
 import { readStored, writeStored } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
+import { useBackLayer } from '../../lib/back'
 import { Suggestions } from '../../components/Suggestions'
 import './Mail.css'
 
@@ -154,6 +155,10 @@ export function Mail() {
     setOpenId(null)
     setDetail(null)
   }
+
+  // De terugknop van het toestel sluit eerst wat er openstaat.
+  useBackLayer(openId !== null, back)
+  useBackLayer(composing, () => setComposing(false))
 
   if (link !== 'ok') {
     return (

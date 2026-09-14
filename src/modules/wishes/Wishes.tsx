@@ -4,6 +4,7 @@ import { Markdown } from '../../components/Markdown'
 import { usePersistentState } from '../../lib/storage'
 import { useAutoGrow } from '../../lib/autogrow'
 import { useLanguage } from '../../lib/language'
+import { useBackLayer } from '../../lib/back'
 import { DEFAULT_MODEL } from '../../lib/models'
 import type { ModelId } from '../../lib/models'
 import {
@@ -69,6 +70,10 @@ export function Wishes() {
   // de afbeelding meteen weer mee, en zag je hem dus niet.
   const [viewing, setViewing] = useState<Viewing | null>(null)
   const closeViewer = useCallback(() => setViewing(null), [])
+
+  // Een schermvullende afbeelding hoort dicht te gaan met de terugknop, niet
+  // de app te sluiten.
+  useBackLayer(viewing !== null, closeViewer)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useAutoGrow(inputRef, draft)

@@ -4,6 +4,7 @@ import { Lightbulb, ListTodo, Mail, Settings2, StickyNote } from 'lucide-react'
 import { useTheme } from './lib/theme'
 import type { ThemePreference } from './lib/theme'
 import { LanguageProvider, useLanguage } from './lib/language'
+import { pushBack } from './lib/back'
 import type { Translations } from './lib/translations'
 import { TaskList } from './modules/tasks/TaskList'
 import { Mail as MailModule } from './modules/mail/Mail'
@@ -56,6 +57,17 @@ function AppShell() {
   const active = MODULES[activeIndex]
 
   /**
+   * Van onderdeel wisselen laat een stap achter voor de terugknop, zodat die
+   * je terugbrengt waar je vandaan kwam in plaats van de app te sluiten.
+   */
+  function select(id: string) {
+    if (id === activeId) return
+    const previous = activeId
+    pushBack(() => setActiveId(previous))
+    setActiveId(id)
+  }
+
+  /**
    * Zijwaarts vegen loopt dezelfde volgorde af als de tabbalk, zonder rondgang:
    * bij het eerste en laatste onderdeel houdt het op, net als daar. Alleen
    * touch — met een muis is slepen tekstselectie.
@@ -89,7 +101,7 @@ function AppShell() {
     if (Math.abs(dx) < SWIPE_MIN_X || Math.abs(dx) < Math.abs(dy) * 2) return
 
     const next = MODULES[activeIndex + (dx < 0 ? 1 : -1)]
-    if (next) setActiveId(next.id)
+    if (next) select(next.id)
   }
 
   return (
@@ -109,7 +121,7 @@ function AppShell() {
             type="button"
             className={id === activeId ? 'tab tab--active' : 'tab'}
             aria-current={id === activeId ? 'page' : undefined}
-            onClick={() => setActiveId(id)}
+            onClick={() => select(id)}
           >
             <Icon size={18} strokeWidth={id === activeId ? 1.6 : 1.25} />
             <span className="tab__label">{title(t)}</span>
