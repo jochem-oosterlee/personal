@@ -176,20 +176,64 @@ function decode(data) {
   return Buffer.from(String(data ?? '').replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
 }
 
+/** De benoemde entiteiten die in mail voorkomen; de rest is numeriek. */
+const ENTITIES = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  hellip: '…',
+  ndash: '–',
+  mdash: '—',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  euro: '€',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+  eacute: 'é',
+  egrave: 'è',
+  euml: 'ë',
+  iuml: 'ï',
+  ouml: 'ö',
+  uuml: 'ü',
+  agrave: 'à',
+  ccedil: 'ç',
+}
+
+/**
+ * HTML-entiteiten terug naar tekens: `&#39;` en `&#8217;` (numeriek), `&#x27;`
+ * (hexadecimaal) en `&eacute;` (benoemd). In één pass, zodat `&amp;#39;`
+ * netjes `&#39;` wordt en niet nog een keer wordt gedecodeerd. Gmail levert
+ * de snippet van een draad zo aan, en HTML-mail zit er vol mee.
+ */
+function decodeEntities(text) {
+  return String(text ?? '').replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, code) => {
+    if (code[0] === '#') {
+      const point = code[1] === 'x' || code[1] === 'X'
+        ? parseInt(code.slice(2), 16)
+        : parseInt(code.slice(1), 10)
+      return Number.isFinite(point) && point > 0 && point < 0x110000
+        ? String.fromCodePoint(point)
+        : whole
+    }
+    return ENTITIES[code.toLowerCase()] ?? whole
+  })
+}
+
 /** Alleen wat er als tekst toe doet; opmaak en trackingpixels laten we vallen. */
 function htmlToText(html) {
-  return html
-    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\n{3,}/g, '\n\n')
+  return decodeEntities(
+    html
+      .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<[^>]+>/g, ''),
+  ).replace(/\n{3,}/g, '\n\n')
 }
 
 /**
@@ -257,7 +301,8 @@ function summarise(thread) {
     subject: head.subject || '(geen onderwerp)',
     from: displayName(head.from),
     date: head.date ? new Date(head.date).toISOString() : null,
-    snippet: last?.snippet ?? '',
+    // Gmail escapet de snippet als HTML; op het scherm hoort hij als tekst.
+    snippet: decodeEntities(last?.snippet ?? ''),
     count: messages.length,
     unread: labels.has('UNREAD'),
     starred: labels.has('STARRED'),
