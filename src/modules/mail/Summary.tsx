@@ -198,7 +198,10 @@ export function Summary({ onClose }: SummaryProps) {
 
       setHistory((current) => trim([stored, ...current]))
       setOpenAt(stored.at)
-      setLastAt(stored.at)
+      // Alleen een periode die tot nú loopt schuift "sinds vorige keer" op. Na
+      // "vorige week" zou het punt anders bij nu komen te liggen en viel deze
+      // hele week tussen wal en schip.
+      if (!chosen.to) setLastAt(stored.at)
     } catch {
       setError(t.mail.summaryFailed)
     } finally {
