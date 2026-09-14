@@ -53,7 +53,8 @@ export type OverviewItem = {
 export type OverviewChanges = {
   add: { threadId: string; title: string; who: string; status: 'open' | 'waiting'; lastChange: string }[]
   update: { id: string; title?: string; who?: string; status?: 'open' | 'waiting'; lastChange: string }[]
-  close: { id: string; reason: string }[]
+  /** `by` ontbreekt of is 'claude' als het model sloot; 'you' als jij de draad archiveerde. */
+  close: { id: string; reason: string; by?: 'you' | 'claude' }[]
 }
 
 export type OverviewUpdate = {
@@ -146,7 +147,8 @@ export function applyChanges(
     Object.assign(item, {
       status: 'done',
       closedReason: close.reason,
-      closedBy: 'claude',
+      // Door jou gearchiveerd hoeft niet nog eens onder "gesloten" getoond.
+      closedBy: close.by === 'you' ? 'you' : 'claude',
       closedAt: now,
       updatedAt: now,
     })

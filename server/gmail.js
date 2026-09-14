@@ -392,6 +392,16 @@ export async function sendMail({ to, cc, subject, text, threadId, inReplyTo, ref
 }
 
 /** Welk adres er verstuurt; de app toont dat voordat er iets de deur uit gaat. */
+/**
+ * Ligt de draad nog in het postvak? Archiveren is het signaal "af", en dat
+ * signaal komt van jou, niet van het model — dus mag het overzicht er blind op
+ * vertrouwen. `minimal` geeft alleen labels, het goedkoopste wat Gmail heeft.
+ */
+export async function inInbox(threadId) {
+  const thread = await gmail(`/threads/${encodeURIComponent(threadId)}?format=minimal`)
+  return (thread.messages ?? []).some((message) => (message.labelIds ?? []).includes('INBOX'))
+}
+
 export async function profile() {
   const { emailAddress } = await gmail('/profile')
   return { address: emailAddress }
@@ -450,7 +460,7 @@ function withoutQuotes(text) {
 }
 
 /** Vijf tegelijk: ruim onder wat Gmail per seconde toestaat, en snel genoeg. */
-async function inChunks(items, size, work) {
+export async function inChunks(items, size, work) {
   const done = []
   for (let index = 0; index < items.length; index += size) {
     done.push(...(await Promise.all(items.slice(index, index + size).map(work))))

@@ -141,6 +141,14 @@ voordat het model hem ziet; afgevinkt komt alleen terug bij nieuwe mail in die
 draad. Wat het model sluit blijft zichtbaar met reden en is terug te draaien,
 want "dit is afgehandeld" is zijn oordeel en dat zal soms te vroeg zijn.
 
+**Archiveren is het signaal "af", en dat komt van jou.** Het overzicht leest
+alleen het postvak (`in:inbox`), anders dan de samenvatting waar gearchiveerd
+wel meetelt omdat de vraag daar "wat gebeurde er" is. En een regel waarvan jij
+de draad archiveert gaat bij de volgende bijwerking dicht zonder het model te
+vragen — een `threads.get` met `format=minimal` per stille regel, het
+goedkoopste wat Gmail heeft. Dat oordeel is al geveld, door jou, dus het wint
+ook van wat het model over dezelfde regel zegt.
+
 **Samenvattingen blijven bewaard, de laatste tien.** "Sinds vorige keer" schuift
 het venster op, dus een tweede druk levert terecht niets op; zonder geschiedenis
 haalde dat je enige exemplaar van het scherm. Ze staan in de gedeelde staat,

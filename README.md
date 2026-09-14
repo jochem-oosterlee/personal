@@ -65,6 +65,10 @@ wacht. **Bijwerken** haalt alleen de mail sinds de vorige keer op en laat Claude
 niet een tekst maar wijzigingen teruggeven: toevoegen, bijwerken, sluiten (met
 reden). De app past ze toe.
 
+Alleen je postvak telt: gearchiveerd is jouw signaal dat iets af is. Archiveer
+je in Gmail een draad die in het overzicht staat, dan verdwijnt hij bij de
+volgende bijwerking vanzelf — zonder dat Claude daarover oordeelt.
+
 Elke regel hangt aan een Gmail-draad. Het vinkje is afhandelen: weg uit de
 lijst, maar nieuwe mail in die draad mag hem terugbrengen. Het kruisje is weg
 voorgoed: die draad wordt al uit de mail gefilterd voordat Claude hem ziet.

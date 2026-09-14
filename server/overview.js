@@ -15,7 +15,7 @@
  */
 
 import { ask, toolInput } from './claude.js'
-import { collectMessages } from './gmail.js'
+import { collectMessages, inChunks, inInbox } from './gmail.js'
 
 const MODEL = 'claude-opus-5'
 
@@ -187,8 +187,11 @@ export async function updateOverview({
 
   const blocked = new Set(dismissed)
 
+  // Alleen het postvak: gearchiveerd is jouw signaal dat iets af is, en dat
+  // hoort dus niet in "wat staat er open". Anders dan bij de samenvatting,
+  // waar de vraag "wat gebeurde er" is en gearchiveerd wél meetelt.
   const collected = await collectMessages({
-    query: `after:${Math.floor(from.getTime() / 1000)}`,
+    query: `after:${Math.floor(from.getTime() / 1000)} in:inbox`,
     skip,
     maxThreads: 150,
     maxChars: 300000,
@@ -198,6 +201,20 @@ export async function updateOverview({
   // Weggekruist is weg: die draden ziet het model niet eens.
   const messages = collected.messages.filter((message) => !blocked.has(message.threadId))
   const threadIds = new Set(messages.map((message) => message.threadId))
+
+  /**
+   * Regels waarvan jij de draad hebt gearchiveerd gaan dicht, zonder het model
+   * te vragen: dat oordeel is al geveld, door jou. Alleen draden zonder nieuwe
+   * mail nakijken — kwam er wel iets binnen, dan ligt hij per definitie weer
+   * in het postvak.
+   */
+  const quiet = items.filter((item) => !threadIds.has(item.threadId)).slice(0, 100)
+  const stillThere = await inChunks(quiet, 5, (item) =>
+    inInbox(item.threadId).catch(() => true),
+  )
+  const archived = quiet
+    .filter((_, index) => !stillThere[index])
+    .map((item) => ({ id: item.id, reason: 'je hebt de draad gearchiveerd', by: 'you' }))
 
   const base = {
     until: until.toISOString(),
@@ -209,7 +226,7 @@ export async function updateOverview({
   }
 
   if (messages.length === 0) {
-    return { ...base, changes: { add: [], update: [], close: [] }, log: '' }
+    return { ...base, changes: { add: [], update: [], close: archived }, log: '' }
   }
 
   const { me } = collected
@@ -266,10 +283,16 @@ export async function updateOverview({
   })
 
   const input = toolInput(data, TOOL.name)
+  const changes = normalise(input, items, threadIds)
+
+  // Gearchiveerd wint van wat het model over dezelfde regel zegt.
+  const closedByYou = new Set(archived.map((entry) => entry.id))
+  changes.update = changes.update.filter((entry) => !closedByYou.has(entry.id))
+  changes.close = [...archived, ...changes.close.filter((entry) => !closedByYou.has(entry.id))]
 
   return {
     ...base,
-    changes: normalise(input, items, threadIds),
+    changes,
     log: clean(input?.logboek, 6000),
   }
 }
