@@ -29,6 +29,8 @@
 }
 
 .app__main {
+  /* Alles in een onderdeel erft deze maat: zo leest Taken niet groter dan Mail. */
+  font-size: var(--text-size);
   flex: 1;
   min-height: 0; /* let the flex child shrink so it can scroll */
   padding: 0 var(--gutter) 1rem;

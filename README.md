@@ -165,6 +165,11 @@ geen afgeronde hoeken. Alle kleuren zijn custom properties in
 [src/index.css](src/index.css); licht en donker verschillen alleen in die
 waarden.
 
+Lopende tekst in alle onderdelen heeft één maat, `--text-size` (0.8125rem),
+geërfd via `.app__main`; alleen labels en meta zijn kleiner. Invoervelden
+volgen `--input-size`, dezelfde maat — behalve op iOS, waar een veld onder
+16px inzoomt bij focus en het daarom `max(1rem, …)` blijft.
+
 Font is JetBrains Mono, self-hosted via `@fontsource-variable/jetbrains-mono`.
 Alleen de latin-subset wordt aangehaald (één variabel woff2 van ~40 kB), zodat
 de service worker het kan precachen en de app offline hetzelfde oogt.

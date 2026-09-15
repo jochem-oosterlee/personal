@@ -74,7 +74,7 @@
   height: var(--control-h);
   padding: 0 0.5rem;
   font: inherit;
-  font-size: max(1rem, var(--font-size)); /* keeps iOS from zooming on focus */
+  font-size: var(--input-size);
   color: var(--text);
   background: none;
   border: 1px solid var(--line);
@@ -179,7 +179,7 @@
   gap: 0.375rem;
   min-width: 0;
   overflow: hidden;
-  font-size: 0.8125rem;
+  font-size: var(--text-size);
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -268,7 +268,7 @@
 
 .message__body {
   margin: 0.5rem 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--text-size);
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -310,7 +310,7 @@
 
 .send__subject {
   margin: 0;
-  font-size: 0.8125rem;
+  font-size: var(--text-size);
   overflow-wrap: anywhere;
 }
 
@@ -319,7 +319,7 @@
   height: var(--control-h);
   padding: 0 0.5rem;
   font: inherit;
-  font-size: max(1rem, var(--font-size));
+  font-size: var(--input-size);
   color: var(--text);
   background: none;
   border: 1px solid var(--line);
@@ -340,7 +340,7 @@
   width: 100%;
   padding: 0.375rem 0.5rem;
   font: inherit;
-  font-size: max(1rem, var(--font-size));
+  font-size: var(--input-size);
   line-height: 1.5;
   color: var(--text);
   background: none;
@@ -590,7 +590,7 @@
 }
 
 .item__title {
-  font-size: 0.8125rem;
+  font-size: var(--text-size);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }

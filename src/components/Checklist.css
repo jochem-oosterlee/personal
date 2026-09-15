@@ -29,7 +29,7 @@
   max-height: calc(var(--control-h) * 5);
   padding: 0.3125rem 0.625rem;
   font: inherit;
-  font-size: max(1rem, var(--font-size)); /* keeps iOS from zooming on focus */
+  font-size: var(--input-size);
   line-height: 1.45;
   color: var(--text);
   background: none;
@@ -103,7 +103,7 @@
 
 .checklist__empty {
   margin: clamp(1.5rem, 6vh, 3rem) 0 0;
-  font-size: 0.8125rem;
+  font-size: var(--text-size);
   text-align: center;
   text-wrap: balance;
   color: var(--text-faint);

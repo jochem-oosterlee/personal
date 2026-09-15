@@ -42,7 +42,7 @@
   width: 100%;
   padding: 0.375rem 0.5rem;
   font: inherit;
-  font-size: max(1rem, var(--font-size)); /* keeps iOS from zooming on focus */
+  font-size: var(--input-size);
   line-height: 1.45;
   color: var(--text);
   background: none;

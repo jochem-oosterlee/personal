@@ -22,6 +22,12 @@
   --danger: #a33a2a;
 
   --font-size: clamp(0.875rem, 0.85rem + 0.12vw, 0.9375rem);
+  /* Lopende tekst in lijsten en berichten: één maat voor Mail, Taken, Notities
+     en Wensen, zodat geen onderdeel groter leest dan het andere. */
+  --text-size: 0.8125rem;
+  /* Invoervelden lezen even groot als de tekst eronder. Alleen iOS zoomt in op
+     een veld kleiner dan 16px; daar wordt dit hieronder overschreven. */
+  --input-size: var(--text-size);
   --gutter: clamp(0.75rem, 0.5rem + 1vw, 1.125rem);
   --control-h: 2.25rem;
   --row-h: 2.125rem;
@@ -31,6 +37,15 @@
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Alleen iOS Safari kent -webkit-touch-callout; daar zoomt een veld onder 16px
+   in bij focus, en dat is erger dan een groter veld. Elders blijft de maat
+   gelijk aan de tekst. */
+@supports (-webkit-touch-callout: none) {
+  :root {
+    --input-size: max(1rem, var(--font-size));
+  }
 }
 
 /* useTheme() resolves "system" and pins the result here before first paint. */

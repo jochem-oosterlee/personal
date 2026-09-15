@@ -34,7 +34,7 @@
 
 .suggestion__name {
   min-width: 0;
-  font-size: 0.8125rem;
+  font-size: var(--text-size);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
