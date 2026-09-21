@@ -28,6 +28,9 @@ const MAX_LINKS = 5
 /** Wat er in de badge nog als aanduiding leest ("~2027") en niet als zin. */
 const SHORT_MAX = 14
 
+/** Genoeg voor de twee of drie zinnen die de makers er zelf aan wijden. */
+const FULL_RELEASE_MAX = 700
+
 const WEB_SEARCH = { type: 'web_search_20250305', name: 'web_search', max_uses: MAX_SEARCHES }
 
 /**
@@ -121,6 +124,34 @@ function text(value, max) {
     .slice(0, max)
 }
 
+/**
+ * Een punt telt alleen als er witruimte achter komt: anders sluit "de 1.0 is"
+ * al een zin af, en juist daar gaat het hier over.
+ */
+const SENTENCE_END = /[.!?…]["”’)]?(?=\s)/g
+
+/**
+ * Hetzelfde dak als hierboven, maar dan op een punt in plaats van middenin een
+ * woord: dit is een zin van de makers, en half afgebroken lees je hem niet uit.
+ * Wat er boven het dak uitkomt valt weg tot de laatste zin die af is; is er
+ * geen enkele, dan tot het laatste hele woord, met een beletselteken erachter
+ * zodat te zien is dat er meer stond.
+ */
+function sentences(value, max) {
+  const clean = text(value, Infinity)
+  if (clean.length <= max) return clean
+
+  // Eén spatie erachter, zodat een punt die precies op het dak valt er nog een
+  // achter zich heeft om aan herkend te worden.
+  const cut = `${clean.slice(0, max)} `
+  let end = 0
+  for (const match of cut.matchAll(SENTENCE_END)) end = match.index + match[0].length
+  if (end) return cut.slice(0, end)
+
+  const word = cut.trimEnd().lastIndexOf(' ')
+  return `${(word > 0 ? cut.slice(0, word) : clean.slice(0, max)).trim()}…`
+}
+
 function isoDate(value) {
   const clean = text(value, 10)
   return /^\d{4}-\d{2}-\d{2}$/.test(clean) ? clean : null
@@ -189,10 +220,11 @@ function shape(input, term) {
     releaseAt: isoDate(input.datumIso),
     // Na de 1.0 zegt een 1.0-datum niets meer, en voor een spel dat nog moet
     // verschijnen is het gewoon de releasedatum die hierboven al staat.
-    // Hetzelfde dak als de omschrijving: dit is zelden een datum en meestal een
-    // zin van de makers ("blijft nog zeker tot eind 2026 in early access"), en
-    // bij 80 tekens brak die middenin af.
-    fullRelease: earlyAccess ? text(input.volledigeRelease, 300) : '',
+    // Dit is zelden een datum en meestal een zin van de makers ("blijft nog
+    // zeker tot eind 2026 in early access"). Een ruimer dak dan de omschrijving
+    // dus, en eentje dat op een punt valt: bij 300 tekens eindigde het verhaal
+    // middenin een woord.
+    fullRelease: earlyAccess ? sentences(input.volledigeRelease, FULL_RELEASE_MAX) : '',
     fullReleaseAt: earlyAccess ? isoDate(input.volledigeReleaseIso) : null,
     // De korte vorm hoort in de badge te passen. Afknippen helpt daar niet — dan
     // staat er een halve zin — dus wat te lang is valt weg; de zin hierboven
