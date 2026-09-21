@@ -31,10 +31,19 @@ function dateText(game: GameMeta, language: Language, t: Translations): string {
   return game.releaseDate || t.games.dateUnknown
 }
 
-/** Wat er over de 1.0 gevonden is, of een lege tekst als er niets staat. */
+/** Wat er op het web over de datum gevonden is, of leeg als er niets staat. */
 function fullReleaseText(game: GameMeta, language: Language): string {
   if (game.fullReleaseAt) return dayText(game.fullReleaseAt, language)
   return game.fullRelease ?? ''
+}
+
+/**
+ * Waar de vondst van het web over gaat: bij early access de 1.0, bij een spel
+ * dat nog moet verschijnen de release zelf. Twee keer dezelfde vraag — wanneer
+ * valt hier wat te spelen — maar los zegt een datum niet wélke het is.
+ */
+function foundLabel(game: GameMeta, t: Translations): (when: string) => string {
+  return game.earlyAccess ? t.games.fullRelease : t.games.releaseExpected
 }
 
 function statusLabel(game: GameMeta, t: Translations): string {
@@ -50,11 +59,14 @@ function statusModifier(game: GameMeta): string {
 }
 
 /**
- * Een 1.0-datum is alleen bij een Steam-spel in early access nog te halen: van
- * het web komt hij al mee, en na de 1.0 valt er niets meer op te zoeken.
+ * Zoeken valt er alleen iets bij een Steam-spel dat er nog niet is: van het web
+ * komt de datum al mee, en na de release valt er niets meer op te zoeken. Dat
+ * geldt voor early access — Steam noemt nooit een 1.0 — én voor een spel dat
+ * nog moet verschijnen, want daar blijft Steam vaak bij "2026" terwijl de
+ * makers elders al een dag genoemd hebben.
  */
 function canLookUp(game: Game): boolean {
-  return game.source !== 'web' && game.earlyAccess
+  return game.source !== 'web' && !game.released
 }
 
 /**
@@ -89,9 +101,10 @@ function Links({ game }: { game: GameMeta }) {
  * Een spel is één regel: de naam, de badge rechts uitgelijnd en dan de knoppen.
  * Ingeklapt staan genre, omschrijving en bronnen er helemaal niet — de naam, de
  * status en de datum zijn waar je de lijst voor doorloopt, en de rest maakt daar
- * een muur van. Wat over de 1.0 gevonden is staat wél altijd in beeld: precies
- * daarvoor houd je een spel in early access in de gaten. Past de naam niet op
- * één regel, dan breekt die over twee regels en houdt de badge zijn plek rechts.
+ * een muur van. Wat het web over de datum vond staat wél altijd in beeld:
+ * precies daarvoor houd je een spel dat er nog niet is in de gaten. Past de
+ * naam niet op één regel, dan breekt die over twee regels en houdt de badge
+ * zijn plek rechts.
  */
 function GameRow({
   game,
@@ -168,7 +181,7 @@ function GameRow({
         </button>
       </div>
 
-      {planned && <p className="game__planned">{t.games.fullRelease(planned)}</p>}
+      {planned && <p className="game__planned">{foundLabel(game, t)(planned)}</p>}
 
       {open && (
         <div className="gamecard">
@@ -183,7 +196,11 @@ function GameRow({
               onClick={() => onLookUp(game)}
             >
               <Globe size={12} strokeWidth={1.5} aria-hidden="true" />
-              {lookingUp ? t.games.lookupBusy : t.games.lookup}
+              {lookingUp
+                ? t.games.lookupBusy
+                : game.earlyAccess
+                  ? t.games.lookup
+                  : t.games.lookupDate}
             </button>
           )}
         </div>
@@ -302,8 +319,11 @@ export function Games() {
   }
 
   /**
-   * De 1.0 van een spel in early access opzoeken. Alleen die drie velden gaan
-   * mee: de rest van de regel komt van Steam en dat blijft zo.
+   * Opzoeken waar een regel op wacht: bij early access de 1.0, bij een spel dat
+   * nog moet verschijnen de release zelf — en die staat bij zo'n spel niet in de
+   * 1.0 maar in de gewone datum van het web. Alleen die drie velden gaan mee: de
+   * rest van de regel komt van Steam en dat blijft zo. De datum in de badge dus
+   * ook: wat Steam zegt blijft staan, wat het web vond komt eronder.
    */
   async function lookUp(game: Game) {
     if (onWeb || refreshing) return
@@ -317,7 +337,12 @@ export function Games() {
         setNote(t.games.webNothing(game.name))
         return
       }
-      if (!meta.fullRelease) setNote(t.games.noFullRelease(game.name))
+
+      const when = (game.earlyAccess ? meta.fullRelease : meta.releaseDate) || ''
+      const whenAt = (game.earlyAccess ? meta.fullReleaseAt : meta.releaseAt) ?? null
+      if (!when) {
+        setNote(game.earlyAccess ? t.games.noFullRelease(game.name) : t.games.noDate(game.name))
+      }
 
       // Alleen overschrijven wat deze keer ook echt gevonden is. Een tweede
       // poging die minder oplevert dan de vorige hoort niet te wissen wat er
@@ -327,8 +352,8 @@ export function Games() {
           idOf(entry) === id
             ? {
                 ...entry,
-                fullRelease: meta.fullRelease || entry.fullRelease,
-                fullReleaseAt: meta.fullRelease ? meta.fullReleaseAt : entry.fullReleaseAt,
+                fullRelease: when || entry.fullRelease,
+                fullReleaseAt: when ? whenAt : entry.fullReleaseAt,
                 links: meta.links?.length ? meta.links : entry.links,
                 checkedAt: Date.now(),
               }

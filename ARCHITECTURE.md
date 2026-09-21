@@ -186,7 +186,14 @@ uitgebracht — is precies wat de regel toont, en bijwerken vangt de overgang op
 
 **Wat niet op Steam staat, komt van het web via Claude.** Een spel waarvan
 alleen de studio een pagina heeft valt buiten de storefront-API, en de 1.0 van
-een spel in early access staat daar sowieso niet in. Een eigen zoek-API zou een
+een spel in early access staat daar sowieso niet in. Bij een spel dat nog moet
+verschijnen blijft Steam vaak bij "2026" of "Q1 2026" terwijl er elders al een
+dag genoemd is, dus staat de vraag daar ook open — dezelfde knop, dezelfde
+weg, alleen leest hij dan de gewone datum van het web in plaats van de 1.0.
+Wat hij vindt komt onder de regel te staan en niet in de badge: de datum van de
+regel blijft van Steam, en zo is te zien dat de belofte van het web ergens
+anders vandaan komt. Bijwerken laat het staan zolang het spel er niet is, en
+gooit het weg zodra het er wel is — dan is de vraag beantwoord. Een eigen zoek-API zou een
 tweede sleutel en een tweede abonnement kosten; de `web_search`-tool van de
 Messages API zoekt en leest bij Anthropic zelf en loopt op hetzelfde
 abonnementstoken als de rest — dus weer geen extra credential. Net zo

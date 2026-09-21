@@ -98,6 +98,7 @@ const SYSTEM = [
 - Zoek altijd eerst. Ga nooit op je geheugen af: juist bij spellen die nog moeten verschijnen schuiven datums op.
 - De beste bronnen zijn de officiële site van het spel, de site van de ontwikkelaar of de uitgever, en een winkelpagina (PlayStation Store, Xbox, Epic, GOG, Nintendo). Een nieuwsbericht telt alleen als het recenter is dan die.
 - Staat het spel in early access, zoek dan expliciet naar wat de makers over de 1.0 gezegd hebben. Daar is dit lijstje voor.
+- Moet het spel nog verschijnen, zoek dan expliciet naar de precieste datum die de makers zelf noemen: een winkelpagina of een aankondiging noemt vaak een dag waar een overzichtspagina bij een jaartal blijft.
 - Verzin niets en gok niet. Staat een datum er niet, laat hem leeg; "2026" of "eind 2026" mag als dat alles is wat er staat.
 - Twijfel je of je het juiste spel te pakken hebt, of levert het zoeken niets op, zet dan gevonden op onwaar.
 - Sluit af met één aanroep van het gereedschap \`spel\`.`,

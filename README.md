@@ -122,11 +122,14 @@ wat hij vindt in een kaart: naam, genre, omschrijving, status, datum en de links
 waar het vandaan komt. Klopt het, dan gaat hij met één knop de lijst in — en bij
 **Bijwerken** wordt hij op dezelfde manier opnieuw opgezocht.
 
-Diezelfde weg haalt de 1.0 die Steam niet noemt. Klap een spel in early access
-open en kies **1.0 op het web zoeken**: wat de makers erover gezegd hebben komt
-dan onder de regel te staan, met de bronnen in de kaart erbij. Blijft de regel
-bij een volgende bijwerking in early access, dan blijft dat staan; is de 1.0 er
-eenmaal, dan verdwijnt het met de vraag.
+Diezelfde weg haalt de datum die Steam niet noemt. Klap een spel dat er nog niet
+is open en kies **1.0 op het web zoeken** — bij een spel dat nog moet
+verschijnen heet dat **Datum op het web zoeken**, want daar blijft Steam vaak
+bij een jaartal terwijl de makers elders al een dag genoemd hebben. Wat ze
+erover gezegd hebben komt onder de regel te staan, met de bronnen in de kaart
+erbij; de datum in de badge blijft die van Steam. Is het spel er bij een
+volgende bijwerking nog niet, dan blijft het staan; is het er eenmaal, dan
+verdwijnt het met de vraag.
 
 Dit kost een aanroep van Claude met websearch, dus het gebeurt alleen op
 verzoek — en het duurt een halve minuut in plaats van een seconde. Staan er

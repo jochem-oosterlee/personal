@@ -169,9 +169,12 @@ const nl = {
     webNothing: (name: string) => `Ook op het web is niets te vinden over ${name}.`,
     webFailed: 'Het zoeken op het web lukte niet. Probeer het zo nog eens.',
     lookup: '1.0 op het web zoeken',
+    lookupDate: 'Datum op het web zoeken',
     lookupBusy: 'Zoeken…',
     noFullRelease: (name: string) => `Niemand noemt een datum voor de 1.0 van ${name}.`,
+    noDate: (name: string) => `Niemand noemt een datum voor ${name}.`,
     fullRelease: (when: string) => `1.0 verwacht: ${when}`,
+    releaseExpected: (when: string) => `Release verwacht: ${when}`,
     empty:
       'Nog geen spellen. Zoek op naam; genre, omschrijving, early access en de datum komen van Steam, of anders van het web.',
     remove: (name: string) => `${name} verwijderen`,
@@ -186,7 +189,7 @@ const nl = {
         ? '1 spel kon niet worden bijgewerkt; die regel bleef staan.'
         : `${count} spellen konden niet worden bijgewerkt; die regels bleven staan.`,
     hint:
-      'Steam noemt geen datum voor de 1.0 van een spel in early access; op het web staat die soms wel — klap zo’n spel open en zoek hem op. Bijwerken haalt alles opnieuw op, dus zodra 1.0 er is verspringt de regel vanzelf.',
+      'Steam noemt geen datum voor de 1.0 van een spel in early access, en bij een spel dat nog moet verschijnen blijft het soms bij een jaartal; op het web staat er soms meer — klap zo’n spel open en zoek het op. Bijwerken haalt alles opnieuw op, dus zodra het spel er is verspringt de regel vanzelf.',
   },
   wishes: {
     placeholder: 'Wat mist er?',
@@ -463,9 +466,12 @@ const en: typeof nl = {
     webNothing: (name: string) => `The web has nothing on ${name} either.`,
     webFailed: 'Searching the web failed. Try again in a moment.',
     lookup: 'Look up 1.0 on the web',
+    lookupDate: 'Look up the date on the web',
     lookupBusy: 'Searching…',
     noFullRelease: (name: string) => `Nobody names a date for the 1.0 of ${name}.`,
+    noDate: (name: string) => `Nobody names a date for ${name}.`,
     fullRelease: (when: string) => `1.0 expected: ${when}`,
+    releaseExpected: (when: string) => `Release expected: ${when}`,
     empty:
       'No games yet. Search by name; genre, description, early access and the date come from Steam, or else from the web.',
     remove: (name: string) => `Remove ${name}`,
@@ -480,7 +486,7 @@ const en: typeof nl = {
         ? '1 game could not be updated; that row was left as it was.'
         : `${count} games could not be updated; those rows were left as they were.`,
     hint:
-      'Steam gives no date for the 1.0 of a game in early access; the web sometimes does — open such a game and look it up. Updating fetches everything again, so the row flips by itself once 1.0 is there.',
+      'Steam gives no date for the 1.0 of a game in early access, and for a game that has yet to appear it sometimes gives no more than a year; the web sometimes says more — open such a game and look it up. Updating fetches everything again, so the row flips by itself once the game is there.',
   },
   wishes: {
     placeholder: "What's missing?",

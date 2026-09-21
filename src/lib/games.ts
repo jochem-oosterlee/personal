@@ -25,8 +25,10 @@ export type GameMeta = {
   /** Alleen gevuld als er een hele datum in stond. */
   releaseAt: string | null
   /**
-   * Wat er over de 1.0 van een spel in early access gevonden is. Steam noemt
-   * die nooit; dit komt dus altijd van het web, ook bij een Steam-spel.
+   * Wat er op het web over de datum gevonden is waar een regel op wacht: bij
+   * early access de 1.0, bij een spel dat nog moet verschijnen de release zelf.
+   * Steam noemt de eerste nooit en houdt het bij de tweede vaak bij een
+   * jaartal; dit komt dus altijd van het web, ook bij een Steam-spel.
    */
   fullRelease?: string
   fullReleaseAt?: string | null
