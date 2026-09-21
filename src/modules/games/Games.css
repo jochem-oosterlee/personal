@@ -245,8 +245,7 @@
 }
 
 /* Genre, omschrijving en bronnen staan in een kaartje met hairlines eromheen:
-   ze horen bij het spel erboven en niet bij de regel eronder. Hetzelfde kaartje
-   toont wat het web opleverde voordat je het toevoegt. */
+   ze horen bij het spel erboven en niet bij de regel eronder. */
 .gamecard {
   display: flex;
   flex-direction: column;
@@ -255,49 +254,6 @@
   margin-top: 0.375rem;
   padding: 0.5rem;
   border: 1px solid var(--line);
-}
-
-.gamecard--found {
-  margin-bottom: 0.75rem;
-}
-
-.gamecard__label {
-  margin: 0;
-  color: var(--text-faint);
-}
-
-.gamecard__head {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.gamecard__name {
-  min-width: 0;
-  font-weight: 600;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.gamecard__close {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  color: var(--text-faint);
-  background: none;
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  .gamecard__close:hover {
-    color: var(--accent);
-  }
 }
 
 /* Wat het web over de datum zei, bovenaan de kaart: daarvoor klap je een spel

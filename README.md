@@ -117,9 +117,11 @@ spel early access verlaat, verspringt de regel.
 
 Niet elk spel staat op Steam; van sommige heeft alleen de studio zelf een
 pagina. Onder de zoekresultaten staat daarom **Op het web zoeken**. Claude zoekt
-het spel op, leest de officiële site, de uitgever en een winkelpagina, en zet
-wat hij vindt in een kaart: naam, genre, omschrijving, status, datum en de links
-waar het vandaan komt. Klopt het, dan gaat hij met één knop de lijst in — en bij
+het spel op, leest de officiële site, de uitgever en een winkelpagina, en wat
+hij vindt gaat meteen de lijst in — naam, genre, omschrijving, status, datum en
+de links waar het vandaan komt — net als een spel dat je uit de resultaten van
+Steam kiest. Welke naam het geworden is staat onder het zoekveld, want de lijst
+staat op naam; klopt het niet, dan gooit de prullenbak hem er weer uit. Bij
 **Bijwerken** wordt hij op dezelfde manier opnieuw opgezocht.
 
 Diezelfde weg haalt de datum die Steam niet noemt. Klap een spel dat er nog niet

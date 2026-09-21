@@ -7,7 +7,6 @@ import {
   RefreshCw,
   Search,
   Trash2,
-  X,
 } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
@@ -241,8 +240,6 @@ export function Games() {
   const [searching, setSearching] = useState(false)
   const [adding, setAdding] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
-  // Wat het web opleverde, nog niet in de lijst: een kaart om te bekijken.
-  const [found, setFound] = useState<GameMeta | null>(null)
   const [onWeb, setOnWeb] = useState('')
   const [error, setError] = useState('')
   // Geen storing, maar ook geen resultaat — dat leest anders dan een fout.
@@ -266,7 +263,6 @@ export function Games() {
     setSearching(true)
     clearMessages()
     setHits(null)
-    setFound(null)
     try {
       setHits(await searchGames(query))
     } catch {
@@ -287,7 +283,6 @@ export function Games() {
     setTerm('')
     setHits(null)
     setSearched(false)
-    setFound(null)
     inputRef.current?.focus()
   }
 
@@ -299,7 +294,6 @@ export function Games() {
       setTerm('')
       setHits(null)
       setSearched(false)
-      setFound(null)
       return
     }
 
@@ -316,9 +310,11 @@ export function Games() {
 
   /**
    * Het web als tweede weg. Niet elk spel staat op Steam, en soms staat het er
-   * wel maar zegt de studio ergens anders meer. Wat Claude vindt komt eerst als
-   * kaart in beeld — je moet kunnen zien of het over het juiste spel gaat
-   * voordat het in je lijst staat.
+   * wel maar zegt de studio ergens anders meer. Wat Claude vindt gaat de lijst
+   * in, net als een spel dat je uit de resultaten van Steam kiest: zoeken ís
+   * hier het aanwijzen, er valt niets meer te kiezen. Welke naam het geworden
+   * is staat eronder, want de lijst staat op naam en de regel kan overal tussen
+   * zijn beland; klopt het niet, dan gooit de prullenbak hem er weer uit.
    */
   async function searchWeb() {
     const query = term.trim()
@@ -326,11 +322,12 @@ export function Games() {
 
     setOnWeb(query)
     clearMessages()
-    setFound(null)
     try {
       const meta = await fetchFromWeb(query)
-      if (meta) setFound(meta)
-      else setNote(t.games.webNothing(query))
+      if (meta) {
+        keep(meta)
+        setNote(t.games.webAdded(meta.name))
+      } else setNote(t.games.webNothing(query))
     } catch {
       setError(t.games.webFailed)
     } finally {
@@ -519,38 +516,6 @@ export function Games() {
             {onWeb !== '' && onWeb === term.trim()
               ? t.games.webSearching
               : t.games.webSearch}
-          </button>
-        </div>
-      )}
-
-      {found && (
-        <div className="gamecard gamecard--found">
-          <p className="gamecard__label micro">{t.games.webSource}</p>
-          <div className="gamecard__head">
-            <span className="gamecard__name">{found.name}</span>
-            <span className={`game__status game__status--${statusModifier(found)}`}>
-              <span className="game__status-form">{statusLabel(found, t)}</span>
-              <span className="game__status-date">{dateText(found, language, t)}</span>
-            </span>
-            <button
-              className="gamecard__close"
-              type="button"
-              onClick={() => setFound(null)}
-              aria-label={t.games.webClose}
-            >
-              <X size={13} strokeWidth={1.4} aria-hidden="true" />
-            </button>
-          </div>
-          {fullReleaseText(found, language) && (
-            <p className="gamecard__meta">
-              {t.games.fullRelease(fullReleaseText(found, language))}
-            </p>
-          )}
-          {found.genre && <p className="gamecard__meta">{found.genre}</p>}
-          {found.description && <p className="gamecard__text">{found.description}</p>}
-          <Links game={found} />
-          <button className="hairline-button" type="button" onClick={() => keep(found)}>
-            {t.games.pick}
           </button>
         </div>
       )}
