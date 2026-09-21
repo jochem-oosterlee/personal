@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, ExternalLink, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
@@ -40,55 +40,29 @@ function whenText(game: Game, language: Language, t: Translations): string {
 }
 
 /**
- * Twee regels omschrijving per spel: genoeg om te weten welk spel het is, en
- * de lijst blijft in één blik te overzien. De rest staat een tik verderop.
- * De knop verschijnt alleen als er echt iets is afgeknipt — anders staat er
- * "meer" onder een tekst die al helemaal te lezen valt.
+ * Ingeklapt staat de omschrijving er helemaal niet: de naam, de status en de
+ * datum zijn waar je de lijst voor doorloopt, en een paar regels tekst per
+ * spel maken daar een muur van. Uitklappen laat de hele tekst zien.
  */
 function Description({ text, t }: { text: string; t: Translations }) {
   const [open, setOpen] = useState(false)
-  const [clipped, setClipped] = useState(false)
-  const ref = useRef<HTMLParagraphElement>(null)
-
-  useLayoutEffect(() => {
-    // Openstaand valt er niets te meten — de tekst is dan volledig — en de
-    // knop moet blijven staan om hem weer dicht te kunnen doen.
-    const node = ref.current
-    if (!node || open) return
-
-    const measure = () => setClipped(node.scrollHeight - node.clientHeight > 1)
-    measure()
-
-    // De lijst is smal op een telefoon en breed op een tablet; wat daar in
-    // twee regels past verschilt, en draaien verandert het opnieuw.
-    const observer = new ResizeObserver(measure)
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [text, open])
 
   return (
     <>
-      <p
-        ref={ref}
-        className={`game__description${open ? '' : ' game__description--clipped'}`}
+      {open && <p className="game__description">{text}</p>}
+      <button
+        className="game__more"
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
       >
-        {text}
-      </p>
-      {clipped && (
-        <button
-          className="game__more"
-          type="button"
-          onClick={() => setOpen((current) => !current)}
-          aria-expanded={open}
-        >
-          {open ? (
-            <ChevronUp size={12} strokeWidth={1.4} aria-hidden="true" />
-          ) : (
-            <ChevronDown size={12} strokeWidth={1.4} aria-hidden="true" />
-          )}
-          {open ? t.games.less : t.games.more}
-        </button>
-      )}
+        {open ? (
+          <ChevronUp size={12} strokeWidth={1.4} aria-hidden="true" />
+        ) : (
+          <ChevronDown size={12} strokeWidth={1.4} aria-hidden="true" />
+        )}
+        {open ? t.games.less : t.games.more}
+      </button>
     </>
   )
 }
