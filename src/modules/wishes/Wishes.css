@@ -559,13 +559,16 @@
   color: var(--accent);
 }
 
-/* Een antwoord kan lang zijn; laat het binnen een eigen scrollgebied in plaats
-   van de hele wens uit te rekken. Claude schrijft markdown en die gaat door
+/* Een antwoord loopt in zijn geheel mee met de lijst. Het had een eigen
+   scrollgebied met een dak van 14rem, om een lange reactie de wens niet uit te
+   laten rekken — maar op een telefoon reikte de onderkant van dat blok tot
+   achter de tabbalk. Scrollen erin hield op bij het eigen einde en gaf de
+   beweging niet door (overscroll-behavior: contain), dus de laatste regels
+   stonden achter de balk en waren niet te bereiken. Nu schuift het antwoord mee
+   met .app__main, het enige scrollgebied dat de app heeft; een wens die daar te
+   lang van wordt klap je dicht. Claude schrijft markdown en die gaat door
    .markdown; wat jij intikt blijft platte tekst, vandaar pre-wrap. */
 .note-block__body {
-  max-height: 14rem;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   font-size: 0.75rem;
   line-height: 1.5;
   white-space: pre-wrap;

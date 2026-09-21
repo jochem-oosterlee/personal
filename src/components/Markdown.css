@@ -53,8 +53,8 @@
   overflow-wrap: anywhere;
 }
 
-/* Code houdt zijn eigen regeleinden; breken mag, want horizontaal scrollen in
-   een blok dat zelf al verticaal scrollt is niet te doen op een telefoon. */
+/* Code houdt zijn eigen regeleinden; breken mag, want een blok dat opzij
+   schuift is op een telefoon niet te doen. */
 .markdown pre {
   margin: 0;
   padding: 0.375rem 0.5rem;
