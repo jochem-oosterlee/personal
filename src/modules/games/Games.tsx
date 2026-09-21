@@ -40,30 +40,68 @@ function whenText(game: Game, language: Language, t: Translations): string {
 }
 
 /**
- * Ingeklapt staat de omschrijving er helemaal niet: de naam, de status en de
- * datum zijn waar je de lijst voor doorloopt, en een paar regels tekst per
- * spel maken daar een muur van. Uitklappen laat de hele tekst zien.
+ * Een spel is twee regels hoog: de naam met zijn knoppen, en daaronder status,
+ * genre en datum. Ingeklapt staat de omschrijving er helemaal niet — de naam,
+ * de status en de datum zijn waar je de lijst voor doorloopt, en een paar
+ * regels tekst per spel maken daar een muur van. De chevron die hem uitklapt
+ * staat naast de naam in plaats van op een eigen regel: dat scheelt per spel
+ * een regel, en bij een lijst van dertig spellen scrollt dat een stuk minder.
  */
-function Description({ text, t }: { text: string; t: Translations }) {
+function GameRow({
+  game,
+  language,
+  t,
+  onRemove,
+}: {
+  game: Game
+  language: Language
+  t: Translations
+  onRemove: (appId: number) => void
+}) {
   const [open, setOpen] = useState(false)
 
   return (
-    <>
-      {open && <p className="game__description">{text}</p>}
-      <button
-        className="game__more"
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-      >
-        {open ? (
-          <ChevronUp size={12} strokeWidth={1.4} aria-hidden="true" />
-        ) : (
-          <ChevronDown size={12} strokeWidth={1.4} aria-hidden="true" />
+    <li className="game">
+      <div className="game__head">
+        <a className="game__name" href={game.storeUrl} target="_blank" rel="noreferrer">
+          {game.name}
+          <ExternalLink size={11} strokeWidth={1.4} aria-hidden="true" />
+        </a>
+        {game.description && (
+          <button
+            className="game__more"
+            type="button"
+            onClick={() => setOpen((current) => !current)}
+            aria-expanded={open}
+            aria-label={open ? t.games.hideDescription : t.games.showDescription}
+          >
+            {open ? (
+              <ChevronUp size={13} strokeWidth={1.4} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={13} strokeWidth={1.4} aria-hidden="true" />
+            )}
+          </button>
         )}
-        {open ? t.games.less : t.games.more}
-      </button>
-    </>
+        <button
+          className="game__remove"
+          type="button"
+          onClick={() => onRemove(game.appId)}
+          aria-label={t.games.remove(game.name)}
+        >
+          <Trash2 size={13} strokeWidth={1.4} aria-hidden="true" />
+        </button>
+      </div>
+
+      {open && game.description && <p className="game__description">{game.description}</p>}
+
+      <div className="game__meta">
+        <span className={`game__status game__status--${statusModifier(game)}`}>
+          {statusLabel(game, t)}
+        </span>
+        {game.genre && <span className="game__genre">{game.genre}</span>}
+        <span className="game__when">{whenText(game, language, t)}</span>
+      </div>
+    </li>
   )
 }
 
@@ -219,37 +257,13 @@ export function Games() {
         <>
           <ul className="games__list">
             {sorted.map((game) => (
-              <li key={game.appId} className="game">
-                <div className="game__head">
-                  <a
-                    className="game__name"
-                    href={game.storeUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {game.name}
-                    <ExternalLink size={11} strokeWidth={1.4} aria-hidden="true" />
-                  </a>
-                  <button
-                    className="game__remove"
-                    type="button"
-                    onClick={() => remove(game.appId)}
-                    aria-label={t.games.remove(game.name)}
-                  >
-                    <Trash2 size={13} strokeWidth={1.4} aria-hidden="true" />
-                  </button>
-                </div>
-
-                {game.description && <Description text={game.description} t={t} />}
-
-                <div className="game__meta">
-                  <span className={`game__status game__status--${statusModifier(game)}`}>
-                    {statusLabel(game, t)}
-                  </span>
-                  {game.genre && <span className="game__genre">{game.genre}</span>}
-                  <span className="game__when">{whenText(game, language, t)}</span>
-                </div>
-              </li>
+              <GameRow
+                key={game.appId}
+                game={game}
+                language={language}
+                t={t}
+                onRemove={remove}
+              />
             ))}
           </ul>
 
