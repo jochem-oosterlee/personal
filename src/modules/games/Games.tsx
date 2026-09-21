@@ -32,14 +32,6 @@ function statusModifier(game: Game): string {
 }
 
 /**
- * Status en datum staan in dezelfde badge: los zegt een jaartal niet wát het
- * is, en samen is het één ding om te lezen — "Early access, 1 mei 2026".
- */
-function badgeText(game: Game, language: Language, t: Translations): string {
-  return `${statusLabel(game, t)}, ${dateText(game, language, t)}`
-}
-
-/**
  * Een spel is één regel: de naam, de badge rechts uitgelijnd en dan de knoppen.
  * Ingeklapt staan genre en omschrijving er helemaal niet — de naam, de status
  * en de datum zijn waar je de lijst voor doorloopt, en de rest maakt daar een
@@ -69,8 +61,16 @@ function GameRow({
             {game.name}
             <ExternalLink size={11} strokeWidth={1.4} aria-hidden="true" />
           </a>
+          {/*
+            Status en datum staan in dezelfde badge — los zegt een jaartal niet
+            wát het is — maar elk op een eigen regel: de releasevorm bovenaan,
+            de datum eronder. Achter elkaar brak "Early access, 1 mei 2026" bij
+            de ene naam wel en bij de andere niet, en dan staat de datum in de
+            lijst nergens op dezelfde plek.
+          */}
           <span className={`game__status game__status--${statusModifier(game)}`}>
-            {badgeText(game, language, t)}
+            <span className="game__status-form">{statusLabel(game, t)}</span>
+            <span className="game__status-date">{dateText(game, language, t)}</span>
           </span>
         </div>
         {expandable && (
