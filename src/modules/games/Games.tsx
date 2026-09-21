@@ -1,66 +1,136 @@
 import { useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, ExternalLink, RefreshCw, Search, Trash2 } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Globe,
+  RefreshCw,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
-import { fetchGame, searchGames } from '../../lib/games'
-import type { Game, SearchHit } from '../../lib/games'
+import { fetchFromWeb, fetchGame, searchGames } from '../../lib/games'
+import type { Game, GameMeta, SearchHit } from '../../lib/games'
 import type { Language, Translations } from '../../lib/translations'
 import './Games.css'
 
-/** Wat er van de datum te maken valt: een hele datum leest netter dan Steam's tekst. */
-function dateText(game: Game, language: Language, t: Translations): string {
-  if (game.releaseAt) {
-    return new Date(`${game.releaseAt}T00:00:00`).toLocaleDateString(language, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
+/** Een hele datum leest netter dan de tekst waar hij vandaan komt. */
+function dayText(iso: string, language: Language): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(language, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+/** Wat er van de datum te maken valt: een hele datum, anders de tekst zelf. */
+function dateText(game: GameMeta, language: Language, t: Translations): string {
+  if (game.releaseAt) return dayText(game.releaseAt, language)
   return game.releaseDate || t.games.dateUnknown
 }
 
-function statusLabel(game: Game, t: Translations): string {
+/** Wat er over de 1.0 gevonden is, of een lege tekst als er niets staat. */
+function fullReleaseText(game: GameMeta, language: Language): string {
+  if (game.fullReleaseAt) return dayText(game.fullReleaseAt, language)
+  return game.fullRelease ?? ''
+}
+
+function statusLabel(game: GameMeta, t: Translations): string {
   if (game.comingSoon) return t.games.comingSoon
   if (game.earlyAccess) return t.games.earlyAccess
   return t.games.released
 }
 
-function statusModifier(game: Game): string {
+function statusModifier(game: GameMeta): string {
   if (game.comingSoon) return 'soon'
   if (game.earlyAccess) return 'early'
   return 'released'
 }
 
 /**
+ * Een 1.0-datum is alleen bij een Steam-spel in early access nog te halen: van
+ * het web komt hij al mee, en na de 1.0 valt er niets meer op te zoeken.
+ */
+function canLookUp(game: Game): boolean {
+  return game.source !== 'web' && game.earlyAccess
+}
+
+/**
+ * Een regel die er al stond heeft alleen een app-id; de verhuizing in
+ * `migrations.ts` geeft hem een id. Die draait pas na de eerste synchronisatie
+ * en offline dus voorlopig niet, en tot die tijd moet verwijderen wel werken.
+ */
+function idOf(game: Game): string {
+  return game.id || `steam:${game.appId}`
+}
+
+/** De bronnen die het web opleverde, als lijstje links. */
+function Links({ game }: { game: GameMeta }) {
+  const links = game.links ?? []
+  if (links.length === 0) return null
+
+  return (
+    <ul className="gamecard__links">
+      {links.map((link) => (
+        <li key={link.url}>
+          <a href={link.url} target="_blank" rel="noreferrer">
+            {link.label}
+            <ExternalLink size={10} strokeWidth={1.4} aria-hidden="true" />
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
  * Een spel is één regel: de naam, de badge rechts uitgelijnd en dan de knoppen.
- * Ingeklapt staan genre en omschrijving er helemaal niet — de naam, de status
- * en de datum zijn waar je de lijst voor doorloopt, en de rest maakt daar een
- * muur van. Past de naam niet op één regel, dan breekt die over twee regels en
- * houdt de badge zijn plek rechts — eerder wipte de badge naar een eigen regel
- * en bleef de ruimte naast de naam leeg.
+ * Ingeklapt staan genre, omschrijving en bronnen er helemaal niet — de naam, de
+ * status en de datum zijn waar je de lijst voor doorloopt, en de rest maakt daar
+ * een muur van. Wat over de 1.0 gevonden is staat wél altijd in beeld: precies
+ * daarvoor houd je een spel in early access in de gaten. Past de naam niet op
+ * één regel, dan breekt die over twee regels en houdt de badge zijn plek rechts.
  */
 function GameRow({
   game,
   language,
   t,
+  lookingUp,
+  webBusy,
+  onLookUp,
   onRemove,
 }: {
   game: Game
   language: Language
   t: Translations
-  onRemove: (appId: number) => void
+  lookingUp: boolean
+  /** Ergens loopt al een zoekopdracht; twee tegelijk wachten alleen op elkaar. */
+  webBusy: boolean
+  onLookUp: (game: Game) => void
+  onRemove: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const expandable = Boolean(game.genre || game.description)
+  const planned = fullReleaseText(game, language)
+  const expandable = Boolean(
+    game.genre || game.description || (game.links ?? []).length > 0 || canLookUp(game),
+  )
 
   return (
     <li className="game">
       <div className="game__head">
         <div className="game__title">
-          <a className="game__name" href={game.storeUrl} target="_blank" rel="noreferrer">
-            {game.name}
-            <ExternalLink size={11} strokeWidth={1.4} aria-hidden="true" />
-          </a>
+          {/* Een spel van het web heeft niet altijd een pagina om heen te
+              linken; dan blijft de naam gewoon tekst. */}
+          {game.storeUrl ? (
+            <a className="game__name" href={game.storeUrl} target="_blank" rel="noreferrer">
+              {game.name}
+              <ExternalLink size={11} strokeWidth={1.4} aria-hidden="true" />
+            </a>
+          ) : (
+            <span className="game__name">{game.name}</span>
+          )}
           {/*
             Status en datum staan in dezelfde badge — los zegt een jaartal niet
             wát het is — maar elk op een eigen regel: de releasevorm bovenaan,
@@ -91,15 +161,33 @@ function GameRow({
         <button
           className="game__remove"
           type="button"
-          onClick={() => onRemove(game.appId)}
+          onClick={() => onRemove(idOf(game))}
           aria-label={t.games.remove(game.name)}
         >
           <Trash2 size={13} strokeWidth={1.4} aria-hidden="true" />
         </button>
       </div>
 
-      {open && game.genre && <p className="game__genre">{game.genre}</p>}
-      {open && game.description && <p className="game__description">{game.description}</p>}
+      {planned && <p className="game__planned">{t.games.fullRelease(planned)}</p>}
+
+      {open && (
+        <div className="gamecard">
+          {game.genre && <p className="gamecard__meta">{game.genre}</p>}
+          {game.description && <p className="gamecard__text">{game.description}</p>}
+          <Links game={game} />
+          {canLookUp(game) && (
+            <button
+              className="hairline-button"
+              type="button"
+              disabled={webBusy}
+              onClick={() => onLookUp(game)}
+            >
+              <Globe size={12} strokeWidth={1.5} aria-hidden="true" />
+              {lookingUp ? t.games.lookupBusy : t.games.lookup}
+            </button>
+          )}
+        </div>
+      )}
     </li>
   )
 }
@@ -108,17 +196,30 @@ export function Games() {
   const { t, language } = useLanguage()
   const [games, setGames] = usePersistentState<Game[]>('games.items', [])
   const [term, setTerm] = useState('')
-  // null is "niet gezocht"; een lege lijst is "gezocht, niets gevonden".
+  // null is "niets van Steam"; een lege lijst is "gezocht, niets gevonden".
   const [hits, setHits] = useState<SearchHit[] | null>(null)
+  // Los van `hits`, want ook een Steam die niet antwoordde is een gezochte
+  // term — en juist dan moet de weg naar het web openstaan.
+  const [searched, setSearched] = useState(false)
   const [searching, setSearching] = useState(false)
   const [adding, setAdding] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
+  // Wat het web opleverde, nog niet in de lijst: een kaart om te bekijken.
+  const [found, setFound] = useState<GameMeta | null>(null)
+  const [onWeb, setOnWeb] = useState('')
   const [error, setError] = useState('')
+  // Geen storing, maar ook geen resultaat — dat leest anders dan een fout.
+  const [note, setNote] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Op naam, net als in de spreadsheet: de volgorde waarin je ze toevoegde
   // zegt niets, en dan is een spel steeds opnieuw zoeken in je eigen lijst.
   const sorted = [...games].sort((a, b) => a.name.localeCompare(b.name, language))
+
+  function clearMessages() {
+    setError('')
+    setNote('')
+  }
 
   async function search(event: React.FormEvent) {
     event.preventDefault()
@@ -126,15 +227,31 @@ export function Games() {
     if (!query || searching) return
 
     setSearching(true)
-    setError('')
+    clearMessages()
     setHits(null)
+    setFound(null)
     try {
       setHits(await searchGames(query))
     } catch {
       setError(t.games.searchFailed)
     } finally {
+      setSearched(true)
       setSearching(false)
     }
+  }
+
+  /** Zet een spel in de lijst en ruimt het zoeken op. */
+  function keep(meta: GameMeta) {
+    setGames((current) =>
+      current.some((game) => idOf(game) === meta.id)
+        ? current
+        : [...current, { ...meta, checkedAt: Date.now() }],
+    )
+    setTerm('')
+    setHits(null)
+    setSearched(false)
+    setFound(null)
+    inputRef.current?.focus()
   }
 
   async function add(hit: SearchHit) {
@@ -144,21 +261,15 @@ export function Games() {
     if (games.some((game) => game.appId === hit.appId)) {
       setTerm('')
       setHits(null)
+      setSearched(false)
+      setFound(null)
       return
     }
 
     setAdding(hit.appId)
-    setError('')
+    clearMessages()
     try {
-      const meta = await fetchGame(hit.appId)
-      setGames((current) =>
-        current.some((game) => game.appId === meta.appId)
-          ? current
-          : [...current, { ...meta, checkedAt: Date.now() }],
-      )
-      setTerm('')
-      setHits(null)
-      inputRef.current?.focus()
+      keep(await fetchGame(hit.appId))
     } catch {
       setError(t.games.metaFailed)
     } finally {
@@ -167,35 +278,124 @@ export function Games() {
   }
 
   /**
+   * Het web als tweede weg. Niet elk spel staat op Steam, en soms staat het er
+   * wel maar zegt de studio ergens anders meer. Wat Claude vindt komt eerst als
+   * kaart in beeld — je moet kunnen zien of het over het juiste spel gaat
+   * voordat het in je lijst staat.
+   */
+  async function searchWeb() {
+    const query = term.trim()
+    if (!query || onWeb || refreshing) return
+
+    setOnWeb(query)
+    clearMessages()
+    setFound(null)
+    try {
+      const meta = await fetchFromWeb(query)
+      if (meta) setFound(meta)
+      else setNote(t.games.webNothing(query))
+    } catch {
+      setError(t.games.webFailed)
+    } finally {
+      setOnWeb('')
+    }
+  }
+
+  /**
+   * De 1.0 van een spel in early access opzoeken. Alleen die drie velden gaan
+   * mee: de rest van de regel komt van Steam en dat blijft zo.
+   */
+  async function lookUp(game: Game) {
+    if (onWeb || refreshing) return
+
+    const id = idOf(game)
+    setOnWeb(id)
+    clearMessages()
+    try {
+      const meta = await fetchFromWeb(game.name)
+      if (!meta) {
+        setNote(t.games.webNothing(game.name))
+        return
+      }
+      if (!meta.fullRelease) setNote(t.games.noFullRelease(game.name))
+
+      // Alleen overschrijven wat deze keer ook echt gevonden is. Een tweede
+      // poging die minder oplevert dan de vorige hoort niet te wissen wat er
+      // al stond; de datum en de tekst erbij gaan altijd samen.
+      setGames((current) =>
+        current.map((entry) =>
+          idOf(entry) === id
+            ? {
+                ...entry,
+                fullRelease: meta.fullRelease || entry.fullRelease,
+                fullReleaseAt: meta.fullRelease ? meta.fullReleaseAt : entry.fullReleaseAt,
+                links: meta.links?.length ? meta.links : entry.links,
+                checkedAt: Date.now(),
+              }
+            : entry,
+        ),
+      )
+    } catch {
+      setError(t.games.webFailed)
+    } finally {
+      setOnWeb('')
+    }
+  }
+
+  /**
    * Alles opnieuw ophalen. Eén voor één: Steam knijpt bij een reeks verzoeken
-   * ineens, en een lijst van dertig spellen is zo geen haast. Wat niet lukt
+   * ineens, en een lijst van dertig spellen is zo geen haast. Een spel van het
+   * web gaat langs Claude en duurt daarmee een stuk langer. Wat niet lukt
    * blijft staan zoals het was — een halve regel is erger dan een oude.
    */
   async function refreshAll() {
-    if (refreshing || games.length === 0) return
+    if (refreshing || onWeb || games.length === 0) return
 
     setRefreshing(true)
-    setError('')
+    clearMessages()
 
-    const fresh = new Map<number, Game>()
+    const fresh = new Map<string, Game>()
     let failed = 0
     for (const game of games) {
+      const id = idOf(game)
       try {
-        fresh.set(game.appId, { ...(await fetchGame(game.appId)), checkedAt: Date.now() })
+        if (game.source === 'web') {
+          const meta = await fetchFromWeb(game.name)
+          // Het id blijft van de regel: een spel dat zijn naam anders gaat
+          // schrijven hoort geen tweede keer in de lijst te komen.
+          if (meta) fresh.set(id, { ...meta, id, checkedAt: Date.now() })
+          else failed += 1
+          continue
+        }
+
+        const meta = await fetchGame(game.appId as number)
+        fresh.set(id, {
+          ...meta,
+          // Wat van het web kwam staat niet bij Steam, dus dat zou hier
+          // verdwijnen. Na de 1.0 mag het weg: dan is de vraag beantwoord.
+          ...(meta.released
+            ? {}
+            : {
+                fullRelease: game.fullRelease,
+                fullReleaseAt: game.fullReleaseAt,
+                links: game.links,
+              }),
+          checkedAt: Date.now(),
+        })
       } catch {
         failed += 1
       }
     }
 
-    // Op appId samenvoegen in plaats van de lijst vervangen: wat je tijdens
-    // het ophalen weggooide blijft weg.
-    setGames((current) => current.map((game) => fresh.get(game.appId) ?? game))
+    // Op id samenvoegen in plaats van de lijst vervangen: wat je tijdens het
+    // ophalen weggooide blijft weg.
+    setGames((current) => current.map((game) => fresh.get(idOf(game)) ?? game))
     if (failed > 0) setError(t.games.refreshFailed(failed))
     setRefreshing(false)
   }
 
-  function remove(appId: number) {
-    setGames((current) => current.filter((game) => game.appId !== appId))
+  function remove(id: string) {
+    setGames((current) => current.filter((game) => idOf(game) !== id))
   }
 
   return (
@@ -224,30 +424,84 @@ export function Games() {
       </form>
 
       {searching && <p className="games__note">{t.games.searching}</p>}
+      {onWeb !== '' && <p className="games__note">{t.games.webBusy}</p>}
+      {note && <p className="games__note">{note}</p>}
       {error && <p className="games__error">{error}</p>}
 
-      {hits !== null && !searching && (
-        hits.length === 0 ? (
-          <p className="games__note">{t.games.noResults}</p>
-        ) : (
-          <ul className="hits">
-            {hits.map((hit) => (
-              <li key={hit.appId}>
-                <button
-                  className="hits__pick"
-                  type="button"
-                  disabled={adding !== 0}
-                  onClick={() => void add(hit)}
-                >
-                  <span className="hits__name">{hit.name}</span>
-                  <span className="hits__meta">
-                    {adding === hit.appId ? t.games.fetching : t.games.pick}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )
+      {searched && !searching && (
+        <div className="games__results">
+          {hits !== null && hits.length === 0 && (
+            <p className="games__note">{t.games.noResults}</p>
+          )}
+          {hits !== null && hits.length > 0 && (
+            <ul className="hits">
+              {hits.map((hit) => (
+                <li key={hit.appId}>
+                  <button
+                    className="hits__pick"
+                    type="button"
+                    disabled={adding !== 0}
+                    onClick={() => void add(hit)}
+                  >
+                    <span className="hits__name">{hit.name}</span>
+                    <span className="hits__meta">
+                      {adding === hit.appId ? t.games.fetching : t.games.pick}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Staat het spel er niet bij, of helemaal niet op Steam, dan is dit
+              de tweede weg. Onder de resultaten en niet ernaast: Steam is
+              sneller en gratis, dus die blijft voorgaan. */}
+          <button
+            className="hairline-button"
+            type="button"
+            disabled={!term.trim() || onWeb !== '' || refreshing}
+            onClick={() => void searchWeb()}
+          >
+            <Globe size={12} strokeWidth={1.5} aria-hidden="true" />
+            {/* Alleen "Zoeken…" als déze knop loopt: `onWeb` houdt ook de
+                regel vast waarvan de 1.0 opgezocht wordt. */}
+            {onWeb !== '' && onWeb === term.trim()
+              ? t.games.webSearching
+              : t.games.webSearch}
+          </button>
+        </div>
+      )}
+
+      {found && (
+        <div className="gamecard gamecard--found">
+          <p className="gamecard__label micro">{t.games.webSource}</p>
+          <div className="gamecard__head">
+            <span className="gamecard__name">{found.name}</span>
+            <span className={`game__status game__status--${statusModifier(found)}`}>
+              <span className="game__status-form">{statusLabel(found, t)}</span>
+              <span className="game__status-date">{dateText(found, language, t)}</span>
+            </span>
+            <button
+              className="gamecard__close"
+              type="button"
+              onClick={() => setFound(null)}
+              aria-label={t.games.webClose}
+            >
+              <X size={13} strokeWidth={1.4} aria-hidden="true" />
+            </button>
+          </div>
+          {fullReleaseText(found, language) && (
+            <p className="gamecard__meta">
+              {t.games.fullRelease(fullReleaseText(found, language))}
+            </p>
+          )}
+          {found.genre && <p className="gamecard__meta">{found.genre}</p>}
+          {found.description && <p className="gamecard__text">{found.description}</p>}
+          <Links game={found} />
+          <button className="hairline-button" type="button" onClick={() => keep(found)}>
+            {t.games.pick}
+          </button>
+        </div>
       )}
 
       {games.length === 0 ? (
@@ -257,10 +511,13 @@ export function Games() {
           <ul className="games__list">
             {sorted.map((game) => (
               <GameRow
-                key={game.appId}
+                key={idOf(game)}
                 game={game}
                 language={language}
                 t={t}
+                lookingUp={onWeb === idOf(game)}
+                webBusy={onWeb !== '' || refreshing}
+                onLookUp={(entry) => void lookUp(entry)}
                 onRemove={remove}
               />
             ))}
@@ -270,7 +527,7 @@ export function Games() {
             <button
               className="hairline-button"
               type="button"
-              disabled={refreshing}
+              disabled={refreshing || onWeb !== ''}
               onClick={() => void refreshAll()}
             >
               <RefreshCw size={12} strokeWidth={1.5} aria-hidden="true" />

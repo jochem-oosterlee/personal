@@ -113,6 +113,25 @@ hier: de 1.0 staat er. Een datum voor die 1.0 publiceert Steam niet — dat staa
 hooguit in de tekst van de winkelpagina. Bijwerken vangt het wel op: zodra een
 spel early access verlaat, verspringt de regel.
 
+### Van het web
+
+Niet elk spel staat op Steam; van sommige heeft alleen de studio zelf een
+pagina. Onder de zoekresultaten staat daarom **Op het web zoeken**. Claude zoekt
+het spel op, leest de officiële site, de uitgever en een winkelpagina, en zet
+wat hij vindt in een kaart: naam, genre, omschrijving, status, datum en de links
+waar het vandaan komt. Klopt het, dan gaat hij met één knop de lijst in — en bij
+**Bijwerken** wordt hij op dezelfde manier opnieuw opgezocht.
+
+Diezelfde weg haalt de 1.0 die Steam niet noemt. Klap een spel in early access
+open en kies **1.0 op het web zoeken**: wat de makers erover gezegd hebben komt
+dan onder de regel te staan, met de bronnen in de kaart erbij. Blijft de regel
+bij een volgende bijwerking in early access, dan blijft dat staan; is de 1.0 er
+eenmaal, dan verdwijnt het met de vraag.
+
+Dit kost een aanroep van Claude met websearch, dus het gebeurt alleen op
+verzoek — en het duurt een halve minuut in plaats van een seconde. Staan er
+spellen van het web in je lijst, dan duurt bijwerken navenant langer.
+
 ## Deploy
 
 Push naar `main` -> Cloud Build -> nieuwe revisie op Cloud Run. Er zijn geen
@@ -141,7 +160,7 @@ src/
 │  ├─ wishes.ts                 praat met /api/wishes
 │  ├─ tasks.ts                  praat met /api/extract-tasks
 │  ├─ mail.ts                   praat met /api/mail
-│  ├─ games.ts                  praat met /api/games (Steam)
+│  ├─ games.ts                  praat met /api/games (Steam en web)
 │  ├─ models.ts                 keuze van het model
 │  ├─ autogrow.ts               tekstvelden die meegroeien met hun inhoud
 │  ├─ version.ts                draait dit toestel de laatste build?

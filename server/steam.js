@@ -114,6 +114,10 @@ export async function gameDetails(appId) {
   const date = plain(app.release_date?.date)
 
   return {
+    // Een spel van het web heeft geen app-id, dus is het id van een regel een
+    // tekst met zijn herkomst erin; `steam:` hoort bij deze.
+    id: `steam:${Number(appId)}`,
+    source: 'steam',
     appId: Number(appId),
     name: plain(app.name).slice(0, 120),
     // Early access staat als vlag al in de regel; nog eens als genre erbij

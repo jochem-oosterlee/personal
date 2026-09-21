@@ -76,7 +76,32 @@ function instructionsToRules() {
   writeStored('mail.summary.rulesMigrated', true)
 }
 
+/** Meer dan deze twee velden heeft de verhuizing hieronder niet nodig. */
+type StoredGame = { id?: string; appId?: number }
+
+/**
+ * Een spel werd aangewezen met zijn Steam-app-id. Spellen van het web hebben
+ * dat niet, dus is het id nu een tekst met de herkomst erin. De regels die er
+ * al stonden kwamen allemaal van Steam.
+ */
+function tagGamesWithSource() {
+  if (readStored('games.sourced', false)) return
+
+  const games = readStored<StoredGame[]>('games.items', [])
+  if (games.length > 0) {
+    writeStored(
+      'games.items',
+      games.map((game) =>
+        game.id ? game : { ...game, id: `steam:${game.appId}`, source: 'steam' },
+      ),
+    )
+  }
+
+  writeStored('games.sourced', true)
+}
+
 export function runMigrations(): void {
   moveTasksToWork()
   instructionsToRules()
+  tagGamesWithSource()
 }

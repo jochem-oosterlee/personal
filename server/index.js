@@ -7,6 +7,7 @@ import { Storage } from '@google-cloud/storage'
 import { ask, textOf, toolInput } from './claude.js'
 import { updateOverview } from './overview.js'
 import { gameDetails, searchGames } from './steam.js'
+import { webGame } from './web.js'
 import {
   BUSY,
   collectMessages,
@@ -586,6 +587,30 @@ app.get('/api/games/search', requireUser, async (req, res) => {
     res.json({ results: await searchGames(term) })
   } catch (error) {
     steamError(error, res)
+  }
+})
+
+/**
+ * Het web als tweede weg, voor een spel dat niet op Steam staat en voor de
+ * 1.0-datum die Steam bij early access nooit noemt. Staat bewust vóór de route
+ * hieronder: `/api/games/web` zou anders als app-id gelezen worden.
+ *
+ * Duurder dan Steam — Claude zoekt en leest een paar pagina's — dus alleen op
+ * verzoek, nooit vanzelf. Niets gevonden is geen storing maar `game: null`.
+ */
+app.get('/api/games/web', requireUser, async (req, res) => {
+  const term = String(req.query.q ?? '')
+    .trim()
+    .slice(0, 100)
+  if (!term) return res.status(400).json({ error: 'zoekterm ontbreekt' })
+
+  try {
+    const game = await webGame(term)
+    res.set('Cache-Control', 'no-store')
+    res.json({ game })
+  } catch (error) {
+    console.error(`web: ${error}`)
+    res.status(502).json({ error: String(error.message ?? error) })
   }
 })
 

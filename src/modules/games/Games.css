@@ -222,12 +222,14 @@
   color: var(--danger);
 }
 
-.game__description {
-  margin: 0.25rem 0 0;
-  font-size: var(--text-size);
-  line-height: 1.45;
-  color: var(--text-muted);
-  overflow-wrap: anywhere;
+/* Wat er over de 1.0 gevonden is staat altijd in beeld, ook ingeklapt: daar
+   houd je een spel in early access nu juist voor in de gaten. */
+.game__planned {
+  margin: 0.125rem 0 0;
+  font-size: 0.6875rem;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  color: var(--accent);
 }
 
 /* Naast de naam in plaats van eronder: een eigen regel voor "Meer" kostte per
@@ -252,15 +254,123 @@
   }
 }
 
-/* Het genre staat in het opengeklapte deel, boven de omschrijving: het zegt
-   iets over het spel, maar niet iets waar je de lijst voor doorloopt. */
-.game__genre {
-  margin: 0.25rem 0 0;
+/* Genre, omschrijving en bronnen staan in een kaartje met hairlines eromheen:
+   ze horen bij het spel erboven en niet bij de regel eronder. Hetzelfde kaartje
+   toont wat het web opleverde voordat je het toevoegt. */
+.gamecard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  align-items: flex-start;
+  margin-top: 0.375rem;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+}
+
+.gamecard--found {
+  margin-bottom: 0.75rem;
+}
+
+.gamecard__label {
+  margin: 0;
+  color: var(--text-faint);
+}
+
+.gamecard__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.gamecard__name {
+  min-width: 0;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.gamecard__close {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .gamecard__close:hover {
+    color: var(--accent);
+  }
+}
+
+/* Het genre en de 1.0-regel: zeggen iets over het spel, maar niet iets waar je
+   de lijst voor doorloopt. */
+.gamecard__meta {
+  margin: 0;
   font-size: 0.6875rem;
   line-height: 1.3;
   letter-spacing: 0.04em;
   overflow-wrap: anywhere;
   color: var(--text-faint);
+}
+
+.gamecard__text {
+  margin: 0;
+  font-size: var(--text-size);
+  line-height: 1.45;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* De bronnen onder elkaar in plaats van in een rij: een titel als "Officiële
+   site van de studio" past anders naast de volgende. */
+.gamecard__links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+}
+
+.gamecard__links a {
+  color: var(--accent);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.gamecard__links svg {
+  display: inline;
+  margin-left: 0.25rem;
+  color: var(--text-faint);
+}
+
+/* De knop naar het web staat onder de resultaten van Steam, met wat lucht
+   ertussen: Steam is sneller en gratis, dus die blijft voorgaan. */
+.games__results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.games__results .hits {
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.games__results .games__note {
+  margin-bottom: 0;
 }
 
 /* Twee regels: de releasevorm boven, de datum eronder. Rechts uitgelijnd, want

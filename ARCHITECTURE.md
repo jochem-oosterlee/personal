@@ -184,6 +184,25 @@ jaar. Early access is bij Steam geen vlag maar genre 70, en een datum voor de
 winkelpagina. Het onderscheid dat er wél is — komt nog, early access,
 uitgebracht — is precies wat de regel toont, en bijwerken vangt de overgang op.
 
+**Wat niet op Steam staat, komt van het web via Claude.** Een spel waarvan
+alleen de studio een pagina heeft valt buiten de storefront-API, en de 1.0 van
+een spel in early access staat daar sowieso niet in. Een eigen zoek-API zou een
+tweede sleutel en een tweede abonnement kosten; de `web_search`-tool van de
+Messages API zoekt en leest bij Anthropic zelf en loopt op hetzelfde
+abonnementstoken als de rest — dus weer geen extra credential. Net zo
+ongedocumenteerd als die route al was: valt hij stil, dan is het één melding in
+Games en werkt Steam door. Het model geeft zijn vondst terug via een tool met
+schema, en `server/web.js` laat er alleen doorheen wat de lijst toont; links
+worden op `http(s)` nagekeken voordat ze in een kaart belanden. Omdat dit op
+verzoek een halve minuut duurt en per keer betaalt, gebeurt het nooit vanzelf —
+Steam blijft de eerste weg, het web de tweede.
+
+**Een spel heet niet meer naar zijn app-id.** Een regel van het web heeft er
+geen, dus is het id nu `steam:<app-id>` of `web:<naam>`; wat er al stond kwam
+van Steam en krijgt dat voorvoegsel in een eenmalige verhuizing. Bij bijwerken
+houdt een regel zijn id, ook als het web de naam ineens anders schrijft —
+anders zou hetzelfde spel er twee keer in komen te staan.
+
 **Geen token meer op het toestel.** De app praat alleen met zijn eigen backend.
 GitHub-credentials staan serverzijde in Secret Manager, met IAM eromheen.
 
