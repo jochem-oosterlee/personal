@@ -173,6 +173,17 @@ een samenvatting en direct daarna het overzicht; daar wacht de server één keer
 dertig seconden, en meldt hij het daarna als "druk" (429) in plaats van als
 storing. Een geweigerd token blijft wél meteen een fout.
 
+**De gegevens bij een spel komen van Steam, via de server.** De storefront-API
+van Steam is publiek en heeft geen sleutel nodig, maar stuurt geen CORS-koppen,
+dus kan de app er niet zelf bij: `server/steam.js` staat ertussen en geeft
+alleen terug wat de lijst toont. Bewaard wordt er niets — de lijst is een
+lijstje als alle andere en staat in de gedeelde staat; bijwerken is een knop,
+geen achtergrondtaak, want deze gegevens veranderen hooguit een paar keer per
+jaar. Early access is bij Steam geen vlag maar genre 70, en een datum voor de
+1.0 van zo'n spel publiceert de API niet; die staat hooguit in de tekst van de
+winkelpagina. Het onderscheid dat er wél is — komt nog, early access,
+uitgebracht — is precies wat de regel toont, en bijwerken vangt de overgang op.
+
 **Geen token meer op het toestel.** De app praat alleen met zijn eigen backend.
 GitHub-credentials staan serverzijde in Secret Manager, met IAM eromheen.
 

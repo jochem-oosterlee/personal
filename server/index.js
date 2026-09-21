@@ -6,6 +6,7 @@ import { Firestore, FieldValue } from '@google-cloud/firestore'
 import { Storage } from '@google-cloud/storage'
 import { ask, textOf, toolInput } from './claude.js'
 import { updateOverview } from './overview.js'
+import { gameDetails, searchGames } from './steam.js'
 import {
   BUSY,
   collectMessages,
@@ -559,6 +560,48 @@ app.post('/api/extract-tasks', requireUser, async (req, res) => {
   } catch (error) {
     console.error(`extractie mislukt: ${error}`)
     res.status(502).json({ error: String(error.message ?? error) })
+  }
+})
+
+// --- Games ------------------------------------------------------------------
+
+/**
+ * Zoeken en ophalen bij Steam; de lijst zelf staat in de gedeelde staat, net
+ * als de andere lijstjes. Hier wordt niets bewaard, dus een spel toont altijd
+ * wat Steam bij de laatste bijwerking zei.
+ */
+function steamError(error, res) {
+  console.error(`steam: ${error}`)
+  res.status(502).json({ error: String(error.message ?? error) })
+}
+
+app.get('/api/games/search', requireUser, async (req, res) => {
+  const term = String(req.query.q ?? '')
+    .trim()
+    .slice(0, 100)
+  if (!term) return res.status(400).json({ error: 'zoekterm ontbreekt' })
+
+  try {
+    res.set('Cache-Control', 'no-store')
+    res.json({ results: await searchGames(term) })
+  } catch (error) {
+    steamError(error, res)
+  }
+})
+
+app.get('/api/games/:appId', requireUser, async (req, res) => {
+  // Het id gaat ongewijzigd de URL naar Steam in, dus alleen cijfers.
+  if (!/^\d{1,8}$/.test(req.params.appId)) {
+    return res.status(400).json({ error: 'ongeldig app-id' })
+  }
+
+  try {
+    const game = await gameDetails(req.params.appId)
+    if (!game) return res.status(404).json({ error: 'Steam kent dit spel niet' })
+    res.set('Cache-Control', 'no-store')
+    res.json(game)
+  } catch (error) {
+    steamError(error, res)
   }
 })
 

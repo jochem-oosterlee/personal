@@ -5,6 +5,7 @@ const nl = {
     tasks: 'Taken',
     mail: 'Mail',
     notes: 'Notities',
+    games: 'Games',
     wishes: 'Wensen',
     settings: 'Instellingen',
     aria: 'Onderdelen',
@@ -148,6 +149,35 @@ const nl = {
     label: 'Notitie',
     remove: 'Notitie verwijderen',
   },
+  games: {
+    placeholder: 'Naam van een spel…',
+    inputLabel: 'Spel zoeken op naam',
+    searchLabel: 'Zoeken op Steam',
+    searching: 'Zoeken op Steam…',
+    searchFailed: 'Steam antwoordde niet. Probeer het zo nog eens.',
+    noResults: 'Steam kent dit spel niet onder die naam.',
+    pick: 'Toevoegen',
+    fetching: 'Ophalen…',
+    metaFailed: 'De gegevens van dit spel konden niet worden opgehaald.',
+    empty:
+      'Nog geen spellen. Zoek op naam; genre, omschrijving, early access en de datum komen van Steam.',
+    remove: (name: string) => `${name} verwijderen`,
+    earlyAccess: 'Early access',
+    comingSoon: 'Komt nog',
+    released: 'Uitgebracht',
+    earlyAccessSince: (date: string) => `in early access sinds ${date}`,
+    expected: (date: string) => `verwacht ${date}`,
+    releasedOn: (date: string) => `uit sinds ${date}`,
+    dateUnknown: 'datum onbekend',
+    refresh: 'Bijwerken',
+    refreshing: 'Bijwerken…',
+    refreshFailed: (count: number) =>
+      count === 1
+        ? '1 spel kon niet worden bijgewerkt; die regel bleef staan.'
+        : `${count} spellen konden niet worden bijgewerkt; die regels bleven staan.`,
+    hint:
+      'Steam noemt geen datum voor de 1.0 van een spel in early access. Bijwerken haalt alles opnieuw op, dus zodra 1.0 er is verspringt de regel vanzelf.',
+  },
   wishes: {
     placeholder: 'Wat mist er?',
     inputLabel: 'Nieuwe wens',
@@ -260,6 +290,7 @@ const en: typeof nl = {
     tasks: 'Tasks',
     mail: 'Mail',
     notes: 'Notes',
+    games: 'Games',
     wishes: 'Wishes',
     settings: 'Settings',
     aria: 'Sections',
@@ -401,6 +432,35 @@ const en: typeof nl = {
     placeholder: 'Type your note…',
     label: 'Note',
     remove: 'Remove note',
+  },
+  games: {
+    placeholder: 'Name of a game…',
+    inputLabel: 'Search a game by name',
+    searchLabel: 'Search on Steam',
+    searching: 'Searching Steam…',
+    searchFailed: "Steam didn't answer. Try again in a moment.",
+    noResults: 'Steam has no game by that name.',
+    pick: 'Add',
+    fetching: 'Fetching…',
+    metaFailed: "This game's details could not be fetched.",
+    empty:
+      'No games yet. Search by name; genre, description, early access and the date come from Steam.',
+    remove: (name: string) => `Remove ${name}`,
+    earlyAccess: 'Early access',
+    comingSoon: 'Coming',
+    released: 'Released',
+    earlyAccessSince: (date: string) => `in early access since ${date}`,
+    expected: (date: string) => `expected ${date}`,
+    releasedOn: (date: string) => `out since ${date}`,
+    dateUnknown: 'date unknown',
+    refresh: 'Update',
+    refreshing: 'Updating…',
+    refreshFailed: (count: number) =>
+      count === 1
+        ? '1 game could not be updated; that row was left as it was.'
+        : `${count} games could not be updated; those rows were left as they were.`,
+    hint:
+      'Steam gives no date for the 1.0 of a game in early access. Updating fetches everything again, so the row flips by itself once 1.0 is there.',
   },
   wishes: {
     placeholder: "What's missing?",

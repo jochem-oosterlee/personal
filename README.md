@@ -97,6 +97,22 @@ de vorige gewoon staan in plaats van dat je met een leeg scherm achterblijft.
 Dit is de duurste knop in de app: elke draad wordt volledig opgehaald en gaat
 langs Claude. Reken op een halve tot hele minuut voor een dag.
 
+## Games
+
+Een lijstje spellen om in de gaten te houden. Je zoekt op naam; genre, korte
+omschrijving, of het early access is, de releasedatum en de winkellink komen van
+Steam. **Bijwerken** haalt alles opnieuw op, één spel tegelijk — Steam knijpt bij
+een reeks verzoeken ineens, en wat niet lukt blijft staan zoals het was.
+
+Steam's storefront-API is publiek en heeft geen sleutel nodig, maar stuurt geen
+CORS-koppen: het loopt dus via de eigen server (`/api/games`), net als Gmail en
+Claude. De lijst zelf staat in de gedeelde staat, net als de andere lijstjes.
+
+Early access is bij Steam geen vlag maar een genre (id 70), en "uitgebracht" is
+hier: de 1.0 staat er. Een datum voor die 1.0 publiceert Steam niet — dat staat
+hooguit in de tekst van de winkelpagina. Bijwerken vangt het wel op: zodra een
+spel early access verlaat, verspringt de regel.
+
 ## Deploy
 
 Push naar `main` -> Cloud Build -> nieuwe revisie op Cloud Run. Er zijn geen
@@ -125,6 +141,7 @@ src/
 │  ├─ wishes.ts                 praat met /api/wishes
 │  ├─ tasks.ts                  praat met /api/extract-tasks
 │  ├─ mail.ts                   praat met /api/mail
+│  ├─ games.ts                  praat met /api/games (Steam)
 │  ├─ models.ts                 keuze van het model
 │  ├─ autogrow.ts               tekstvelden die meegroeien met hun inhoud
 │  ├─ version.ts                draait dit toestel de laatste build?
@@ -133,6 +150,7 @@ src/
    ├─ tasks/                    Taken — schakelt tussen persoonlijk en werk
    ├─ mail/                     Mail
    ├─ notes/                    Notities
+   ├─ games/                    Games — lijstje spellen, gegevens van Steam
    ├─ wishes/                   Wensen
    └─ settings/                 Instellingen
 ```

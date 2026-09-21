@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { ComponentType, ReactNode, TouchEvent } from 'react'
-import { Lightbulb, ListTodo, Mail, Settings2, StickyNote } from 'lucide-react'
+import { Gamepad2, Lightbulb, ListTodo, Mail, Settings2, StickyNote } from 'lucide-react'
 import { useTheme } from './lib/theme'
 import type { ThemePreference } from './lib/theme'
 import { LanguageProvider, useLanguage } from './lib/language'
@@ -9,6 +9,7 @@ import type { Translations } from './lib/translations'
 import { TaskList } from './modules/tasks/TaskList'
 import { Mail as MailModule } from './modules/mail/Mail'
 import { Notes } from './modules/notes/Notes'
+import { Games } from './modules/games/Games'
 import { Wishes } from './modules/wishes/Wishes'
 import { Settings } from './modules/settings/Settings'
 import './App.css'
@@ -30,6 +31,7 @@ const MODULES: Module[] = [
   { id: 'tasks', title: (t) => t.nav.tasks, Icon: ListTodo, render: () => <TaskList /> },
   { id: 'mail', title: (t) => t.nav.mail, Icon: Mail, render: () => <MailModule /> },
   { id: 'notes', title: (t) => t.nav.notes, Icon: StickyNote, render: () => <Notes /> },
+  { id: 'games', title: (t) => t.nav.games, Icon: Gamepad2, render: () => <Games /> },
   { id: 'wishes', title: (t) => t.nav.wishes, Icon: Lightbulb, render: () => <Wishes /> },
   {
     id: 'settings',
