@@ -159,6 +159,8 @@ const nl = {
     pick: 'Toevoegen',
     fetching: 'Ophalen…',
     metaFailed: 'De gegevens van dit spel konden niet worden opgehaald.',
+    more: 'Meer',
+    less: 'Minder',
     empty:
       'Nog geen spellen. Zoek op naam; genre, omschrijving, early access en de datum komen van Steam.',
     remove: (name: string) => `${name} verwijderen`,
@@ -443,6 +445,8 @@ const en: typeof nl = {
     pick: 'Add',
     fetching: 'Fetching…',
     metaFailed: "This game's details could not be fetched.",
+    more: 'More',
+    less: 'Less',
     empty:
       'No games yet. Search by name; genre, description, early access and the date come from Steam.',
     remove: (name: string) => `Remove ${name}`,
