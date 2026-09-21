@@ -190,8 +190,10 @@ een spel in early access staat daar sowieso niet in. Bij een spel dat nog moet
 verschijnen blijft Steam vaak bij "2026" of "Q1 2026" terwijl er elders al een
 dag genoemd is, dus staat de vraag daar ook open — dezelfde knop, dezelfde
 weg, alleen leest hij dan de gewone datum van het web in plaats van de 1.0.
-Wat hij vindt komt onder de regel te staan en niet in de badge: de datum van de
-regel blijft van Steam, en zo is te zien dat de belofte van het web ergens
+Wat hij vindt is een zin van de makers en geen datum, dus staat het in het
+uitklapbare stuk; in de badge komt er alleen een korte aanduiding onder de datum
+te staan (`→ ~2027`), die het model er in een paar tekens bij geeft. De datum van
+de regel blijft van Steam, en zo is te zien dat de belofte van het web ergens
 anders vandaan komt. Bijwerken laat het staan zolang het spel er niet is, en
 gooit het weg zodra het er wel is — dan is de vraag beantwoord. Een eigen zoek-API zou een
 tweede sleutel en een tweede abonnement kosten; de `web_search`-tool van de

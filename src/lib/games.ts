@@ -32,6 +32,11 @@ export type GameMeta = {
    */
   fullRelease?: string
   fullReleaseAt?: string | null
+  /**
+   * Diezelfde vondst in een paar tekens ("~2027", "Q1 2026"), zodat er iets van
+   * in de badge past. De hele zin staat in het uitklapbare stuk.
+   */
+  fullReleaseShort?: string
   /** Waar de naam heen linkt: de winkelpagina, of de eerste bron van het web. */
   storeUrl: string
   /** Waar het vandaan komt. Alleen gevuld bij gegevens van het web. */

@@ -25,6 +25,9 @@ const MAX_SEARCHES = 5
 /** Wat er in de kaart past zonder dat het een linkverzameling wordt. */
 const MAX_LINKS = 5
 
+/** Wat er in de badge nog als aanduiding leest ("~2027") en niet als zin. */
+const SHORT_MAX = 14
+
 const WEB_SEARCH = { type: 'web_search_20250305', name: 'web_search', max_uses: MAX_SEARCHES }
 
 /**
@@ -72,6 +75,11 @@ const RESULT_TOOL = {
       volledigeReleaseIso: {
         type: 'string',
         description: 'Die 1.0-datum als YYYY-MM-DD, alleen als er een hele datum genoemd is.',
+      },
+      volledigeReleaseKort: {
+        type: 'string',
+        description:
+          'Waar die zin op neerkomt, in een paar tekens: "~2027", "Q1 2026", "eind 2026". Een tilde als het een schatting is. Hooguit twaalf tekens, en leeg als er geen jaar of datum in staat.',
       },
       links: {
         type: 'array',
@@ -157,6 +165,7 @@ function shape(input, term) {
   if (input?.gevonden !== true) return null
 
   const name = text(input.naam, 120) || term
+  const short = text(input.volledigeReleaseKort, 40)
   const status = text(input.status, 20).toLowerCase()
   const earlyAccess = status === 'early-access'
   const released = status === 'uitgebracht'
@@ -185,6 +194,10 @@ function shape(input, term) {
     // bij 80 tekens brak die middenin af.
     fullRelease: earlyAccess ? text(input.volledigeRelease, 300) : '',
     fullReleaseAt: earlyAccess ? isoDate(input.volledigeReleaseIso) : null,
+    // De korte vorm hoort in de badge te passen. Afknippen helpt daar niet — dan
+    // staat er een halve zin — dus wat te lang is valt weg; de zin hierboven
+    // heeft het dan alsnog.
+    fullReleaseShort: earlyAccess && short.length <= SHORT_MAX ? short : '',
     // De eerste link is de plek waar je heen wilt; die hangt de app aan de naam.
     storeUrl: links[0]?.url ?? '',
     links,

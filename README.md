@@ -126,10 +126,11 @@ Diezelfde weg haalt de datum die Steam niet noemt. Klap een spel dat er nog niet
 is open en kies **1.0 op het web zoeken** — bij een spel dat nog moet
 verschijnen heet dat **Datum op het web zoeken**, want daar blijft Steam vaak
 bij een jaartal terwijl de makers elders al een dag genoemd hebben. Wat ze
-erover gezegd hebben komt onder de regel te staan, met de bronnen in de kaart
-erbij; de datum in de badge blijft die van Steam. Is het spel er bij een
-volgende bijwerking nog niet, dan blijft het staan; is het er eenmaal, dan
-verdwijnt het met de vraag.
+erover gezegd hebben staat in het uitklapbare stuk, met de bronnen erbij; in de
+badge blijft de datum van Steam staan, met eronder een korte aanduiding
+(`→ ~2027`) zodat je zonder uitklappen ziet waar de regel op wacht. Is het spel
+er bij een volgende bijwerking nog niet, dan blijft het staan; is het er
+eenmaal, dan verdwijnt het met de vraag.
 
 Dit kost een aanroep van Claude met websearch, dus het gebeurt alleen op
 verzoek — en het duurt een halve minuut in plaats van een seconde. Staan er

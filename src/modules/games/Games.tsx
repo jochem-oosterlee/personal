@@ -37,6 +37,23 @@ function fullReleaseText(game: GameMeta, language: Language): string {
   return game.fullRelease ?? ''
 }
 
+/** Wat er nog als aanduiding leest in de badge, en niet als zin. */
+const SHORT_MAX = 14
+
+/**
+ * Diezelfde vondst in een paar tekens, voor in de badge: een hele datum als het
+ * web die noemde, anders de korte vorm die de server erbij vroeg ("~2027"), en
+ * anders de tekst zelf zolang die kort genoeg is — bij een spel dat nog moet
+ * verschijnen is dat meestal niet meer dan "Q1 2026". Blijft er niets over, dan
+ * staat het alleen in het uitklapbare stuk.
+ */
+function shortReleaseText(game: GameMeta, language: Language): string {
+  if (game.fullReleaseAt) return dayText(game.fullReleaseAt, language)
+  if (game.fullReleaseShort) return game.fullReleaseShort
+  const found = game.fullRelease ?? ''
+  return found.length <= SHORT_MAX ? found : ''
+}
+
 /**
  * Waar de vondst van het web over gaat: bij early access de 1.0, bij een spel
  * dat nog moet verschijnen de release zelf. Twee keer dezelfde vraag — wanneer
@@ -99,12 +116,12 @@ function Links({ game }: { game: GameMeta }) {
 
 /**
  * Een spel is één regel: de naam, de badge rechts uitgelijnd en dan de knoppen.
- * Ingeklapt staan genre, omschrijving en bronnen er helemaal niet — de naam, de
- * status en de datum zijn waar je de lijst voor doorloopt, en de rest maakt daar
- * een muur van. Wat het web over de datum vond staat wél altijd in beeld:
- * precies daarvoor houd je een spel dat er nog niet is in de gaten. Past de
- * naam niet op één regel, dan breekt die over twee regels en houdt de badge
- * zijn plek rechts.
+ * Ingeklapt staan genre, omschrijving, bronnen en wat het web over de datum zei
+ * er helemaal niet — de naam, de status en de datum zijn waar je de lijst voor
+ * doorloopt, en de rest maakt daar een muur van. Van die vondst blijft alleen de
+ * korte vorm in de badge staan ("~2027"): genoeg om zonder uitklappen te zien
+ * waar een spel op wacht, de zin erachter staat eronder. Past de naam niet op
+ * één regel, dan breekt die over twee regels en houdt de badge zijn plek rechts.
  */
 function GameRow({
   game,
@@ -126,8 +143,9 @@ function GameRow({
 }) {
   const [open, setOpen] = useState(false)
   const planned = fullReleaseText(game, language)
+  const shortPlanned = shortReleaseText(game, language)
   const expandable = Boolean(
-    game.genre || game.description || (game.links ?? []).length > 0 || canLookUp(game),
+    game.genre || game.description || planned || (game.links ?? []).length > 0 || canLookUp(game),
   )
 
   return (
@@ -149,11 +167,14 @@ function GameRow({
             wát het is — maar elk op een eigen regel: de releasevorm bovenaan,
             de datum eronder. Achter elkaar brak "Early access, 1 mei 2026" bij
             de ene naam wel en bij de andere niet, en dan staat de datum in de
-            lijst nergens op dezelfde plek.
+            lijst nergens op dezelfde plek. Wat het web verwacht komt daar in het
+            kort onder, achter een pijl: de datum van de regel blijft zo die van
+            Steam, en wat er nog komt staat eronder.
           */}
           <span className={`game__status game__status--${statusModifier(game)}`}>
             <span className="game__status-form">{statusLabel(game, t)}</span>
             <span className="game__status-date">{dateText(game, language, t)}</span>
+            {shortPlanned && <span className="game__status-planned">{shortPlanned}</span>}
           </span>
         </div>
         {expandable && (
@@ -181,10 +202,9 @@ function GameRow({
         </button>
       </div>
 
-      {planned && <p className="game__planned">{foundLabel(game, t)(planned)}</p>}
-
       {open && (
         <div className="gamecard">
+          {planned && <p className="gamecard__planned">{foundLabel(game, t)(planned)}</p>}
           {game.genre && <p className="gamecard__meta">{game.genre}</p>}
           {game.description && <p className="gamecard__text">{game.description}</p>}
           <Links game={game} />
@@ -321,9 +341,10 @@ export function Games() {
   /**
    * Opzoeken waar een regel op wacht: bij early access de 1.0, bij een spel dat
    * nog moet verschijnen de release zelf — en die staat bij zo'n spel niet in de
-   * 1.0 maar in de gewone datum van het web. Alleen die drie velden gaan mee: de
-   * rest van de regel komt van Steam en dat blijft zo. De datum in de badge dus
-   * ook: wat Steam zegt blijft staan, wat het web vond komt eronder.
+   * 1.0 maar in de gewone datum van het web. Alleen wat daarbij hoort gaat mee:
+   * de rest van de regel komt van Steam en dat blijft zo. De datum in de badge
+   * dus ook: wat Steam zegt blijft staan, wat het web vond komt er in het kort
+   * onder en helemaal in het uitklapbare stuk.
    */
   async function lookUp(game: Game) {
     if (onWeb || refreshing) return
@@ -340,6 +361,9 @@ export function Games() {
 
       const when = (game.earlyAccess ? meta.fullRelease : meta.releaseDate) || ''
       const whenAt = (game.earlyAccess ? meta.fullReleaseAt : meta.releaseAt) ?? null
+      // Bij een spel dat nog moet verschijnen vraagt de server geen korte vorm:
+      // de datum die het web daar noemt is er zelf al een.
+      const whenShort = (game.earlyAccess ? meta.fullReleaseShort : '') ?? ''
       if (!when) {
         setNote(game.earlyAccess ? t.games.noFullRelease(game.name) : t.games.noDate(game.name))
       }
@@ -354,6 +378,7 @@ export function Games() {
                 ...entry,
                 fullRelease: when || entry.fullRelease,
                 fullReleaseAt: when ? whenAt : entry.fullReleaseAt,
+                fullReleaseShort: when ? whenShort : entry.fullReleaseShort,
                 links: meta.links?.length ? meta.links : entry.links,
                 checkedAt: Date.now(),
               }
@@ -403,6 +428,7 @@ export function Games() {
             : {
                 fullRelease: game.fullRelease,
                 fullReleaseAt: game.fullReleaseAt,
+                fullReleaseShort: game.fullReleaseShort,
                 links: game.links,
               }),
           checkedAt: Date.now(),
