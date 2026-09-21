@@ -158,8 +158,8 @@
   gap: 0.5rem;
 }
 
-/* Naam, genre en badge op één regel; de badge staat rechts. Past het niet, dan
-   wipt de badge naar een volgende regel en houdt hij zijn rechterlijn. */
+/* Naam en badge op één regel; de badge staat rechts. Past het niet, dan wipt de
+   badge naar een volgende regel en houdt hij zijn rechterlijn. */
 .game__title {
   display: flex;
   flex: 1;
@@ -244,8 +244,10 @@
   }
 }
 
+/* Het genre staat in het opengeklapte deel, boven de omschrijving: het zegt
+   iets over het spel, maar niet iets waar je de lijst voor doorloopt. */
 .game__genre {
-  min-width: 0;
+  margin: 0.25rem 0 0;
   font-size: 0.6875rem;
   line-height: 1.3;
   letter-spacing: 0.04em;

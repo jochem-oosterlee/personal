@@ -40,13 +40,11 @@ function badgeText(game: Game, language: Language, t: Translations): string {
 }
 
 /**
- * Een spel is één regel: de naam met genre erachter, de badge rechts uitgelijnd
- * en dan de knoppen. Ingeklapt staat de omschrijving er helemaal niet — de
- * naam, de status en de datum zijn waar je de lijst voor doorloopt, en een paar
- * regels tekst per spel maken daar een muur van. Alles op de naamregel in
- * plaats van op een eigen regel eronder scheelt per spel een regel, en bij een
- * lijst van dertig spellen scrollt dat een stuk minder. Past het niet op één
- * regel, dan wipt de badge naar de volgende en blijft hij rechts staan.
+ * Een spel is één regel: de naam, de badge rechts uitgelijnd en dan de knoppen.
+ * Ingeklapt staan genre en omschrijving er helemaal niet — de naam, de status
+ * en de datum zijn waar je de lijst voor doorloopt, en de rest maakt daar een
+ * muur van. Past het niet op één regel, dan wipt de badge naar de volgende en
+ * blijft hij rechts staan.
  */
 function GameRow({
   game,
@@ -60,6 +58,7 @@ function GameRow({
   onRemove: (appId: number) => void
 }) {
   const [open, setOpen] = useState(false)
+  const expandable = Boolean(game.genre || game.description)
 
   return (
     <li className="game">
@@ -69,18 +68,17 @@ function GameRow({
             {game.name}
             <ExternalLink size={11} strokeWidth={1.4} aria-hidden="true" />
           </a>
-          {game.genre && <span className="game__genre">{game.genre}</span>}
           <span className={`game__status game__status--${statusModifier(game)}`}>
             {badgeText(game, language, t)}
           </span>
         </div>
-        {game.description && (
+        {expandable && (
           <button
             className="game__more"
             type="button"
             onClick={() => setOpen((current) => !current)}
             aria-expanded={open}
-            aria-label={open ? t.games.hideDescription : t.games.showDescription}
+            aria-label={open ? t.games.hideDetails : t.games.showDetails}
           >
             {open ? (
               <ChevronUp size={13} strokeWidth={1.4} aria-hidden="true" />
@@ -99,6 +97,7 @@ function GameRow({
         </button>
       </div>
 
+      {open && game.genre && <p className="game__genre">{game.genre}</p>}
       {open && game.description && <p className="game__description">{game.description}</p>}
     </li>
   )
