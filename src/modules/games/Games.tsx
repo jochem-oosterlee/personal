@@ -43,8 +43,9 @@ function badgeText(game: Game, language: Language, t: Translations): string {
  * Een spel is één regel: de naam, de badge rechts uitgelijnd en dan de knoppen.
  * Ingeklapt staan genre en omschrijving er helemaal niet — de naam, de status
  * en de datum zijn waar je de lijst voor doorloopt, en de rest maakt daar een
- * muur van. Past het niet op één regel, dan wipt de badge naar de volgende en
- * blijft hij rechts staan.
+ * muur van. Past de naam niet op één regel, dan breekt die over twee regels en
+ * houdt de badge zijn plek rechts — eerder wipte de badge naar een eigen regel
+ * en bleef de ruimte naast de naam leeg.
  */
 function GameRow({
   game,
