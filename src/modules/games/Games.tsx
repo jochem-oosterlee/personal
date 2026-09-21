@@ -31,21 +31,22 @@ function statusModifier(game: Game): string {
   return 'released'
 }
 
-/** De datumregel zegt ook wát die datum is; anders staat er een jaartal zonder houvast. */
-function whenText(game: Game, language: Language, t: Translations): string {
-  const date = dateText(game, language, t)
-  if (game.comingSoon) return t.games.expected(date)
-  if (game.earlyAccess) return t.games.earlyAccessSince(date)
-  return t.games.releasedOn(date)
+/**
+ * Status en datum staan in dezelfde badge: los zegt een jaartal niet wát het
+ * is, en samen is het één ding om te lezen — "Early access, 1 mei 2026".
+ */
+function badgeText(game: Game, language: Language, t: Translations): string {
+  return `${statusLabel(game, t)}, ${dateText(game, language, t)}`
 }
 
 /**
- * Een spel is twee regels hoog: de naam met zijn knoppen, en daaronder status,
- * genre en datum. Ingeklapt staat de omschrijving er helemaal niet — de naam,
- * de status en de datum zijn waar je de lijst voor doorloopt, en een paar
- * regels tekst per spel maken daar een muur van. De chevron die hem uitklapt
- * staat naast de naam in plaats van op een eigen regel: dat scheelt per spel
- * een regel, en bij een lijst van dertig spellen scrollt dat een stuk minder.
+ * Een spel is één regel: de naam met genre erachter, de badge rechts uitgelijnd
+ * en dan de knoppen. Ingeklapt staat de omschrijving er helemaal niet — de
+ * naam, de status en de datum zijn waar je de lijst voor doorloopt, en een paar
+ * regels tekst per spel maken daar een muur van. Alles op de naamregel in
+ * plaats van op een eigen regel eronder scheelt per spel een regel, en bij een
+ * lijst van dertig spellen scrollt dat een stuk minder. Past het niet op één
+ * regel, dan wipt de badge naar de volgende en blijft hij rechts staan.
  */
 function GameRow({
   game,
@@ -63,10 +64,16 @@ function GameRow({
   return (
     <li className="game">
       <div className="game__head">
-        <a className="game__name" href={game.storeUrl} target="_blank" rel="noreferrer">
-          {game.name}
-          <ExternalLink size={11} strokeWidth={1.4} aria-hidden="true" />
-        </a>
+        <div className="game__title">
+          <a className="game__name" href={game.storeUrl} target="_blank" rel="noreferrer">
+            {game.name}
+            <ExternalLink size={11} strokeWidth={1.4} aria-hidden="true" />
+          </a>
+          {game.genre && <span className="game__genre">{game.genre}</span>}
+          <span className={`game__status game__status--${statusModifier(game)}`}>
+            {badgeText(game, language, t)}
+          </span>
+        </div>
         {game.description && (
           <button
             className="game__more"
@@ -93,14 +100,6 @@ function GameRow({
       </div>
 
       {open && game.description && <p className="game__description">{game.description}</p>}
-
-      <div className="game__meta">
-        <span className={`game__status game__status--${statusModifier(game)}`}>
-          {statusLabel(game, t)}
-        </span>
-        {game.genre && <span className="game__genre">{game.genre}</span>}
-        <span className="game__when">{whenText(game, language, t)}</span>
-      </div>
     </li>
   )
 }
