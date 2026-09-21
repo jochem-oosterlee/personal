@@ -67,7 +67,7 @@ const RESULT_TOOL = {
       volledigeRelease: {
         type: 'string',
         description:
-          'Alleen bij early access: wat de makers over de 1.0 gezegd hebben, zoals zij het schrijven. Leeg als ze er niets over gezegd hebben.',
+          'Alleen bij early access: wat de makers over de 1.0 gezegd hebben, zoals zij het schrijven. Eén of twee zinnen, en maak ze af. Leeg als ze er niets over gezegd hebben.',
       },
       volledigeReleaseIso: {
         type: 'string',
@@ -180,7 +180,10 @@ function shape(input, term) {
     releaseAt: isoDate(input.datumIso),
     // Na de 1.0 zegt een 1.0-datum niets meer, en voor een spel dat nog moet
     // verschijnen is het gewoon de releasedatum die hierboven al staat.
-    fullRelease: earlyAccess ? text(input.volledigeRelease, 80) : '',
+    // Hetzelfde dak als de omschrijving: dit is zelden een datum en meestal een
+    // zin van de makers ("blijft nog zeker tot eind 2026 in early access"), en
+    // bij 80 tekens brak die middenin af.
+    fullRelease: earlyAccess ? text(input.volledigeRelease, 300) : '',
     fullReleaseAt: earlyAccess ? isoDate(input.volledigeReleaseIso) : null,
     // De eerste link is de plek waar je heen wilt; die hangt de app aan de naam.
     storeUrl: links[0]?.url ?? '',
