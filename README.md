@@ -138,6 +138,20 @@ Dit kost een aanroep van Claude met websearch, dus het gebeurt alleen op
 verzoek — en het duurt een halve minuut in plaats van een seconde. Staan er
 spellen van het web in je lijst, dan duurt bijwerken navenant langer.
 
+## Boodschappen
+
+Een lijstje als Taken, zonder deadlines: typen, afvinken, afgevinkte wissen.
+Het staat in de gedeelde staat, dus het lijstje is op elk toestel hetzelfde.
+
+Het camera-icoon naast de plusknop opent het fotovak. Je maakt een foto — van
+een briefje, een recept, een schap in de koelkast, een verpakking die op is —
+en Claude noemt wat er dan gehaald moet worden. Dat is een voorstel: je vinkt
+aan wat mee mag en dan pas staat het op het lijstje, net als bij het plakvak
+bij Taken. Zoeken is een aparte druk, zodat een mislukte foto niets kost.
+
+De foto wordt nergens bewaard. Hij wordt op het toestel verkleind, gaat mee in
+dat ene verzoek naar `/api/extract-groceries` en is daarna weg.
+
 ## Deploy
 
 Push naar `main` -> Cloud Build -> nieuwe revisie op Cloud Run. Er zijn geen
@@ -156,6 +170,7 @@ src/
 ├─ App.tsx                      module-registry + tabbalk
 ├─ components/Checklist.tsx     de lijst met afvinkbare regels bij Taken
 ├─ components/Extract.tsx       plakvak bij Taken: tekst in, actiepunten uit
+├─ components/Photo.tsx         fotovak bij Boodschappen: foto in, producten uit
 ├─ components/Suggestions.tsx   kies welke actiepunten je overneemt
 ├─ components/Markdown.tsx      kleine markdown-weergave voor Claude's antwoorden
 ├─ lib/
@@ -165,6 +180,7 @@ src/
 │  ├─ session.ts                herkent een verlopen IAP-sessie
 │  ├─ wishes.ts                 praat met /api/wishes
 │  ├─ tasks.ts                  praat met /api/extract-tasks
+│  ├─ groceries.ts              praat met /api/extract-groceries
 │  ├─ mail.ts                   praat met /api/mail
 │  ├─ games.ts                  praat met /api/games (Steam en web)
 │  ├─ models.ts                 keuze van het model
@@ -173,6 +189,7 @@ src/
 │  └─ theme.ts                  licht/donker/systeem
 └─ modules/
    ├─ tasks/                    Taken — schakelt tussen persoonlijk en werk
+   ├─ shopping/                 Boodschappen — lijstje, met een foto erbij
    ├─ mail/                     Mail
    ├─ notes/                    Notities
    ├─ games/                    Games — lijstje spellen, gegevens van Steam

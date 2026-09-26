@@ -3,6 +3,7 @@ export type Language = 'nl' | 'en'
 const nl = {
   nav: {
     tasks: 'Taken',
+    shopping: 'Boodschappen',
     mail: 'Mail',
     notes: 'Notities',
     games: 'Games',
@@ -17,6 +18,26 @@ const nl = {
     scopeAria: 'Soort taken',
     personal: 'Persoonlijk',
     work: 'Werk',
+  },
+  shopping: {
+    placeholder: 'Wat moet er mee?',
+    addLabel: 'Boodschap toevoegen',
+    emptyText: 'Het lijstje is leeg.',
+  },
+  photo: {
+    open: 'Foto maken',
+    close: 'Fotovak sluiten',
+    title: 'Boodschappen van een foto',
+    take: 'Foto maken',
+    again: 'Andere foto',
+    preview: 'De gekozen foto',
+    find: 'Boodschappen zoeken',
+    busy: 'Claude kijkt mee…',
+    add: (count: number) =>
+      count === 1 ? '1 boodschap toevoegen' : `${count} boodschappen toevoegen`,
+    nothing: 'Op deze foto staat niets voor het lijstje.',
+    unreadable: 'Deze foto kon niet worden gelezen. Probeer er een andere.',
+    failed: 'Claude kon de foto niet lezen. Probeer het zo nog eens.',
   },
   checklist: {
     remove: (name: string) => `${name} verwijderen`,
@@ -300,6 +321,7 @@ const nl = {
 const en: typeof nl = {
   nav: {
     tasks: 'Tasks',
+    shopping: 'Groceries',
     mail: 'Mail',
     notes: 'Notes',
     games: 'Games',
@@ -314,6 +336,25 @@ const en: typeof nl = {
     scopeAria: 'Kind of tasks',
     personal: 'Personal',
     work: 'Work',
+  },
+  shopping: {
+    placeholder: 'What do we need?',
+    addLabel: 'Add item',
+    emptyText: 'The list is empty.',
+  },
+  photo: {
+    open: 'Take a photo',
+    close: 'Close photo box',
+    title: 'Groceries from a photo',
+    take: 'Take a photo',
+    again: 'Another photo',
+    preview: 'The chosen photo',
+    find: 'Find groceries',
+    busy: 'Claude is looking…',
+    add: (count: number) => (count === 1 ? 'Add 1 item' : `Add ${count} items`),
+    nothing: 'Nothing for the list in this photo.',
+    unreadable: 'This photo could not be read. Try another one.',
+    failed: 'Claude could not read the photo. Try again in a moment.',
   },
   checklist: {
     remove: (name: string) => `Remove ${name}`,

@@ -1,9 +1,10 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react'
-import { CalendarPlus, Check, ClipboardList, Plus, X } from 'lucide-react'
+import { CalendarPlus, Camera, Check, ClipboardList, Plus, X } from 'lucide-react'
 import { usePersistentState } from '../lib/storage'
 import { useAutoGrow } from '../lib/autogrow'
 import { useLanguage } from '../lib/language'
 import { Extract } from './Extract'
+import { Photo } from './Photo'
 import type { ExtractedTask } from '../lib/tasks'
 import './Checklist.css'
 
@@ -26,6 +27,8 @@ type ChecklistProps = {
   deadlines?: boolean
   /** Show the icon next to the add button that opens the paste box. */
   extract?: boolean
+  /** Show the icon next to the add button that opens the photo box. */
+  photo?: boolean
   /** Rendered above the add field, inside the same sticky block. */
   tabs?: ReactNode
 }
@@ -67,12 +70,14 @@ export function Checklist({
   emptyText,
   deadlines = false,
   extract = false,
+  photo = false,
   tabs,
 }: ChecklistProps) {
   const { t, language } = useLanguage()
   const [items, setItems] = usePersistentState<ChecklistItem[]>(storageKey, [])
   const [draft, setDraft] = useState('')
   const [extractOpen, setExtractOpen] = useState(false)
+  const [photoOpen, setPhotoOpen] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useAutoGrow(inputRef, draft)
@@ -115,7 +120,7 @@ export function Checklist({
     addItem()
   }
 
-  /** Wat uit het plakvak komt, wordt hier een gewone taak als alle andere. */
+  /** Wat uit het plakvak of van een foto komt, wordt hier een gewone regel als alle andere. */
   function addExtracted(tasks: ExtractedTask[]) {
     const at = Date.now()
     setItems((current) => [
@@ -194,11 +199,30 @@ export function Checklist({
               <ClipboardList size={16} strokeWidth={1.5} aria-hidden="true" />
             </button>
           )}
+          {photo && (
+            <button
+              className={
+                photoOpen
+                  ? 'checklist__extract checklist__extract--open'
+                  : 'checklist__extract'
+              }
+              type="button"
+              aria-expanded={photoOpen}
+              aria-label={photoOpen ? t.photo.close : t.photo.open}
+              onClick={() => setPhotoOpen((current) => !current)}
+            >
+              <Camera size={16} strokeWidth={1.5} aria-hidden="true" />
+            </button>
+          )}
         </form>
       </div>
 
       {extract && extractOpen && (
         <Extract onAdd={addExtracted} onClose={() => setExtractOpen(false)} />
+      )}
+
+      {photo && photoOpen && (
+        <Photo onAdd={addExtracted} onClose={() => setPhotoOpen(false)} />
       )}
 
       {items.length === 0 ? (

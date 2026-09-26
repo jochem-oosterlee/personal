@@ -8,6 +8,8 @@ type SuggestionsProps = {
   /** Wat Claude voorstelt; pas na toevoegen staat het in de lijst. */
   tasks: ExtractedTask[]
   onAdd: (tasks: ExtractedTask[]) => void
+  /** Tekst op de knop; standaard die van het plakvak bij Taken. */
+  addLabel?: (count: number) => string
 }
 
 type Picked = ExtractedTask & { id: string; picked: boolean }
@@ -21,13 +23,13 @@ function formatDue(dueAt: string, language: string) {
 }
 
 /**
- * De keuzelijst tussen "Claude heeft dit gevonden" en "het staat in Taken".
- * Zowel het plakvak als Mail komen hier uit, dus staat hij los.
+ * De keuzelijst tussen "Claude heeft dit gevonden" en "het staat in de lijst".
+ * Het plakvak, het fotovak en Mail komen hier alle drie uit, dus staat hij los.
  *
  * De aankruisstand hoort bij één ronde voorstellen: geef de component een
  * `key` die per ronde verandert, dan begint hij schoon.
  */
-export function Suggestions({ tasks, onAdd }: SuggestionsProps) {
+export function Suggestions({ tasks, onAdd, addLabel }: SuggestionsProps) {
   const { t, language } = useLanguage()
   const [items, setItems] = useState<Picked[]>(() =>
     tasks.map((task) => ({ ...task, id: crypto.randomUUID(), picked: true })),
@@ -77,7 +79,7 @@ export function Suggestions({ tasks, onAdd }: SuggestionsProps) {
         disabled={pickedCount === 0}
         onClick={add}
       >
-        {t.extract.add(pickedCount)}
+        {(addLabel ?? t.extract.add)(pickedCount)}
       </button>
     </div>
   )

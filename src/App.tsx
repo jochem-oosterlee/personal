@@ -1,12 +1,21 @@
 import { useRef, useState } from 'react'
 import type { ComponentType, ReactNode, TouchEvent } from 'react'
-import { Gamepad2, Lightbulb, ListTodo, Mail, Settings2, StickyNote } from 'lucide-react'
+import {
+  Gamepad2,
+  Lightbulb,
+  ListTodo,
+  Mail,
+  Settings2,
+  ShoppingBasket,
+  StickyNote,
+} from 'lucide-react'
 import { useTheme } from './lib/theme'
 import type { ThemePreference } from './lib/theme'
 import { LanguageProvider, useLanguage } from './lib/language'
 import { pushBack } from './lib/back'
 import type { Translations } from './lib/translations'
 import { TaskList } from './modules/tasks/TaskList'
+import { ShoppingList } from './modules/shopping/ShoppingList'
 import { Mail as MailModule } from './modules/mail/Mail'
 import { Notes } from './modules/notes/Notes'
 import { Games } from './modules/games/Games'
@@ -29,6 +38,12 @@ type Module = {
 /** Add a module here and it shows up in the tab bar. */
 const MODULES: Module[] = [
   { id: 'tasks', title: (t) => t.nav.tasks, Icon: ListTodo, render: () => <TaskList /> },
+  {
+    id: 'shopping',
+    title: (t) => t.nav.shopping,
+    Icon: ShoppingBasket,
+    render: () => <ShoppingList />,
+  },
   { id: 'mail', title: (t) => t.nav.mail, Icon: Mail, render: () => <MailModule /> },
   { id: 'notes', title: (t) => t.nav.notes, Icon: StickyNote, render: () => <Notes /> },
   { id: 'games', title: (t) => t.nav.games, Icon: Gamepad2, render: () => <Games /> },

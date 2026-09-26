@@ -564,6 +564,112 @@ app.post('/api/extract-tasks', requireUser, async (req, res) => {
   }
 })
 
+// --- Boodschappen uit een foto ----------------------------------------------
+
+/**
+ * Wat er op een foto staat, als regels voor het boodschappenlijstje: een
+ * briefje, een recept, een leeg schap in de koelkast, een verpakking die op is.
+ *
+ * De foto wordt niet bewaard — anders dan een screenshot bij een wens is hij
+ * materiaal voor deze ene aanroep en daarna niets meer. Hij komt al verkleind
+ * binnen (lib/images.ts) en gaat rechtstreeks door naar Claude.
+ *
+ * Een foto lezen is lastiger dan een geplakte tekst lezen: handschrift, een
+ * schap vol verpakkingen, een merknaam half in beeld. Vandaar een groter model
+ * dan bij de actiepunten, op een knop die je zelf indrukt.
+ */
+const GROCERIES_MODEL = 'claude-sonnet-5'
+
+const GROCERIES_TOOL = {
+  name: 'boodschappen',
+  description: 'Geeft de boodschappen terug die op de foto te zien zijn.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      producten: {
+        type: 'array',
+        items: {
+          type: 'string',
+          description: 'Eén product, kort opgeschreven zoals op een boodschappenlijstje.',
+        },
+      },
+    },
+    required: ['producten'],
+  },
+}
+
+const GROCERIES_SYSTEM = [
+  {
+    type: 'text',
+    text: `Je kijkt naar een foto en zegt wat er op het boodschappenlijstje moet.
+
+- Op de foto staat een briefje, een recept, een schap of koelkast, of een verpakking die op is. Noem wat er dan in de winkel gehaald moet worden.
+- Eén product per regel, kort, zoals iemand het zelf op een lijstje schrijft ("melk", "2 blikken tomaten").
+- Staat er tekst op de foto, neem die taal en die woorden over; staat er geen tekst op, schrijf dan Nederlands.
+- Een aantal of een maat alleen als de foto die noemt. Verzin geen merken en geen producten die er niet op staan.
+- Niets bruikbaars op de foto? Geef een lege lijst.`,
+  },
+]
+
+/** Alleen wat het lijstje kan tonen: korte namen, zonder dubbele. */
+function cleanGroceries(list) {
+  if (!Array.isArray(list)) return []
+
+  const seen = new Set()
+  return list
+    .map((item) => (typeof item === 'string' ? item.trim().slice(0, 100) : ''))
+    .filter((name) => {
+      const key = name.toLowerCase()
+      if (!name || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .slice(0, 50)
+}
+
+app.post('/api/extract-groceries', requireUser, async (req, res) => {
+  const { image } = req.body ?? {}
+  const { data, type } = image ?? {}
+
+  // Dezelfde soorten als bij een bijlage, en dezelfde bovengrens: ruim boven
+  // wat de app na verkleinen oplevert, ruim onder de JSON-limiet.
+  if (!IMAGE_TYPES.has(type)) return res.status(400).json({ error: 'alleen png, jpeg of webp' })
+  if (typeof data !== 'string' || !data) {
+    return res.status(400).json({ error: 'foto ontbreekt' })
+  }
+
+  const bytes = Buffer.from(data, 'base64')
+  if (bytes.length === 0) return res.status(400).json({ error: 'lege foto' })
+  if (bytes.length > MAX_ATTACHMENT_BYTES) {
+    return res.status(413).json({ error: 'foto te groot' })
+  }
+
+  try {
+    const answer = await ask({
+      model: GROCERIES_MODEL,
+      max_tokens: 1024,
+      system: GROCERIES_SYSTEM,
+      tools: [GROCERIES_TOOL],
+      tool_choice: { type: 'tool', name: GROCERIES_TOOL.name },
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: type, data } },
+            { type: 'text', text: 'Wat moet hiervan op het boodschappenlijstje?' },
+          ],
+        },
+      ],
+    })
+
+    res.set('Cache-Control', 'no-store')
+    res.json({ items: cleanGroceries(toolInput(answer, GROCERIES_TOOL.name)?.producten) })
+  } catch (error) {
+    console.error(`boodschappen uit foto mislukt: ${error}`)
+    res.status(502).json({ error: String(error.message ?? error) })
+  }
+})
+
 // --- Games ------------------------------------------------------------------
 
 /**

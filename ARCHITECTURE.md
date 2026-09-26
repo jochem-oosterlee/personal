@@ -85,6 +85,18 @@ plaats van als gemounte env-var: de service-instellingen staan bewust niet in
 op de Messages API is niet gedocumenteerd en kan stilvallen; dan geeft het
 plakvak een melding en werkt de rest van Taken door.
 
+**De foto bij het boodschappenlijstje wordt niet bewaard.** Een screenshot bij
+een wens moet blijven staan tot de agent hem leest, dus die gaat naar Cloud
+Storage. Een foto van een briefje of een leeg schap is materiaal voor één
+aanroep: hij wordt op het toestel verkleind (`lib/images.ts`, dezelfde weg als
+een bijlage), gaat mee in het verzoek naar `/api/extract-groceries` en bestaat
+daarna nergens meer — geen bucket, geen Firestore, niets om later op te ruimen.
+Wat eruit komt is een voorstel dat je aanvinkt, net als bij het plakvak: een
+foto lezen gaat soms mis, en dan hoort het lijstje niet stil vol te lopen. Dat
+lezen is lastiger dan een geplakte tekst lezen — handschrift, een schap vol
+verpakkingen — dus draait dit op een groter model dan de actiepunten, en alleen
+op een knop die je zelf indrukt.
+
 **Gmail met een eigen OAuth-client, niet via de connector.** De Gmail-connector
 van claude.ai is een door Anthropic gehoste MCP-server (`gmail.mcp.claude.com`)
 waarvan de toestemming aan het claude.ai-account hangt; er is geen token dat

@@ -1,0 +1,60 @@
+.photo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+}
+
+.photo__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.photo__title {
+  color: var(--text-muted);
+}
+
+.photo__close {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--text-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .photo__close:hover {
+    color: var(--danger);
+  }
+}
+
+/* Groot genoeg om te zien of de foto scherp genoeg is, laag genoeg om het
+   lijstje eronder niet van het scherm te duwen. */
+.photo__preview {
+  width: 100%;
+  max-height: 14rem;
+  object-fit: contain;
+  border: 1px solid var(--line);
+}
+
+/* Het bestandsveld zelf blijft weg; het label eromheen is de knop. */
+.photo__pick input {
+  display: none;
+}
+
+.photo__error {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--danger);
+}
