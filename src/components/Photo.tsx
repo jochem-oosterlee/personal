@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Camera, X } from 'lucide-react'
+import { Camera, ImagePlus, X } from 'lucide-react'
 import { prepareImage } from '../lib/images'
 import type { PreparedImage } from '../lib/images'
 import { extractGroceries } from '../lib/groceries'
@@ -17,7 +17,8 @@ type PhotoProps = {
 
 /**
  * Een foto van een briefje, een schap of een lege verpakking, waar Claude de
- * boodschappen uit haalt. Wat eruit komt is een voorstel: pas als je het
+ * boodschappen uit haalt — net gemaakt, of een die al op het toestel staat.
+ * Wat eruit komt is een voorstel: pas als je het
  * aanvinkt en toevoegt staat het op het lijstje — hetzelfde als bij het
  * plakvak bij Taken.
  *
@@ -90,18 +91,27 @@ export function Photo({ onAdd, onClose }: PhotoProps) {
         />
       )}
 
-      {/* Een label in plaats van een knop: het bestandsveld erin opent op een
-          telefoon de camera, en op een laptop de bestandskiezer. */}
-      <label className="hairline-button photo__pick">
-        <Camera size={12} strokeWidth={1.4} aria-hidden="true" />
-        {image ? t.photo.again : t.photo.take}
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(event) => void pick(event)}
-        />
-      </label>
+      {/* Labels in plaats van knoppen: het bestandsveld erin opent de kiezer.
+          Met `capture` is dat op een telefoon meteen de camera, zonder is het
+          een foto die er al staat — een briefje van gisteren, een appje. */}
+      <div className="photo__picks">
+        <label className="hairline-button photo__pick">
+          <Camera size={12} strokeWidth={1.4} aria-hidden="true" />
+          {t.photo.take}
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={(event) => void pick(event)}
+          />
+        </label>
+
+        <label className="hairline-button photo__pick">
+          <ImagePlus size={12} strokeWidth={1.4} aria-hidden="true" />
+          {t.photo.upload}
+          <input type="file" accept="image/*" onChange={(event) => void pick(event)} />
+        </label>
+      </div>
 
       <button
         className="hairline-button"

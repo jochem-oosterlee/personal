@@ -145,7 +145,9 @@ Het staat in de gedeelde staat, dus het lijstje is op elk toestel hetzelfde.
 
 Het camera-icoon naast de plusknop opent het fotovak. Je maakt een foto — van
 een briefje, een recept, een schap in de koelkast, een verpakking die op is —
-en Claude noemt wat er dan gehaald moet worden. Dat is een voorstel: je vinkt
+of je kiest er een die al op het toestel staat, want een briefje is vaak al
+gefotografeerd voordat je in de app bent. Claude noemt wat er dan gehaald moet
+worden. Dat is een voorstel: je vinkt
 aan wat mee mag en dan pas staat het op het lijstje, net als bij het plakvak
 bij Taken. Zoeken is een aparte druk, zodat een mislukte foto niets kost.
 
