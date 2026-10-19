@@ -224,6 +224,18 @@ van Steam en krijgt dat voorvoegsel in een eenmalige verhuizing. Bij bijwerken
 houdt een regel zijn id, ook als het web de naam ineens anders schrijft —
 anders zou hetzelfde spel er twee keer in komen te staan.
 
+**Een bijwerking laat zien wat ze veranderde.** Bijwerken loopt de hele lijst
+langs en duurt met spellen van het web minuten; daarna is een lijst van dertig
+regels niet na te lopen op wat er verschoven is. Wat een regel toont is dus ook
+wat als wijziging telt: de naam, de releasevorm, de datum en wat het web over
+de volgende datum zei. Vergeleken wordt er op de getoonde waarde — schrijft
+Steam dezelfde datum ineens anders op, dan is dat geen melding — en genre en
+omschrijving blijven erbuiten, want die herschrijft Steam geregeld en ze staan
+ingeklapt niet in de lijst. De vergelijking staat los van React in
+`lib/gamechanges.ts`, net als die van het overzicht bij Mail; wat eruit komt
+gaat als één sleutel de gedeelde staat in, zodat het er bij terugkomst nog is
+in plaats van met het scherm te verdwijnen.
+
 **Geen token meer op het toestel.** De app praat alleen met zijn eigen backend.
 GitHub-credentials staan serverzijde in Secret Manager, met IAM eromheen.
 

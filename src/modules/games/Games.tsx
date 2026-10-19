@@ -12,6 +12,8 @@ import { usePersistentState } from '../../lib/storage'
 import { useLanguage } from '../../lib/language'
 import { fetchFromWeb, fetchGame, searchGames } from '../../lib/games'
 import type { Game, GameMeta, SearchHit } from '../../lib/games'
+import { changedFields, sideOf, statusOf } from '../../lib/gamechanges'
+import type { GameChange, GameField, GameSide, GameUpdate } from '../../lib/gamechanges'
 import type { Language, Translations } from '../../lib/translations'
 import './Games.css'
 
@@ -24,14 +26,24 @@ function dayText(iso: string, language: Language): string {
   })
 }
 
+/** Het moment van een bijwerking, zoals het logboek bij Mail hem schrijft. */
+function moment(at: number, language: Language): string {
+  return new Date(at).toLocaleString(language, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 /** Wat er van de datum te maken valt: een hele datum, anders de tekst zelf. */
-function dateText(game: GameMeta, language: Language, t: Translations): string {
+function dateText(game: GameSide, language: Language, t: Translations): string {
   if (game.releaseAt) return dayText(game.releaseAt, language)
   return game.releaseDate || t.games.dateUnknown
 }
 
 /** Wat er op het web over de datum gevonden is, of leeg als er niets staat. */
-function fullReleaseText(game: GameMeta, language: Language): string {
+function fullReleaseText(game: GameSide, language: Language): string {
   if (game.fullReleaseAt) return dayText(game.fullReleaseAt, language)
   return game.fullRelease ?? ''
 }
@@ -62,16 +74,10 @@ function foundLabel(game: GameMeta, t: Translations): (when: string) => string {
   return game.earlyAccess ? t.games.fullRelease : t.games.releaseExpected
 }
 
-function statusLabel(game: GameMeta, t: Translations): string {
+function statusLabel(game: GameSide, t: Translations): string {
   if (game.comingSoon) return t.games.comingSoon
   if (game.earlyAccess) return t.games.earlyAccess
   return t.games.released
-}
-
-function statusModifier(game: GameMeta): string {
-  if (game.comingSoon) return 'soon'
-  if (game.earlyAccess) return 'early'
-  return 'released'
 }
 
 /**
@@ -170,7 +176,7 @@ function GameRow({
             kort onder, achter een pijl: de datum van de regel blijft zo die van
             Steam, en wat er nog komt staat eronder.
           */}
-          <span className={`game__status game__status--${statusModifier(game)}`}>
+          <span className={`game__status game__status--${statusOf(game)}`}>
             <span className="game__status-form">{statusLabel(game, t)}</span>
             <span className="game__status-date">{dateText(game, language, t)}</span>
             {shortPlanned && <span className="game__status-planned">{shortPlanned}</span>}
@@ -228,9 +234,92 @@ function GameRow({
   )
 }
 
+/** Een veld zonder waarde: na de 1.0 valt weg wat het web erover zei. */
+const NOTHING = '—'
+
+function fieldLabel(field: GameField, t: Translations): string {
+  if (field === 'name') return t.games.changeName
+  if (field === 'status') return t.games.changeStatus
+  if (field === 'date') return t.games.changeDate
+  return t.games.changePlanned
+}
+
+/** Eén kant van een wijziging, zoals datzelfde veld in de regel zelf leest. */
+function fieldText(
+  field: GameField,
+  side: GameSide,
+  language: Language,
+  t: Translations,
+): string {
+  if (field === 'name') return side.name
+  if (field === 'status') return statusLabel(side, t)
+  if (field === 'date') return dateText(side, language, t)
+  return fullReleaseText(side, language) || NOTHING
+}
+
+/**
+ * Wat de laatste bijwerking veranderde, onder de knop die hem startte: per
+ * regel de naam en daaronder alleen de velden die anders zijn, wat het was en
+ * wat het nu is. Bijwerken loopt de hele lijst langs en duurt met spellen van
+ * het web minuten; zonder dit blijf je achter met een lijst waarin ergens
+ * stilletjes iets verschoven is. Het blijft staan tot de volgende bijwerking,
+ * ook als je ondertussen een ander onderdeel opent.
+ */
+function UpdateLog({
+  update,
+  language,
+  t,
+}: {
+  update: GameUpdate
+  language: Language
+  t: Translations
+}) {
+  const { changes } = update
+
+  return (
+    <div className="games__log">
+      <p className="micro games__log-head">{t.games.changes}</p>
+      <p className="games__log-meta">
+        {moment(update.at, language)} —{' '}
+        {changes.length === 0
+          ? t.games.changesNone(update.checked)
+          : t.games.changesSome(changes.length, update.checked)}
+      </p>
+
+      {changes.length > 0 && (
+        <ul className="changes">
+          {changes.map((change) => (
+            <li key={change.id} className="change">
+              {/* De naam van ná het bijwerken: daaronder staat de regel nu in
+                  de lijst, en bij een spel van het web kan juist die veranderd
+                  zijn. */}
+              <p className="change__name">{change.after.name}</p>
+              <ul className="change__fields">
+                {change.fields.map((field) => (
+                  <li key={field} className="change__field">
+                    <span className="change__label">{fieldLabel(field, t)}</span>
+                    <span>{fieldText(field, change.before, language, t)}</span>
+                    <span className="change__to">
+                      {fieldText(field, change.after, language, t)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function Games() {
   const { t, language } = useLanguage()
   const [games, setGames] = usePersistentState<Game[]>('games.items', [])
+  // In de gedeelde staat, net als de lijst zelf: een bijwerking duurt lang
+  // genoeg om ondertussen iets anders te doen, en dan hoort het overzicht er
+  // bij terugkomst nog te zijn.
+  const [update, setUpdate] = usePersistentState<GameUpdate | null>('games.lastUpdate', null)
   const [term, setTerm] = useState('')
   // null is "niets van Steam"; een lege lijst is "gezocht, niets gevonden".
   const [hits, setHits] = useState<SearchHit[] | null>(null)
@@ -402,7 +491,18 @@ export function Games() {
     clearMessages()
 
     const fresh = new Map<string, Game>()
+    const changes: GameChange[] = []
     let failed = 0
+
+    /** Houdt bij wat er aan een regel anders werd; onveranderd levert niets op. */
+    function keepChange(id: string, before: Game, after: Game) {
+      fresh.set(id, after)
+      const fields = changedFields(before, after)
+      if (fields.length > 0) {
+        changes.push({ id, before: sideOf(before), after: sideOf(after), fields })
+      }
+    }
+
     for (const game of games) {
       const id = idOf(game)
       try {
@@ -410,13 +510,13 @@ export function Games() {
           const meta = await fetchFromWeb(game.name)
           // Het id blijft van de regel: een spel dat zijn naam anders gaat
           // schrijven hoort geen tweede keer in de lijst te komen.
-          if (meta) fresh.set(id, { ...meta, id, checkedAt: Date.now() })
+          if (meta) keepChange(id, game, { ...meta, id, checkedAt: Date.now() })
           else failed += 1
           continue
         }
 
         const meta = await fetchGame(game.appId as number)
-        fresh.set(id, {
+        keepChange(id, game, {
           ...meta,
           // Wat van het web kwam staat niet bij Steam, dus dat zou hier
           // verdwijnen. Na de 1.0 mag het weg: dan is de vraag beantwoord.
@@ -438,6 +538,9 @@ export function Games() {
     // Op id samenvoegen in plaats van de lijst vervangen: wat je tijdens het
     // ophalen weggooide blijft weg.
     setGames((current) => current.map((game) => fresh.get(idOf(game)) ?? game))
+    // Alleen wat ook echt opgehaald is telt als nagekeken; de melding hieronder
+    // zegt wat er niet lukte, en die regels zijn nog net zo oud als ze waren.
+    setUpdate({ at: Date.now(), checked: fresh.size, changes })
     if (failed > 0) setError(t.games.refreshFailed(failed))
     setRefreshing(false)
   }
@@ -551,6 +654,8 @@ export function Games() {
             </button>
             <p className="games__hint">{t.games.hint}</p>
           </div>
+
+          {update && <UpdateLog update={update} language={language} t={t} />}
         </>
       )}
     </div>

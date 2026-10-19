@@ -403,3 +403,80 @@
   line-height: 1.5;
   color: var(--text-faint);
 }
+
+/* Wat de laatste bijwerking veranderde, onder de knop die hem startte: achter
+   een hairline, zodat het niet als staart van je lijst leest. */
+.games__log {
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.games__log-head {
+  margin: 0 0 0.375rem;
+  color: var(--text-faint);
+}
+
+.games__log-meta {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.changes {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.change {
+  padding: 0.375rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.change__name {
+  margin: 0;
+  font-size: var(--text-size);
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* Per veld één regel: het label, wat het was en wat het nu is. Breken mag —
+   Steam geeft soms tekst in plaats van een datum, en die kan lang zijn. */
+.change__fields {
+  margin: 0.1875rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.change__field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  overflow-wrap: anywhere;
+}
+
+.change__label {
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+}
+
+/* De nieuwe waarde is waar je voor kijkt, dus die krijgt de accentkleur. De
+   pijl staat in de CSS en niet in de tekst, net als in de badge: hij scheidt
+   oud van nieuw en voorgelezen zegt hij niets. */
+.change__to {
+  color: var(--accent);
+}
+
+.change__to::before {
+  content: '→ ';
+}

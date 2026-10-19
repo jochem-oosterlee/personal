@@ -138,6 +138,17 @@ Dit kost een aanroep van Claude met websearch, dus het gebeurt alleen op
 verzoek — en het duurt een halve minuut in plaats van een seconde. Staan er
 spellen van het web in je lijst, dan duurt bijwerken navenant langer.
 
+### Wat er veranderde
+
+Onder de knop staat wat de laatste bijwerking opleverde: per regel alleen de
+velden die anders zijn — naam, status, datum, en wat het web over de volgende
+datum zei — met oud en nieuw naast elkaar. Genre en omschrijving tellen niet
+mee: die herschrijft Steam geregeld en ingeklapt staat er niets van in de
+lijst. Veranderde er niets, dan staat er hoeveel regels er zijn nagekeken; wat
+niet opgehaald kon worden telt daar niet in mee, want die regels zijn nog net
+zo oud als ze waren. Het overzicht blijft staan tot de volgende bijwerking, ook
+als je ondertussen een ander onderdeel opent.
+
 ## Boodschappen
 
 Een lijstje als Taken, zonder deadlines: typen, afvinken, afgevinkte wissen.
@@ -185,6 +196,7 @@ src/
 │  ├─ groceries.ts              praat met /api/extract-groceries
 │  ├─ mail.ts                   praat met /api/mail
 │  ├─ games.ts                  praat met /api/games (Steam en web)
+│  ├─ gamechanges.ts            wat een bijwerking aan de lijst veranderde
 │  ├─ models.ts                 keuze van het model
 │  ├─ autogrow.ts               tekstvelden die meegroeien met hun inhoud
 │  ├─ version.ts                draait dit toestel de laatste build?

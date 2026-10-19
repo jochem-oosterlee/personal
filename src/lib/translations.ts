@@ -208,6 +208,17 @@ const nl = {
       count === 1
         ? '1 spel kon niet worden bijgewerkt; die regel bleef staan.'
         : `${count} spellen konden niet worden bijgewerkt; die regels bleven staan.`,
+    changes: 'Laatste bijwerking',
+    changesNone: (checked: number) =>
+      checked === 1
+        ? '1 regel nagekeken, niets veranderd.'
+        : `${checked} regels nagekeken, niets veranderd.`,
+    changesSome: (count: number, checked: number) =>
+      `${count} van ${checked} nagekeken regels aangepast.`,
+    changeName: 'Naam',
+    changeStatus: 'Status',
+    changeDate: 'Datum',
+    changePlanned: 'Verwacht',
     hint:
       'Steam noemt geen datum voor de 1.0 van een spel in early access, en bij een spel dat nog moet verschijnen blijft het soms bij een jaartal; op het web staat er soms meer — klap zo’n spel open en zoek het op. Bijwerken haalt alles opnieuw op, dus zodra het spel er is verspringt de regel vanzelf.',
   },
@@ -524,6 +535,17 @@ const en: typeof nl = {
       count === 1
         ? '1 game could not be updated; that row was left as it was.'
         : `${count} games could not be updated; those rows were left as they were.`,
+    changes: 'Last update',
+    changesNone: (checked: number) =>
+      checked === 1
+        ? '1 row checked, nothing changed.'
+        : `${checked} rows checked, nothing changed.`,
+    changesSome: (count: number, checked: number) =>
+      `${count} of ${checked} checked rows changed.`,
+    changeName: 'Name',
+    changeStatus: 'Status',
+    changeDate: 'Date',
+    changePlanned: 'Expected',
     hint:
       'Steam gives no date for the 1.0 of a game in early access, and for a game that has yet to appear it sometimes gives no more than a year; the web sometimes says more — open such a game and look it up. Updating fetches everything again, so the row flips by itself once the game is there.',
   },
