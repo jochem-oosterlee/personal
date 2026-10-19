@@ -134,6 +134,16 @@ badge blijft de datum van Steam staan, met eronder een korte aanduiding
 er bij een volgende bijwerking nog niet, dan blijft het staan; is het er
 eenmaal, dan verdwijnt het met de vraag.
 
+Wat er zo bij komt te staan wordt op de datum nagekeken. Een hele datum blijft
+alleen staan als de bron zelf een dag noemt — bij "Q3 2026" of "eind 2026" zou
+die dag erbij verzonnen zijn — en een datum die al geweest is komt er bij een
+spel dat nog moet verschijnen niet in: dan loopt de bron achter, of was het de
+datum van een dlc of een update. Geen datum is daar eerlijker dan een
+verkeerde. Zegt het web precies wat er al in de badge staat — Steam schrijft
+"Coming Q3 2026" en het web vindt "Q3 2026" — dan blijft de aanduiding eronder
+weg; schuift Steam zijn datum op, dan zegt dezelfde vondst weer iets en staat
+hij er weer.
+
 Dit kost een aanroep van Claude met websearch, dus het gebeurt alleen op
 verzoek — en het duurt een halve minuut in plaats van een seconde. Staan er
 spellen van het web in je lijst, dan duurt bijwerken navenant langer.

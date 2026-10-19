@@ -42,8 +42,24 @@ function dateText(game: GameSide, language: Language, t: Translations): string {
   return game.releaseDate || t.games.dateUnknown
 }
 
-/** Wat er op het web over de datum gevonden is, of leeg als er niets staat. */
+/**
+ * Een dag die geweest is, is geen dag waarop iets nog komt. `server/web.js`
+ * houdt zo'n datum tegen voordat hij de lijst in gaat; dit vangt af wat er al
+ * staat, zodat dat niet tot de volgende bijwerking blijft hangen.
+ */
+function passed(iso: string | null | undefined): boolean {
+  if (!iso) return false
+  return iso < new Date().toISOString().slice(0, 10)
+}
+
+/**
+ * Wat er op het web over de datum gevonden is, of leeg als er niets staat. Is
+ * de dag die erbij hoorde geweest, dan staat er niets: dit veld gaat over wat
+ * er nog komt, en dan is de hele vondst achterhaald — niet alleen de dag, ook
+ * de zin eromheen die dezelfde datum noemt.
+ */
 function fullReleaseText(game: GameSide, language: Language): string {
+  if (passed(game.fullReleaseAt)) return ''
   if (game.fullReleaseAt) return dayText(game.fullReleaseAt, language)
   return game.fullRelease ?? ''
 }
@@ -59,10 +75,33 @@ const SHORT_MAX = 14
  * staat het alleen in het uitklapbare stuk.
  */
 function shortReleaseText(game: GameMeta, language: Language): string {
+  if (passed(game.fullReleaseAt)) return ''
   if (game.fullReleaseAt) return dayText(game.fullReleaseAt, language)
   if (game.fullReleaseShort) return game.fullReleaseShort
   const found = game.fullRelease ?? ''
   return found.length <= SHORT_MAX ? found : ''
+}
+
+/** De woorden van een stukje tekst, zonder leestekens en zonder hoofdletters. */
+function words(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+}
+
+/**
+ * Zegt de vondst van het web hetzelfde als de datum die er al staat? Steam
+ * schrijft "Coming Q3 2026" en het web vindt precies dat terug; dan hoort daar
+ * geen tweede "Q3 2026" onder. Vergeleken op woorden en niet op tekens, want
+ * "Coming Q3 2026" en "~Q3 2026" zijn dezelfde mededeling. Alleen in de
+ * weergave: schuift Steam zijn datum op, dan zegt dezelfde vondst ineens wel
+ * iets, en dan staat hij er weer.
+ */
+function echoes(found: string, date: string): boolean {
+  const known = new Set(words(date))
+  const parts = words(found)
+  return parts.length > 0 && parts.every((part) => known.has(part))
 }
 
 /**
@@ -148,7 +187,10 @@ function GameRow({
 }) {
   const [open, setOpen] = useState(false)
   const planned = fullReleaseText(game, language)
-  const shortPlanned = shortReleaseText(game, language)
+  const date = dateText(game, language, t)
+  const found = shortReleaseText(game, language)
+  // Wat de datum hierboven al zegt, hoeft er niet nog een keer onder.
+  const shortPlanned = echoes(found, date) ? '' : found
   const expandable = Boolean(
     game.genre || game.description || planned || (game.links ?? []).length > 0 || canLookUp(game),
   )
@@ -178,7 +220,7 @@ function GameRow({
           */}
           <span className={`game__status game__status--${statusOf(game)}`}>
             <span className="game__status-form">{statusLabel(game, t)}</span>
-            <span className="game__status-date">{dateText(game, language, t)}</span>
+            <span className="game__status-date">{date}</span>
             {shortPlanned && <span className="game__status-planned">{shortPlanned}</span>}
           </span>
         </div>

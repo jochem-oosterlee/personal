@@ -111,6 +111,9 @@ const SYSTEM = [
 - Staat het spel in early access, zoek dan expliciet naar wat de makers over de 1.0 gezegd hebben. Daar is dit lijstje voor.
 - Moet het spel nog verschijnen, zoek dan expliciet naar de precieste datum die de makers zelf noemen: een winkelpagina of een aankondiging noemt vaak een dag waar een overzichtspagina bij een jaartal blijft.
 - Verzin niets en gok niet. Staat een datum er niet, laat hem leeg; "2026" of "eind 2026" mag als dat alles is wat er staat.
+- Kijk goed waar een datum bij hoort. De datum van een dlc, een demo, een console- of pc-versie, een update of een beta is niet de datum waarop het spel zelf verschijnt.
+- Neem geen datum over die al geweest is. Vandaag staat in de vraag. Moet het spel nog verschijnen en vind je een datum die ouder is dan vandaag, dan loopt die bron achter of gaat hij over iets anders: zoek verder naar wat er nu geldt, en laat de datum leeg als je dat niet vindt.
+- Vul datumIso en volledigeReleaseIso alleen als de bron zelf een dag noemt. Bij "Q3 2026", "eind 2026" of "2026" blijven ze leeg — een dag erbij verzinnen maakt het preciezer dan het is.
 - Twijfel je of je het juiste spel te pakken hebt, of levert het zoeken niets op, zet dan gevonden op onwaar.
 - Sluit af met één aanroep van het gereedschap \`spel\`.`,
   },
@@ -152,9 +155,60 @@ function sentences(value, max) {
   return `${(word > 0 ? cut.slice(0, word) : clean.slice(0, max)).trim()}…`
 }
 
+/** Vandaag, in dezelfde vorm als waarin het model een datum teruggeeft. */
+function today() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 function isoDate(value) {
   const clean = text(value, 10)
-  return /^\d{4}-\d{2}-\d{2}$/.test(clean) ? clean : null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(clean)) return null
+  // Door de vorm komt ook een dag die niet bestaat ("2026-02-31"). Een datum
+  // die niet op de kalender staat is geen datum, dus die valt hier weg.
+  const date = new Date(`${clean}T00:00:00Z`)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toISOString().slice(0, 10) === clean ? clean : null
+}
+
+/**
+ * Een hele datum blijft alleen staan als de bron zelf een dag noemt. Bij "Q3
+ * 2026" of "eind 2026" heeft niemand een dag genoemd en is die in `datumIso`
+ * erbij verzonnen; dan staat er een precisie in de lijst die nergens vandaan
+ * komt. Vergeleken op de getallen, want de bron schrijft de maand in zijn eigen
+ * taal.
+ */
+function dayNamed(iso, source) {
+  if (!iso) return null
+
+  const numbers = String(source ?? '')
+    // "Q3" en "1.0" zijn geen dag van de maand; zonder dit maakt de 3 of de 1
+    // daarin de dag uit `iso` waar.
+    .replace(/\b[qh]\s*[1-4]\b/gi, ' ')
+    .replace(/\b\d+\.\d+\b/g, ' ')
+    .match(/\d+/g)
+  if (!numbers) return null
+
+  const [year, , day] = iso.split('-')
+  return numbers.includes(year) && numbers.some((n) => Number(n) === Number(day)) ? iso : null
+}
+
+/** De kwartalen op hun laatste dag: zo ver reikt "Q3 2026" nog. */
+const QUARTER_END = ['03-31', '06-30', '09-30', '12-31']
+
+/**
+ * Ligt deze datum nog voor ons? Een hele datum telt op de dag, een kwartaal tot
+ * zijn laatste dag en een jaartal tot oudejaarsdag — "Q3 2026" is in oktober
+ * geweest, "2026" pas na de jaarwisseling. Noemt de bron geen jaar, dan valt er
+ * niets te vergelijken en blijft de datum staan.
+ */
+function ahead(when, iso, now) {
+  if (iso) return iso >= now
+
+  const year = String(when ?? '').match(/\b(?:19|20)\d{2}\b/)
+  if (!year) return true
+
+  const quarter = String(when).match(/\bq\s*([1-4])\b/i)
+  return `${year[0]}-${quarter ? QUARTER_END[Number(quarter[1]) - 1] : '12-31'}` >= now
 }
 
 /** Alleen http(s), en de titel valt terug op het domein: dat zegt genoeg. */
@@ -195,15 +249,38 @@ function shape(input, term) {
   // en dat leest als een echt spel.
   if (input?.gevonden !== true) return null
 
+  const now = today()
   const name = text(input.naam, 120) || term
   const short = text(input.volledigeReleaseKort, 40)
   const status = text(input.status, 20).toLowerCase()
   const earlyAccess = status === 'early-access'
   const released = status === 'uitgebracht'
+  // Een status die we niet kennen wordt "komt nog": dat is de zachtste van de
+  // drie beweringen, en "uitgebracht" is er een die je zou natrekken.
+  const comingSoon = !earlyAccess && !released
   const links = (Array.isArray(input.links) ? input.links : [])
     .map(link)
     .filter(Boolean)
     .slice(0, MAX_LINKS)
+
+  // De datum van het spel zelf. Bij early access en na de 1.0 hoort die in het
+  // verleden — dat is wanneer het speelbaar werd — maar bij een spel dat er nog
+  // niet is betekent een verstreken datum dat de bron achterloopt, of dat het
+  // de datum van iets anders is. Geen datum is dan eerlijker dan een die al
+  // geweest is.
+  const when = text(input.datum, 60)
+  const whenAt = dayNamed(isoDate(input.datumIso), when)
+  const dated = !comingSoon || ahead(when, whenAt, now)
+
+  // De 1.0 van early access moet per definitie nog komen, dus daar geldt
+  // hetzelfde zonder uitzondering. De zin van de makers blijft wel staan: die
+  // vertelt mét bron wat er gezegd is, ook als het inmiddels achterhaald is.
+  // Alleen de datum eronder zou een belofte doen die niemand meer doet.
+  const full = earlyAccess ? sentences(input.volledigeRelease, FULL_RELEASE_MAX) : ''
+  const fullAt = earlyAccess
+    ? dayNamed(isoDate(input.volledigeReleaseIso), `${short} ${full}`)
+    : null
+  const fullAhead = ahead(short, fullAt, now)
 
   return {
     id: `web:${slug(name)}`,
@@ -212,24 +289,22 @@ function shape(input, term) {
     genre: text(input.genre, 80),
     description: text(input.omschrijving, 300),
     earlyAccess,
-    // Een status die we niet kennen wordt "komt nog": dat is de zachtste van de
-    // drie beweringen, en "uitgebracht" is er een die je zou natrekken.
-    comingSoon: !earlyAccess && !released,
+    comingSoon,
     released,
-    releaseDate: text(input.datum, 60),
-    releaseAt: isoDate(input.datumIso),
+    releaseDate: dated ? when : '',
+    releaseAt: dated ? whenAt : null,
     // Na de 1.0 zegt een 1.0-datum niets meer, en voor een spel dat nog moet
     // verschijnen is het gewoon de releasedatum die hierboven al staat.
     // Dit is zelden een datum en meestal een zin van de makers ("blijft nog
     // zeker tot eind 2026 in early access"). Een ruimer dak dan de omschrijving
     // dus, en eentje dat op een punt valt: bij 300 tekens eindigde het verhaal
     // middenin een woord.
-    fullRelease: earlyAccess ? sentences(input.volledigeRelease, FULL_RELEASE_MAX) : '',
-    fullReleaseAt: earlyAccess ? isoDate(input.volledigeReleaseIso) : null,
+    fullRelease: full,
+    fullReleaseAt: fullAhead ? fullAt : null,
     // De korte vorm hoort in de badge te passen. Afknippen helpt daar niet — dan
     // staat er een halve zin — dus wat te lang is valt weg; de zin hierboven
     // heeft het dan alsnog.
-    fullReleaseShort: earlyAccess && short.length <= SHORT_MAX ? short : '',
+    fullReleaseShort: earlyAccess && fullAhead && short.length <= SHORT_MAX ? short : '',
     // De eerste link is de plek waar je heen wilt; die hangt de app aan de naam.
     storeUrl: links[0]?.url ?? '',
     links,
@@ -241,8 +316,7 @@ function shape(input, term) {
  * web niets bruikbaars opleverde — dat is geen storing.
  */
 export async function webGame(term) {
-  const today = new Date().toISOString().slice(0, 10)
-  const question = `Vandaag is ${today}. Zoek op wat er bekend is over het spel "${term}".`
+  const question = `Vandaag is ${today()}. Zoek op wat er bekend is over het spel "${term}".`
 
   const data = await ask({
     model: MODEL,

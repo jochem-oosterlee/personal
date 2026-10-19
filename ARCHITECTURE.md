@@ -218,6 +218,23 @@ worden op `http(s)` nagekeken voordat ze in een kaart belanden. Omdat dit op
 verzoek een halve minuut duurt en per keer betaalt, gebeurt het nooit vanzelf —
 Steam blijft de eerste weg, het web de tweede.
 
+**Een datum die niet klopt is erger dan geen datum.** Het web leverde bij een
+spel dat er nog niet is een dag op die al geweest was — een aankondiging van
+een dlc, of een release die verschoven is. `server/web.js` kijkt er daarom drie
+keer naar: een hele datum moet op de kalender bestaan, hij blijft alleen staan
+als de bron zelf een dag noemt (bij "Q3 2026" is die erbij verzonnen, en het
+getal telt, want de bron schrijft de maand in zijn eigen taal), en een datum
+die verstreken is vervalt — bij een spel dat nog moet verschijnen, en bij de
+1.0 van early access die per definitie nog komt. Met een hele datum op de dag,
+anders op het kwartaal of het jaartal, want "Q3 2026" is in oktober geweest.
+De zin van de makers blijft wel staan: die heeft zijn bron erbij en vertelt wat
+er gezegd is. In de badge laat `Games.tsx` een vondst weg zodra elk woord ervan
+al in de datum van de regel staat — Steam zegt "Coming Q3 2026", het web vindt
+"Q3 2026" — en toont hij een dag die voorbij is niet meer, zodat wat er al
+stond niet tot de volgende bijwerking blijft hangen. De datum van de regel zelf
+blijft wel van Steam, ook als die verstreken is: dat is Steam's eigen gegeven,
+en bijwerken vangt het op.
+
 **Een spel heet niet meer naar zijn app-id.** Een regel van het web heeft er
 geen, dus is het id nu `steam:<app-id>` of `web:<naam>`; wat er al stond kwam
 van Steam en krijgt dat voorvoegsel in een eenmalige verhuizing. Bij bijwerken
